@@ -1,4 +1,4 @@
-# Rozliczenia Warsztatów v3 — prototyp
+# Rozliczenia Warsztatów v3.1 — prototyp
 
 Wersja testowa przygotowana pod GitHub Pages.
 
@@ -21,3 +21,7 @@ Najważniejsze zmiany:
 - raport miesięczny i eksport.
 
 WAŻNE: to nadal wersja demonstracyjna oparta o localStorage. Nie przechowuj w niej docelowo prawdziwych danych dzieci/rodziców. Wersja produkcyjna powinna mieć logowanie i bazę danych na prywatnym serwerze.
+
+
+## Wersja 3.1
+Na ekranie głównym i w nagłówku aplikacji widoczny jest numer wersji, aby łatwo sprawdzić, czy GitHub Pages załadował najnowsze pliki.
