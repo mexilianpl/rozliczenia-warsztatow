@@ -1,11 +1,11 @@
 
-const VERSION="4.4";
+const VERSION="4.5";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
 const days=["Poniedziałek","Wtorek","Środa","Czwartek","Piątek"];
 const times=["13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"];
-let data=JSON.parse(localStorage.getItem("rw44")||"null")||{
+let data=JSON.parse(localStorage.getItem("rw45")||"null")||{
  children:[
  {id:1,last:"Kolasa",first:"Nikola",sex:"Dziewczynka",class:"4A",school:"SP 162",club:"Tak",parent:"Łukasz Kolasa",phone:"50340488",email:"mexilianpl@gmail.com",classes:[
   {id:11,type:"Rękodzieło",day:"Wtorek",time:"15:00",school:"SP 162",price:155,discount:0,status:"brak"},
@@ -14,7 +14,7 @@ let data=JSON.parse(localStorage.getItem("rw44")||"null")||{
  {id:3,last:"Nowak",first:"Maja",sex:"Dziewczynka",class:"3B",school:"SP 162",club:"Tak",parent:"",phone:"",email:"",classes:[{id:31,type:"Artystyczne",day:"Wtorek",time:"15:30",school:"SP 162",price:155,discount:100,status:"bezplatne"}]}
  ],payments:[],income:[]};
 let page="start"; const app=document.querySelector("#app"), nav=document.querySelector("#nav");
-function save(){localStorage.setItem("rw44",JSON.stringify(data))}
+function save(){localStorage.setItem("rw45",JSON.stringify(data))}
 function money(v){return Number(v||0).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})+" zł"}
 function dueClass(c){return c.status==="bezplatne"?0:Math.max(0,c.price*(1-(c.discount||0)/100))}
 function childDue(ch){return ch.classes.reduce((s,c)=>s+dueClass(c),0)}
@@ -60,13 +60,109 @@ function openChild(id){page="children";render();setTimeout(()=>editChild(id),0)}
 function payments(){let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0),inc=data.income.reduce((s,p)=>s+Number(p.amount),0);
  app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Wpłaty</h2><div class="summary"><div class="stat">Należne<b>${money(due)}</b></div><div class="stat">Wpłaty dzieci<b>${money(paid)}</b></div><div class="stat">Dodatkowe przychody<b>${money(inc)}</b></div><div class="stat">Razem wpływy<b>${money(paid+inc)}</b></div></div>
  <div class="card"><h2>Dodaj wpłatę</h2><div class="search"><input id="paySearch" placeholder="Szukaj dziecka..." oninput="payHints(this.value)"></div><div id="payHints"></div><button class="primary" onclick="addPayment()">+ Dodaj wpłatę ręcznie</button></div>
- <div class="card"><h2>Import wpłat ze screena</h2><p class="muted">Dodaj zrzut ekranu z aplikacji bankowej. W wersji GitHub Pages obraz jest analizowany lokalnie tylko jako plik do ręcznej weryfikacji — bez wysyłania danych na serwer.</p><div class="drop" onclick="screenInput.click()">📷<h3>Dodaj zrzut ekranu</h3><div>PNG, JPG, HEIC</div></div><button class="dark" onclick="screenInput.click()">Import wpłat ze screena</button></div>
+ <div class="card"><h2>Import wpłat ze screena</h2><p class="muted">Dodaj zrzut ekranu z aplikacji bankowej. Aplikacja spróbuje lokalnie odczytać daty, nadawców, tytuły i kwoty, a potem pokaże ekran weryfikacji.</p><div class="drop" onclick="screenInput.click()">📷<h3>Dodaj zrzut ekranu</h3><div>PNG lub JPG</div></div><button class="dark" onclick="screenInput.click()">📷 Rozpoznaj wpłaty ze screena</button><div id="ocrStatus"></div></div>
  <div class="card"><h2>Lista wpłat</h2>${data.payments.map(p=>`<div class="classrow"><b>${p.child}</b><div>${money(p.amount)} • ${p.month} • ${p.date||""}</div><button class="danger" onclick="deletePayment(${p.id})">Usuń</button></div>`).join("")||'<div class="muted">Brak wpłat.</div>'}</div>`}
 function payHints(q){q=q.toLowerCase();payHints.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)&&q).map(c=>`<button class="soft" onclick="addPayment(${c.id})">${c.last} ${c.first}</button>`).join("")}
 function addPayment(cid){let ch=data.children.find(c=>c.id==cid);modal(`<h2>Dodaj wpłatę</h2><label>Dziecko</label><select id="pChild">${data.children.map(c=>`<option value="${c.id}" ${c.id==cid?"selected":""}>${c.last} ${c.first}</option>`).join("")}</select><div class="grid2"><div><label>Miesiąc</label><select id="pMonth">${opt(months,"Wrzesień")}</select></div><div><label>Kwota</label><input id="pAmount" type="number"></div></div><label>Data</label><input id="pDate" type="date"><label>Tytuł / uwagi</label><input id="pNote"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="savePayment()">Zapisz</button></div>`)}
 function savePayment(){let ch=data.children.find(c=>c.id==pChild.value);data.payments.push({id:Date.now(),childId:ch.id,child:ch.last+" "+ch.first,month:pMonth.value,amount:+pAmount.value,date:pDate.value,note:pNote.value});ch.classes.forEach(c=>c.status="oplacone");save();closeModal();render()}
 function deletePayment(id){if(confirm("Usunąć wpłatę?")){data.payments=data.payments.filter(p=>p.id!=id);save();render()}}
-screenInput.onchange=e=>{let f=e.target.files[0];if(!f)return;modal(`<h2>Import ze screena</h2><div class="notice">Wybrano: <b>${f.name}</b></div><p>GitHub Pages nie ma bezpiecznego OCR ani dostępu do banku. Dlatego przed zapisaniem wpłaty wybierz dziecko i wpisz rozpoznaną kwotę ręcznie. To zapobiega błędnemu przypisaniu przelewu.</p><button class="primary" onclick="closeModal();addPayment()">Przejdź do weryfikacji wpłaty</button>`)};
+
+function normalizeOCR(s){return (s||"").replace(/\u00a0/g," ").replace(/[|]/g,"I").replace(/\s+/g," ").trim()}
+function parseMoney(s){
+  let m=(s||"").match(/(\d{1,4}(?:[ .]\d{3})*[,.]\d{2})\s*(?:PLN|zł)?/i);
+  if(!m)return null;
+  return Number(m[1].replace(/[ .](?=\d{3}(?:[,.]|$))/g,"").replace(",","."));
+}
+function parseDate(s){
+  let m=(s||"").match(/\b([0-3]?\d)[.\/-]([01]?\d)[.\/-](20\d{2})\b/);
+  if(!m)return "";
+  return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
+}
+function probableName(line){
+  let cleaned=line.replace(/\d[\d\s,.]*\s*(PLN|zł)?/ig,"").replace(/PRZELEW.*$/i,"").trim();
+  let words=cleaned.split(/\s+/).filter(w=>/^[A-ZĄĆĘŁŃÓŚŹŻ-]{2,}$/.test(w));
+  if(words.length>=2)return words.slice(0,4).join(" ");
+  return "";
+}
+function bestChildMatch(text){
+  let low=(text||"").toLowerCase(),best=null,score=0;
+  data.children.forEach(c=>{
+    let s=0, last=(c.last||"").toLowerCase(), first=(c.first||"").toLowerCase(), parent=(c.parent||"").toLowerCase();
+    if(last&&low.includes(last))s+=6;
+    if(first&&low.includes(first))s+=4;
+    parent.split(/\s+/).filter(x=>x.length>2).forEach(x=>{if(low.includes(x))s+=2});
+    if(s>score){score=s;best=c}
+  });
+  return score?{child:best,score}:null;
+}
+function parseBankOCR(text){
+  let raw=(text||"").split(/\n+/).map(x=>normalizeOCR(x)).filter(Boolean);
+  let dates=[],currentDate="",tx=[];
+  for(let i=0;i<raw.length;i++){
+    let line=raw[i],d=parseDate(line);
+    if(d){currentDate=d;dates.push(d);continue}
+    let amount=parseMoney(line);
+    if(amount!==null){
+      let block=[raw[i-2]||"",raw[i-1]||"",line,raw[i+1]||"",raw[i+2]||""].join(" ");
+      tx.push({id:Date.now()+i,date:currentDate,amount,raw:block,name:probableName(line)||probableName(raw[i-1]||""),match:bestChildMatch(block)});
+    }
+  }
+  // deduplicate same amount + neighboring repeated OCR
+  let seen=new Set();
+  return tx.filter(t=>{let k=`${t.date}|${t.amount}|${t.name}`; if(seen.has(k))return false; seen.add(k); return true});
+}
+function showOCRReview(items,fileName){
+  if(!items.length){
+    modal(`<h2>Nie udało się rozpoznać wpłat</h2><div class="notice">Plik: <b>${fileName}</b></div><p>Spróbuj zrobić screen tak, aby były widoczne całe wiersze: data, nadawca/tytuł i kwota. Możesz też przyciąć górny pasek telefonu.</p><div class="actions"><button class="soft" onclick="closeModal()">Zamknij</button><button class="dark" onclick="closeModal();screenInput.click()">Spróbuj inny screen</button></div>`);
+    return;
+  }
+  let childrenOpts=data.children.map(c=>`<option value="${c.id}">${c.last} ${c.first}</option>`).join("");
+  modal(`<h2>Weryfikacja rozpoznanych wpłat</h2><div class="notice">Rozpoznano <b>${items.length}</b> pozycji. Nic nie zostanie zapisane bez zatwierdzenia.</div>
+  <div id="ocrReview">${items.map((t,idx)=>`<div class="ocrLine">
+    <h4>${t.name||"Niepewny nadawca"} — ${money(t.amount)}</h4>
+    <div class="muted">${t.date||"brak daty"}<br>${t.raw}</div>
+    <div class="ocrGrid">
+      <div><label>Przypisz do dziecka</label><select id="ocrChild${idx}"><option value="">— wybierz —</option>${childrenOpts}</select></div>
+      <div><label>Miesiąc</label><select id="ocrMonth${idx}">${months.map(m=>`<option>${m}</option>`).join("")}</select></div>
+    </div>
+    <div class="${t.match?'ocrOk':'ocrWarn'}">${t.match?`Propozycja: ${t.match.child.last} ${t.match.child.first}`:"Nie znaleziono pewnego dopasowania"}</div>
+  </div>`).join("")}</div>
+  <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick='saveOCRPayments(${JSON.stringify(items).replace(/'/g,"&#39;")})'>Zapisz zaznaczone wpłaty</button></div>`);
+  items.forEach((t,idx)=>{if(t.match)document.querySelector(`#ocrChild${idx}`).value=t.match.child.id});
+}
+function saveOCRPayments(items){
+  let saved=0;
+  items.forEach((t,idx)=>{
+    let cid=Number(document.querySelector(`#ocrChild${idx}`).value||0);
+    if(!cid)return;
+    let ch=data.children.find(c=>c.id==cid),month=document.querySelector(`#ocrMonth${idx}`).value;
+    data.payments.push({id:Date.now()+idx,childId:cid,child:ch.last+" "+ch.first,month,amount:t.amount,date:t.date||"",note:"Import OCR ze screena"});
+    // do not blindly mark every class paid if multiple classes exist; only if total payment covers all current due
+    if(t.amount>=childDue(ch)) ch.classes.forEach(c=>{if(c.status!=="bezplatne")c.status="oplacone"});
+    saved++;
+  });
+  save(); closeModal(); render(); alert(`Zapisano ${saved} wpłat.`);
+}
+screenInput.onchange=async e=>{
+  let f=e.target.files[0]; if(!f)return;
+  if(typeof Tesseract==="undefined"){alert("Nie udało się załadować modułu OCR. Sprawdź internet i odśwież stronę.");return}
+  modal(`<h2>Rozpoznawanie screena</h2><div class="notice">Plik: <b>${f.name}</b></div><p id="ocrMsg">Uruchamiam OCR…</p><div class="ocrProgress"><div id="ocrBar"></div></div><p class="muted">Pierwsze uruchomienie może potrwać kilkanaście–kilkadziesiąt sekund.</p>`);
+  try{
+    const result=await Tesseract.recognize(f,'eng',{
+      logger:m=>{
+        let bar=document.querySelector("#ocrBar"),msg=document.querySelector("#ocrMsg");
+        if(bar&&m.progress!=null)bar.style.width=Math.round(m.progress*100)+"%";
+        if(msg)msg.textContent=m.status?`${m.status} ${m.progress!=null?Math.round(m.progress*100)+"%":""}`:"Rozpoznaję…";
+      }
+    });
+    let text=result.data.text||"";
+    let items=parseBankOCR(text);
+    closeModal(); showOCRReview(items,f.name);
+  }catch(err){
+    closeModal();
+    modal(`<h2>Błąd OCR</h2><p>${String(err.message||err)}</p><p class="muted">Sprawdź połączenie z internetem i spróbuj ponownie.</p><button class="soft" onclick="closeModal()">Zamknij</button>`);
+  }finally{e.target.value=""}
+};
 function income(){app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Dodatkowe przychody</h2><button class="primary" onclick="addIncome()">+ Dodaj przychód</button><div class="card">${data.income.map(i=>`<div class="classrow"><b>${i.title}</b><div>${money(i.amount)} • ${i.date}</div></div>`).join("")||"Brak dodatkowych przychodów."}</div>`}
 function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input id="iTitle"><label>Kwota</label><input id="iAmount" type="number"><label>Data</label><input id="iDate" type="date"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="data.income.push({id:Date.now(),title:iTitle.value,amount:+iAmount.value,date:iDate.value});save();closeModal();render()">Zapisz</button></div>`)}
 function groups(){app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card"><label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select><label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select><label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select><div class="actions"><button class="dark" onclick="window.print()">Drukuj listę wyselekcjonowanych nazwisk</button></div></div><div id="gList"></div>`;groupList()}
@@ -74,5 +170,5 @@ function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.
 function reports(){app.innerHTML=`<div class="eyebrow">RAPORTY</div><h2 class="title">Raporty</h2><div class="card"><button class="dark" onclick="window.print()">Drukuj bieżący widok</button><p class="muted">Dane są zapisane lokalnie w tej przeglądarce.</p></div>`}
 function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>4.4</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="card"><p>Moduł przygotowany do dalszego połączenia z formularzem zgłoszeń.</p></div>`}
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v44.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v45.json";a.click()}
 render();

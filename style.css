@@ -18,3 +18,13 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .notice{padding:13px;border-radius:16px;background:#eef8fb;margin:12px 0}
 @media(max-width:520px){.top{padding:18px 5%}.top h1{font-size:23px}.title{font-size:34px}.grid2{grid-template-columns:1fr}.summary{grid-template-columns:1fr 1fr}.card{padding:17px}.status{float:none;display:block;margin:4px 0}}
 @media print{.top,nav,button,.search{display:none!important}body{background:white;padding:0}.card{break-inside:avoid;border:0}.print-hide{display:none!important}}
+
+/* v4.5 OCR */
+.ocrProgress{margin-top:14px;background:#eef4f8;border-radius:999px;overflow:hidden;height:14px}
+.ocrProgress>div{height:100%;width:0;background:var(--teal);transition:width .2s}
+.ocrLine{border:1px solid var(--line);border-radius:18px;padding:14px;margin:10px 0;background:#fff}
+.ocrLine h4{margin:0 0 5px;color:var(--blue)}
+.ocrGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.ocrWarn{color:var(--red);font-weight:800}
+.ocrOk{color:var(--green);font-weight:800}
+@media(max-width:520px){.ocrGrid{grid-template-columns:1fr}}
