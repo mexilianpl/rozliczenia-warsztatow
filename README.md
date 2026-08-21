@@ -1,26 +1,30 @@
-# Rozliczenia Warsztatów v4.0
+# Rozliczenia Warsztatów v4.3
 
-Wersja demonstracyjna pod GitHub Pages.
+Ta paczka została wygenerowana od nowa, niezależnie od v4.0.
 
-## Najważniejsze zmiany v4
-- widoczny numer wersji,
-- prosty status tekstowy: BRAK WPŁATY / WPŁACONO / BEZPŁATNE,
-- suma „Do zapłaty” na karcie dziecka,
+## Jak rozpoznać, że wgrana jest dobra wersja
+Na każdej stronie w nagłówku powinno być:
+**Wersja 4.3 • 21.08.2026**
+
+Na ekranie głównym dodatkowo jest plakietka:
+**v4.3**
+
+Pliki CSS i JS mają zupełnie nowe nazwy:
+- `style-v43.css`
+- `app-v43.js`
+
+Dzięki temu przeglądarka nie powinna używać starych plików z cache.
+
+## Najważniejsze zmiany
+- podsumowanie miesiąca w 4 kafelkach 2×2,
+- szybkie wyszukiwanie dziecka jest klikalne,
+- kliknięcie otwiera profil dziecka i historię wpłat,
+- statusy bez chmurek:
+  - WPŁACONO — zielony tekst,
+  - BRAK WPŁATY — czerwony tekst,
+  - BEZPŁATNE/CHARYTATYWNE — turkusowy tekst,
+- filtrowanie grup: szkoła + dzień + godzina,
+- wydruk wyłącznie wyfiltrowanej listy,
 - wiele zajęć na jedno dziecko,
-- osobny rabat i status dla każdych zajęć,
-- wspólny płatnik / rodzina dla rodzeństwa,
-- historia wpłat dziecka,
-- ręczna korekta statusu,
-- edycja/usuwanie wpłat,
-- wyszukiwarka dziecka w oknie wpłaty,
-- dodatkowe przychody,
-- zaległości + kopiowanie przypomnienia,
-- frekwencja w grupach,
-- status dziecka Aktywny/Nieaktywny,
-- statusy zgłoszeń z formularza,
-- Grupy: Szkoła + Dzień + Godzina,
-- druk tylko wyfiltrowanej listy,
-- raport: należne / wpłacone / zaległe / dodatkowe / wpływy razem.
-
-## Ważne
-To nadal wersja testowa oparta o localStorage. Nie używaj jej jako docelowego systemu do prawdziwych danych osobowych. Wersja produkcyjna powinna mieć logowanie i bazę danych na prywatnym serwerze.
+- rabaty i statusy cen dla każdego zapisu,
+- dodatkowe przychody.
