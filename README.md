@@ -1,27 +1,26 @@
-# Rozliczenia Warsztatów v3.1 — prototyp
+# Rozliczenia Warsztatów v4.0
 
-Wersja testowa przygotowana pod GitHub Pages.
+Wersja demonstracyjna pod GitHub Pages.
 
-Najważniejsze zmiany:
-- jedno dziecko może mieć wiele zapisów na różne zajęcia,
-- każde zajęcia mają własną cenę, rabat i status rozliczenia,
-- rabat: brak / 5 / 10 / 15 / własny procent,
-- status: Płatne / Bezpłatne / Charytatywne / Indywidualna cena,
-- bezpłatne dzieci są liczone w statystykach, ale nie jako zalegające,
-- ręczna korekta Wpłacono / Nie wpłacono,
-- edycja i usuwanie wpłat,
+## Najważniejsze zmiany v4
+- widoczny numer wersji,
+- prosty status tekstowy: BRAK WPŁATY / WPŁACONO / BEZPŁATNE,
+- suma „Do zapłaty” na karcie dziecka,
+- wiele zajęć na jedno dziecko,
+- osobny rabat i status dla każdych zajęć,
+- wspólny płatnik / rodzina dla rodzeństwa,
+- historia wpłat dziecka,
+- ręczna korekta statusu,
+- edycja/usuwanie wpłat,
 - wyszukiwarka dziecka w oknie wpłaty,
-- pola wyboru z list zarządzanych w sekcji Listy,
-- Grupy: Szkoła + Dzień + Godzina,
-- wydruk tylko wyfiltrowanej listy w kolejności:
-  Nazwisko, Imię, Klasa, Świetlica, Rodzaj zajęć, Dzień, Godzina, Szkoła,
 - dodatkowe przychody,
-- lipiec i sierpień,
-- import Fluent Forms z kontrolą duplikatu dziecka,
-- raport miesięczny i eksport.
+- zaległości + kopiowanie przypomnienia,
+- frekwencja w grupach,
+- status dziecka Aktywny/Nieaktywny,
+- statusy zgłoszeń z formularza,
+- Grupy: Szkoła + Dzień + Godzina,
+- druk tylko wyfiltrowanej listy,
+- raport: należne / wpłacone / zaległe / dodatkowe / wpływy razem.
 
-WAŻNE: to nadal wersja demonstracyjna oparta o localStorage. Nie przechowuj w niej docelowo prawdziwych danych dzieci/rodziców. Wersja produkcyjna powinna mieć logowanie i bazę danych na prywatnym serwerze.
-
-
-## Wersja 3.1
-Na ekranie głównym i w nagłówku aplikacji widoczny jest numer wersji, aby łatwo sprawdzić, czy GitHub Pages załadował najnowsze pliki.
+## Ważne
+To nadal wersja testowa oparta o localStorage. Nie używaj jej jako docelowego systemu do prawdziwych danych osobowych. Wersja produkcyjna powinna mieć logowanie i bazę danych na prywatnym serwerze.

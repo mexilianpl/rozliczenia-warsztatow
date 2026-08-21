@@ -4,27 +4,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b3b69">
-<title>Rozliczenia Warsztatów v3</title>
+<title>Rozliczenia Warsztatów v4.0</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
-  <div><small>RĘKODZIEŁO Z PASJĄ</small><h1>Rozliczenia Warsztatów</h1><div class="versionBadge">Wersja 3.1 • 21.08.2026</div></div>
+  <div>
+    <small>RĘKODZIEŁO Z PASJĄ</small>
+    <h1>Rozliczenia Warsztatów</h1>
+    <div class="versionBadge">Wersja 4.0 • 21.08.2026</div>
+  </div>
   <button id="backupBtn" class="ghost">Kopia</button>
 </header>
 
 <main>
 <section class="view active" data-view="start">
-  <div class="hero"><small>PANEL GŁÓWNY</small><div class="heroVersion">v3.1</div><h2>Rozliczenia 2026/2027</h2><p>Dzieci, wiele zajęć na jedno dziecko, rabaty, bezpłatne miejsca, wpłaty i listy grup.</p></div>
+  <div class="hero"><small>PANEL GŁÓWNY</small><div class="heroVersion">v4.0</div><h2>Rozliczenia 2026/2027</h2><p>Dzieci, wiele zajęć na jedno dziecko, rodziny, rabaty, bezpłatne miejsca, wpłaty i listy grup.</p></div>
   <div class="stats" id="stats"></div>
   <div class="card">
-    <div class="grid2"><label>Miesiąc<select id="dashMonth"></select></label><label>Szkoła<select id="dashSchool"><option value="">Wszystkie szkoły</option></select></label></div>
+    <div class="grid2">
+      <label>Miesiąc<select id="dashMonth"></select></label>
+      <label>Szkoła<select id="dashSchool"><option value="">Wszystkie szkoły</option></select></label>
+    </div>
     <div id="dashSummary"></div>
   </div>
   <div class="card">
     <h3>Szybkie wyszukiwanie dziecka</h3>
     <input id="quickSearch" placeholder="Wpisz pierwsze litery nazwiska…">
     <div id="quickResults" class="list compactList"></div>
+  </div>
+  <div class="card">
+    <div class="sectionMiniHead"><h3>Zaległości w miesiącu</h3><button id="copyReminderBtn" class="ghost mini">Kopiuj przypomnienie</button></div>
+    <div id="arrearsList"></div>
   </div>
 </section>
 
@@ -36,9 +47,15 @@
 
 <section class="view" data-view="payments">
  <div class="sectionHead"><div><small>ROZLICZENIA</small><h2>Wpłaty</h2></div><button id="addPaymentBtn" class="primary">+ Wpłata</button></div>
- <div class="filters"><select id="paymentMonth"></select><input id="paymentSearch" placeholder="Szukaj dziecka…"></div>
+ <div class="filters"><select id="paymentMonth"></select><input id="paymentSearch" placeholder="Szukaj dziecka / rodzica…"></div>
  <div id="paymentsList" class="list"></div>
- <div class="card"><h3>Import wpłat</h3><p class="muted">W tej wersji możesz wkleić tekst/CSV z banku. Import bezpośrednio ze screena przygotujemy w wersji serwerowej.</p><textarea id="bankPaste" rows="5" placeholder="Wklej operacje bankowe…"></textarea><button id="analyzeBank" class="secondary">Analizuj</button><div id="bankPreview"></div></div>
+ <div class="card">
+   <h3>Import wpłat z banku</h3>
+   <p class="muted">Wklej tekst/CSV operacji. System proponuje dopasowanie, ale niczego nie księguje bez zatwierdzenia.</p>
+   <textarea id="bankPaste" rows="6" placeholder="Wklej operacje bankowe…"></textarea>
+   <button id="analyzeBank" class="secondary">Analizuj</button>
+   <div id="bankPreview"></div>
+ </div>
 </section>
 
 <section class="view" data-view="income">
@@ -49,19 +66,35 @@
 
 <section class="view" data-view="imports">
  <div class="sectionHead"><div><small>WORDPRESS</small><h2>Zapisy</h2></div></div>
- <div class="card"><h3>Import Fluent Forms</h3><textarea id="formPaste" rows="8" placeholder="Wklej nagłówki CSV i rekordy…"></textarea><button id="parseForm" class="primary">Rozpoznaj zgłoszenia</button><div id="formPreview"></div></div>
+ <div class="card">
+   <h3>Import Fluent Forms</h3>
+   <textarea id="formPaste" rows="8" placeholder="Wklej nagłówki CSV i rekordy…"></textarea>
+   <button id="parseForm" class="primary">Rozpoznaj zgłoszenia</button>
+   <div id="formPreview"></div>
+ </div>
+ <div class="card">
+   <h3>Statusy zgłoszeń</h3>
+   <div id="applicationsList"></div>
+ </div>
 </section>
 
 <section class="view" data-view="groups">
  <div class="sectionHead"><div><small>LISTY</small><h2>Grupy i listy</h2></div><button id="printGroup" class="secondary">🖨 Drukuj listę</button></div>
- <div class="filters3"><select id="groupSchool"><option value="">Wszystkie szkoły</option></select><select id="groupDay"><option value="">Wszystkie dni</option></select><select id="groupTime"><option value="">Wszystkie godziny</option></select></div>
+ <div class="filters3">
+   <select id="groupSchool"><option value="">Wszystkie szkoły</option></select>
+   <select id="groupDay"><option value="">Wszystkie dni</option></select>
+   <select id="groupTime"><option value="">Wszystkie godziny</option></select>
+ </div>
+ <div class="card">
+   <div class="sectionMiniHead"><h3>Frekwencja</h3><span class="muted">kliknij przy dziecku: obecny / nieobecny</span></div>
+ </div>
  <div id="printHeader" class="printHeader"></div>
  <div id="groupsList" class="list"></div>
 </section>
 
 <section class="view" data-view="reports">
  <div class="sectionHead"><div><small>RAPORTY</small><h2>Statystyki</h2></div></div>
- <div class="card"><h3>Wpłaty i przychody miesiąc po miesiącu</h3><div id="yearReport"></div></div>
+ <div class="card"><h3>Finanse miesiąc po miesiącu</h3><div id="yearReport"></div></div>
  <div class="card"><h3>Uczestnicy według zajęć</h3><div id="workshopReport"></div></div>
  <div class="card"><h3>Kopia danych</h3><button id="exportCsv" class="secondary">Eksport CSV</button><button id="exportJson" class="secondary">Kopia JSON</button><label class="fileBtn">Przywróć kopię<input type="file" id="restoreJson" accept=".json"></label></div>
 </section>
@@ -90,6 +123,8 @@
 <div class="grid2"><label>Płeć<select name="gender" data-setting="genders"></select></label><label>Klasa<select name="className" data-setting="classes"></select></label></div>
 <label>Szkoła<select name="school" data-setting="schools"></select></label>
 <label>Świetlica<select name="club" data-setting="clubs"></select></label>
+<label>Status dziecka<select name="activeStatus"><option value="Aktywny">Aktywny</option><option value="Nieaktywny">Nieaktywny</option></select></label>
+<label>Rodzina / płatnik<select name="payerId" id="childPayer"></select></label>
 <label>Rodzic / opiekun<input name="parent"></label>
 <div class="grid2"><label>Telefon<input name="phone"></label><label>E-mail<input name="email"></label></div>
 <label>Uwagi<textarea name="notes"></textarea></label>
@@ -139,5 +174,10 @@
 <label>Opis<input name="description"></label><label>Uwagi<textarea name="notes"></textarea></label>
 <div class="dialogActions"><button value="cancel" class="ghost">Anuluj</button><button id="saveIncome" value="default" class="primary">Zapisz</button></div></form>
 </dialog>
+
+<dialog id="historyDialog">
+<div id="historyContent"></div><div class="dialogActions"><button class="ghost" onclick="document.getElementById('historyDialog').close()">Zamknij</button></div>
+</dialog>
+
 <script src="app.js"></script>
 </body></html>
