@@ -1,96 +1,143 @@
 <!doctype html>
 <html lang="pl">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b3b69">
-  <title>Rozliczenia Warsztatów</title>
-  <link rel="stylesheet" href="style.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b3b69">
+<title>Rozliczenia Warsztatów v3</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="top">
   <div><small>RĘKODZIEŁO Z PASJĄ</small><h1>Rozliczenia Warsztatów</h1></div>
-  <button class="ghost" id="backupBtn">Kopia</button>
+  <button id="backupBtn" class="ghost">Kopia</button>
 </header>
 
-<main id="app">
+<main>
 <section class="view active" data-view="start">
-  <div class="hero"><small>PANEL GŁÓWNY</small><h2>Wszystko w jednym miejscu</h2><p>Uczestnicy, zapisy, grupy i wpłaty — wygodnie na telefonie i komputerze.</p></div>
-  <div class="stats">
-    <div class="stat"><b id="sChildren">0</b><span>Uczestnicy</span></div>
-    <div class="stat"><b id="sGirls">0</b><span>Dziewczynki</span></div>
-    <div class="stat"><b id="sBoys">0</b><span>Chłopcy</span></div>
-    <div class="stat"><b id="sPaid">0 zł</b><span>Wpłacono</span></div>
-    <div class="stat"><b id="sUnpaid">0</b><span>Brak wpłaty</span></div>
-    <div class="stat"><b id="sGroups">0</b><span>Grupy</span></div>
+  <div class="hero"><small>PANEL GŁÓWNY</small><h2>Rozliczenia 2026/2027</h2><p>Dzieci, wiele zajęć na jedno dziecko, rabaty, bezpłatne miejsca, wpłaty i listy grup.</p></div>
+  <div class="stats" id="stats"></div>
+  <div class="card">
+    <div class="grid2"><label>Miesiąc<select id="dashMonth"></select></label><label>Szkoła<select id="dashSchool"><option value="">Wszystkie szkoły</option></select></label></div>
+    <div id="dashSummary"></div>
   </div>
   <div class="card">
-    <label>Miesiąc <select id="month"></select></label>
-    <div id="monthSummary" class="summary"></div>
-  </div>
-  <div class="card">
-    <h3>Szybkie wyszukiwanie</h3>
+    <h3>Szybkie wyszukiwanie dziecka</h3>
     <input id="quickSearch" placeholder="Wpisz pierwsze litery nazwiska…">
-    <div id="quickResults"></div>
+    <div id="quickResults" class="list compactList"></div>
   </div>
 </section>
 
 <section class="view" data-view="children">
-  <div class="sectionHead"><div><small>BAZA</small><h2>Dzieci</h2></div><button class="primary" id="addChildBtn">+ Dodaj</button></div>
-  <input id="childSearch" placeholder="Nazwisko, imię, szkoła, klasa…">
-  <div class="filters"><select id="schoolFilter"><option value="">Wszystkie szkoły</option></select><select id="classFilter"><option value="">Wszystkie klasy</option></select></div>
-  <div id="childrenList" class="list"></div>
+ <div class="sectionHead"><div><small>BAZA</small><h2>Dzieci</h2></div><button id="addChildBtn" class="primary">+ Dodaj</button></div>
+ <div class="filters"><input id="childSearch" placeholder="Szukaj po nazwisku / imieniu…"><select id="childSchool"><option value="">Wszystkie szkoły</option></select></div>
+ <div id="childrenList" class="list"></div>
 </section>
 
 <section class="view" data-view="payments">
-  <div class="sectionHead"><div><small>ROZLICZENIA</small><h2>Wpłaty</h2></div><button class="primary" id="addPaymentBtn">+ Wpłata</button></div>
-  <div class="filters"><select id="paymentMonth"></select><input id="paymentSearch" placeholder="Szukaj dziecka / rodzica"></div>
-  <div id="paymentsList" class="list"></div>
-  <div class="card"><h3>Import operacji bankowych</h3><p>Wklej CSV/tekst operacji. System spróbuje dopasować dziecko po tytule/nazwisku i kwocie. Zawsze zatwierdzasz dopasowanie.</p><textarea id="bankPaste" rows="5" placeholder="Wklej tutaj dane z banku…"></textarea><button class="secondary" id="parseBankBtn">Analizuj wpłaty</button><div id="bankPreview"></div></div>
+ <div class="sectionHead"><div><small>ROZLICZENIA</small><h2>Wpłaty</h2></div><button id="addPaymentBtn" class="primary">+ Wpłata</button></div>
+ <div class="filters"><select id="paymentMonth"></select><input id="paymentSearch" placeholder="Szukaj dziecka…"></div>
+ <div id="paymentsList" class="list"></div>
+ <div class="card"><h3>Import wpłat</h3><p class="muted">W tej wersji możesz wkleić tekst/CSV z banku. Import bezpośrednio ze screena przygotujemy w wersji serwerowej.</p><textarea id="bankPaste" rows="5" placeholder="Wklej operacje bankowe…"></textarea><button id="analyzeBank" class="secondary">Analizuj</button><div id="bankPreview"></div></div>
+</section>
+
+<section class="view" data-view="income">
+ <div class="sectionHead"><div><small>PRZYCHODY</small><h2>Dodatkowe przychody</h2></div><button id="addIncomeBtn" class="primary">+ Dodaj</button></div>
+ <div class="filters"><select id="incomeMonth"></select><select id="incomeCategory"><option value="">Wszystkie kategorie</option></select></div>
+ <div id="incomeList" class="list"></div>
 </section>
 
 <section class="view" data-view="imports">
-  <div class="sectionHead"><div><small>FLUENT FORMS</small><h2>Zapisy</h2></div></div>
-  <div class="card"><h3>Import formularza</h3><p>Wklej cały blok CSV: nagłówki + jeden lub wiele rekordów.</p><textarea id="formPaste" rows="9" placeholder="Imię i nazwisko dziecka,Szkoła,Klasa,…"></textarea><button class="primary" id="parseFormBtn">Rozpoznaj zgłoszenia</button><div id="formPreview"></div></div>
+ <div class="sectionHead"><div><small>WORDPRESS</small><h2>Zapisy</h2></div></div>
+ <div class="card"><h3>Import Fluent Forms</h3><textarea id="formPaste" rows="8" placeholder="Wklej nagłówki CSV i rekordy…"></textarea><button id="parseForm" class="primary">Rozpoznaj zgłoszenia</button><div id="formPreview"></div></div>
 </section>
 
 <section class="view" data-view="groups">
-  <div class="sectionHead"><div><small>ORGANIZACJA</small><h2>Grupy</h2></div><button class="secondary" id="printGroupBtn">Drukuj listę</button></div>
-  <div class="filters"><select id="dayFilter"><option value="">Dzień</option></select><select id="timeFilter"><option value="">Godzina</option></select></div>
-  <div id="groupsList" class="list"></div>
+ <div class="sectionHead"><div><small>LISTY</small><h2>Grupy i listy</h2></div><button id="printGroup" class="secondary">🖨 Drukuj listę</button></div>
+ <div class="filters3"><select id="groupSchool"><option value="">Wszystkie szkoły</option></select><select id="groupDay"><option value="">Wszystkie dni</option></select><select id="groupTime"><option value="">Wszystkie godziny</option></select></div>
+ <div id="printHeader" class="printHeader"></div>
+ <div id="groupsList" class="list"></div>
 </section>
 
 <section class="view" data-view="reports">
-  <div class="sectionHead"><div><small>STATYSTYKI</small><h2>Raporty</h2></div></div>
-  <div class="card"><h3>Wpłaty miesiąc po miesiącu</h3><div id="yearReport"></div></div>
-  <div class="card"><h3>Eksport danych</h3><button class="secondary" id="exportCsvBtn">Eksportuj CSV</button><button class="secondary" id="exportJsonBtn">Kopia JSON</button><label class="fileBtn">Przywróć kopię<input type="file" id="restoreInput" accept=".json"></label></div>
+ <div class="sectionHead"><div><small>RAPORTY</small><h2>Statystyki</h2></div></div>
+ <div class="card"><h3>Wpłaty i przychody miesiąc po miesiącu</h3><div id="yearReport"></div></div>
+ <div class="card"><h3>Uczestnicy według zajęć</h3><div id="workshopReport"></div></div>
+ <div class="card"><h3>Kopia danych</h3><button id="exportCsv" class="secondary">Eksport CSV</button><button id="exportJson" class="secondary">Kopia JSON</button><label class="fileBtn">Przywróć kopię<input type="file" id="restoreJson" accept=".json"></label></div>
+</section>
+
+<section class="view" data-view="settings">
+ <div class="sectionHead"><div><small>KONFIGURACJA</small><h2>Ustawienia list</h2></div></div>
+ <div id="settingsLists"></div>
 </section>
 </main>
 
 <nav class="bottom">
 <button data-go="start" class="active">⌂<span>Start</span></button>
-<button data-go="children">♟<span>Dzieci</span></button>
+<button data-go="children">👥<span>Dzieci</span></button>
 <button data-go="payments">✓<span>Wpłaty</span></button>
+<button data-go="income">＋<span>Przychody</span></button>
 <button data-go="imports">✉<span>Zapisy</span></button>
 <button data-go="groups">☷<span>Grupy</span></button>
 <button data-go="reports">▥<span>Raporty</span></button>
+<button data-go="settings">⚙<span>Listy</span></button>
 </nav>
 
-<dialog id="childDialog"><form method="dialog" id="childForm"><h3>Dane dziecka</h3><input name="id" type="hidden">
+<dialog id="childDialog">
+<form method="dialog" id="childForm">
+<h3>Dane dziecka</h3><input type="hidden" name="id">
 <div class="grid2"><label>Nazwisko<input name="lastName" required></label><label>Imię<input name="firstName" required></label></div>
-<div class="grid2"><label>Płeć<select name="gender"><option value="">—</option><option>Dziewczynka</option><option>Chłopiec</option></select></label><label>Klasa<input name="className"></label></div>
-<label>Szkoła<input name="school"></label><label>Świetlica<input name="club"></label>
-<div class="grid2"><label>Rodzaj zajęć<input name="workshop"></label><label>Dzień<input name="day"></label></div>
-<label>Godzina<input name="time"></label>
+<div class="grid2"><label>Płeć<select name="gender" data-setting="genders"></select></label><label>Klasa<select name="className" data-setting="classes"></select></label></div>
+<label>Szkoła<select name="school" data-setting="schools"></select></label>
+<label>Świetlica<select name="club" data-setting="clubs"></select></label>
 <label>Rodzic / opiekun<input name="parent"></label>
 <div class="grid2"><label>Telefon<input name="phone"></label><label>E-mail<input name="email"></label></div>
 <label>Uwagi<textarea name="notes"></textarea></label>
-<div class="dialogActions"><button value="cancel" class="ghost">Anuluj</button><button value="default" class="primary" id="saveChildBtn">Zapisz</button></div></form></dialog>
+<div class="dialogActions"><button value="cancel" class="ghost">Anuluj</button><button id="saveChild" value="default" class="primary">Zapisz</button></div>
+</form>
+</dialog>
 
-<dialog id="paymentDialog"><form method="dialog" id="paymentForm"><h3>Dodaj wpłatę</h3>
-<label>Dziecko<select name="childId" required></select></label><div class="grid2"><label>Miesiąc<select name="month"></select></label><label>Kwota<input name="amount" type="number" step="0.01" required></label></div>
-<label>Data<input name="date" type="date"></label><label>Tytuł / uwagi<input name="title"></label>
-<div class="dialogActions"><button value="cancel" class="ghost">Anuluj</button><button value="default" class="primary" id="savePaymentBtn">Zapisz</button></div></form></dialog>
+<dialog id="enrollmentDialog">
+<form method="dialog" id="enrollmentForm">
+<h3>Zajęcia dziecka</h3><input type="hidden" name="id"><input type="hidden" name="childId">
+<label>Rodzaj zajęć<select name="workshop" data-setting="workshops"></select></label>
+<div class="grid2"><label>Dzień<select name="day" data-setting="days"></select></label><label>Godzina<select name="time" data-setting="times"></select></label></div>
+<label>Szkoła<select name="school" data-setting="schools"></select></label>
+<div class="grid2"><label>Cena regularna<input name="regularPrice" type="number" min="0" step="0.01"></label><label>Status<select name="billingStatus"><option>Płatne</option><option>Bezpłatne</option><option>Charytatywne</option><option>Indywidualna cena</option></select></label></div>
+<div class="grid2"><label>Rabat<select name="discountMode"><option value="none">Brak</option><option value="5">5%</option><option value="10">10%</option><option value="15">15%</option><option value="custom">Własny %</option></select></label><label>Własny rabat %<input name="customDiscount" type="number" min="0" max="100" step="1"></label></div>
+<label>Indywidualna cena<input name="customPrice" type="number" min="0" step="0.01"></label>
+<label>Powód / uwaga do ceny<input name="priceNote" placeholder="np. 2. zajęcia, charytatywnie"></label>
+<div class="dialogActions"><button value="cancel" class="ghost">Anuluj</button><button id="saveEnrollment" value="default" class="primary">Zapisz</button></div>
+</form>
+</dialog>
 
+<dialog id="paymentDialog">
+<form method="dialog" id="paymentForm">
+<h3>Dodaj / popraw wpłatę</h3><input type="hidden" name="id">
+<label>Szukaj dziecka<input id="paymentChildSearch" placeholder="Pierwsze litery nazwiska…"></label>
+<label>Dziecko<select name="childId" id="paymentChild"></select></label>
+<label>Zajęcia<select name="enrollmentId" id="paymentEnrollment"></select></label>
+<div class="grid2"><label>Miesiąc<select name="month" id="paymentDialogMonth"></select></label><label>Kwota<input name="amount" type="number" min="0" step="0.01"></label></div>
+<label>Data<input name="date" type="date"></label><label>Tytuł / uwaga<input name="title"></label>
+<div class="dialogActions"><button value="cancel" class="ghost">Anuluj</button><button id="savePayment" value="default" class="primary">Zapisz</button></div>
+</form>
+</dialog>
+
+<dialog id="manualStatusDialog">
+<form method="dialog" id="manualStatusForm">
+<h3>Ręczna korekta statusu</h3><input type="hidden" name="childId"><input type="hidden" name="enrollmentId"><input type="hidden" name="month">
+<label>Status<select name="status"><option value="">Automatycznie</option><option value="paid">Wpłacono</option><option value="unpaid">Nie wpłacono</option></select></label>
+<label>Uwaga<input name="note" placeholder="np. korekta po sprawdzeniu konta"></label>
+<div class="dialogActions"><button value="cancel" class="ghost">Anuluj</button><button id="saveManualStatus" value="default" class="primary">Zapisz</button></div>
+</form>
+</dialog>
+
+<dialog id="incomeDialog">
+<form method="dialog" id="incomeForm"><h3>Dodatkowy przychód</h3><input type="hidden" name="id">
+<div class="grid2"><label>Data<input name="date" type="date"></label><label>Kwota<input name="amount" type="number" min="0" step="0.01"></label></div>
+<label>Miesiąc<select name="month" id="incomeDialogMonth"></select></label><label>Kategoria<select name="category" data-setting="incomeCategories"></select></label>
+<label>Opis<input name="description"></label><label>Uwagi<textarea name="notes"></textarea></label>
+<div class="dialogActions"><button value="cancel" class="ghost">Anuluj</button><button id="saveIncome" value="default" class="primary">Zapisz</button></div></form>
+</dialog>
 <script src="app.js"></script>
 </body></html>
