@@ -1,10 +1,11 @@
 
-const VERSION="5.5";
+const VERSION="5.6";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
 const days=["Poniedziałek","Wtorek","Środa","Czwartek","Piątek"];
 const times=["13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"];
+const pickupPlaces=["Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"];
 let data=JSON.parse(localStorage.getItem("rw45")||"null")||{
  children:[
  {id:1,last:"Kolasa",first:"Nikola",sex:"Dziewczynka",class:"4A",school:"SP 162",club:"Tak",parent:"Łukasz Kolasa",phone:"50340488",email:"mexilianpl@gmail.com",classes:[
@@ -81,6 +82,15 @@ function children(){
        <div><label>Dzień</label><select id="dayFilter" onchange="filterChildren()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
        <div><label>Godzina</label><select id="timeFilter" onchange="filterChildren()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div>
      </div>
+
+     <label>Sortuj</label>
+     <select id="sortFilter" onchange="filterChildren()">
+       <option value="roomAsc">Sala 1 → 5, potem przychodzący sami</option>
+       <option value="roomDesc">Sala 5 → 1, potem przychodzący sami</option>
+       <option value="nameAsc">Nazwisko A → Z</option>
+       <option value="nameDesc">Nazwisko Z → A</option>
+       <option value="classAsc">Klasa rosnąco</option>
+     </select>
      <div class="actions">
        <button class="dark" onclick="printFilteredChildren()">🖨 Drukuj wybraną listę</button>
        <button class="soft" onclick="printAttendanceList()">✓ Lista obecności</button>
@@ -97,6 +107,46 @@ function childrenSchoolChanged(){
  if(adv)adv.style.display=school?"block":"none";
  filterChildren();
 }
+
+function pickupSortValue(c){
+ const v=String(c.pickupPlace||"").trim();
+ const m=v.match(/(\d+)/);
+ if(m)return Number(m[1]);
+ if(v==="Przychodzi sam/a")return 999;
+ return 998;
+}
+function classSortValue(v){
+ const s=String(v||"").toUpperCase().trim();
+ const m=s.match(/(\d+)\s*([A-ZĄĆĘŁŃÓŚŹŻ]*)/);
+ if(!m)return [999,s];
+ return [Number(m[1]),m[2]||""];
+}
+function sortChildrenList(arr){
+ const mode=document.querySelector("#sortFilter")?.value||"roomAsc";
+ return [...arr].sort((a,b)=>{
+   if(mode==="nameAsc"||mode==="nameDesc"){
+     const cmp=(a.last+" "+a.first).localeCompare(b.last+" "+b.first,"pl",{sensitivity:"base"});
+     return mode==="nameAsc"?cmp:-cmp;
+   }
+   if(mode==="classAsc"){
+     const ca=classSortValue(a.class), cb=classSortValue(b.class);
+     if(ca[0]!==cb[0])return ca[0]-cb[0];
+     const c=ca[1].localeCompare(cb[1],"pl",{sensitivity:"base"});
+     return c || (a.last+" "+a.first).localeCompare(b.last+" "+b.first,"pl",{sensitivity:"base"});
+   }
+   const ra=pickupSortValue(a), rb=pickupSortValue(b);
+   if(ra!==rb){
+     if(mode==="roomDesc"){
+       // "Przychodzi sam/a" zawsze na końcu.
+       if(ra>=998)return 1;
+       if(rb>=998)return -1;
+       return rb-ra;
+     }
+     return ra-rb;
+   }
+   return (a.last+" "+a.first).localeCompare(b.last+" "+b.first,"pl",{sensitivity:"base"});
+ });
+}
 function getFilteredChildren(){
  const q=(document.querySelector("#cs")?.value||"").trim().toLowerCase();
  const sf=document.querySelector("#schoolFilter")?.value||"";
@@ -104,7 +154,7 @@ function getFilteredChildren(){
  const df=document.querySelector("#dayFilter")?.value||"";
  const tf=document.querySelector("#timeFilter")?.value||"";
  if(!sf&&!q)return [];
- return data.children.filter(c=>{
+ const filtered=data.children.filter(c=>{
    const nameOk=!q||(c.last+" "+c.first).toLowerCase().includes(q);
    const schoolOk=!sf||sf==="__ALL__"||c.school===sf||(c.classes||[]).some(cl=>cl.school===sf);
    if(!nameOk||!schoolOk)return false;
@@ -113,6 +163,7 @@ function getFilteredChildren(){
      (!wf||cl.type===wf)&&(!df||cl.day===df)&&(!tf||cl.time===tf)&&(!sf||sf==="__ALL__"||cl.school===sf||c.school===sf)
    );
  });
+ return sortChildrenList(filtered);;
 }
 function filterChildren(){
  const list=document.querySelector("#childrenList"),count=document.querySelector("#childrenCount");
@@ -141,10 +192,10 @@ function printFilteredChildren(){
  arr.forEach(c=>{
    let cls=(c.classes||[]).filter(cl=>(!sf||sf==="__ALL__"||cl.school===sf||c.school===sf)&&(!wf||wf==="Wszystkie warsztaty"||cl.type===wf)&&(!df||df==="Wszystkie dni"||cl.day===df)&&(!tf||tf==="Wszystkie godziny"||cl.time===tf));
    if(!cls.length)cls=[{}];
-   cls.forEach(cl=>rows.push(`<tr><td>${c.last} ${c.first}</td><td>${c.class||""}</td><td>${c.club||""}</td><td>${cl.type||""}</td><td>${cl.day||""}</td><td>${cl.time||""}</td></tr>`));
+   cls.forEach(cl=>rows.push(`<tr><td>${c.last} ${c.first}</td><td>${c.class||""}</td><td>${c.pickupPlace||""}</td><td>${cl.type||""}</td><td>${cl.day||""}</td><td>${cl.time||""}</td></tr>`));
  });
  const win=window.open("","_blank");
- win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista dzieci</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#f2f4f7}@media print{button{display:none}}</style></head><body><h1>Lista dzieci</h1><p>${sf} • ${wf} • ${df} • ${tf}</p><table><thead><tr><th>Nazwisko i imię</th><th>Klasa</th><th>Świetlica</th><th>Warsztaty</th><th>Dzień</th><th>Godzina</th></tr></thead><tbody>${rows.join("")}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista dzieci</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#f2f4f7}@media print{button{display:none}}</style></head><body><h1>Lista dzieci</h1><p>${sf} • ${wf} • ${df} • ${tf}</p><table><thead><tr><th>Nazwisko i imię</th><th>Klasa</th><th>Sala / odbiór</th><th>Warsztaty</th><th>Dzień</th><th>Godzina</th></tr></thead><tbody>${rows.join("")}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
  win.document.close();setTimeout(()=>win.print(),250);
 }
 
@@ -159,14 +210,14 @@ function printAttendanceList(){
  const wf=document.querySelector("#workshopFilter")?.value||"Wszystkie warsztaty";
  const df=document.querySelector("#dayFilter")?.value||"Wszystkie dni";
  const tf=document.querySelector("#timeFilter")?.value||"Wszystkie godziny";
- const rows=arr.map((c,i)=>`<tr><td>${i+1}</td><td>${c.last} ${c.first}</td><td>${c.class||""}</td><td></td><td></td><td></td></tr>`).join("");
+ const rows=arr.map((c,i)=>`<tr><td>${i+1}</td><td>${c.last} ${c.first}</td><td>${c.class||""}</td><td>${c.pickupPlace||""}</td><td></td><td></td><td></td></tr>`).join("");
  const win=window.open("","_blank");
- win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista obecności</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #999;padding:9px;text-align:left}td:nth-child(4),td:nth-child(5){height:28px;width:70px}@media print{button{display:none}}</style></head><body><h1>Lista obecności</h1><p>${sf} • ${wf} • ${df} • ${tf}</p><table><thead><tr><th>Lp.</th><th>Nazwisko i imię</th><th>Klasa</th><th>Obecny</th><th>Nieobecny</th><th>Uwagi</th></tr></thead><tbody>${rows}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista obecności</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #999;padding:9px;text-align:left}td:nth-child(4),td:nth-child(5){height:28px;width:70px}@media print{button{display:none}}</style></head><body><h1>Lista obecności</h1><p>${sf} • ${wf} • ${df} • ${tf}</p><table><thead><tr><th>Lp.</th><th>Nazwisko i imię</th><th>Klasa</th><th>Sala / odbiór</th><th>Obecny</th><th>Nieobecny</th><th>Uwagi</th></tr></thead><tbody>${rows}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
  win.document.close();setTimeout(()=>win.print(),250);
 }
 function childCard(c){
  const ps=paymentState(c,"Wrzesień");
- return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • świetlica: ${c.club} • ${c.sex}</div>
+ return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • świetlica: ${c.club} • ${c.sex}${c.pickupPlace?` • ${c.pickupPlace}`:""}</div>
  <div class="imageConsentStatus ${consentLabel(c.consents?.image)==="Tak"?"consentYes":consentLabel(c.consents?.image)==="Nie"?"consentNo":"consentUnknown"}">
    Wizerunek: ${consentLabel(c.consents?.image)||"brak danych"}
  </div>
@@ -182,7 +233,7 @@ function consentLabel(v){
  return "";
 }
 function editChild(id){
- let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],club:"Tak",parent:"",phone:"",email:"",consents:{rules:"",personal:"",image:""},classes:[]};
+ let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],club:"Tak",parent:"",phone:"",email:"",pickupPlace:"",consents:{rules:"",personal:"",image:""},classes:[]};
  c.consents=c.consents||{rules:"",personal:"",image:""};
  modal(`<h2>${id?"Edytuj profil dziecka":"Dodaj dziecko"}</h2>
  <div class="grid2">
@@ -193,6 +244,7 @@ function editChild(id){
  </div>
  <label>Szkoła</label><select id="fSchool">${opt(schools,c.school)}</select>
  <label>Świetlica</label><select id="fClub">${opt(["Tak","Nie"],c.club)}</select>
+ <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],c.pickupPlace||"")}</select>
  <label>Rodzic / opiekun</label><input id="fParent" value="${c.parent||""}">
  <label>Telefon</label><input id="fPhone" value="${c.phone||""}">
  <label>E-mail</label><input id="fEmail" value="${c.email||""}">
@@ -223,6 +275,7 @@ function saveChild(id,exists){
   class:fClass.value,
   school:fSchool.value,
   club:fClub.value,
+  pickupPlace:fPickup.value,
   parent:fParent.value,
   phone:fPhone.value,
   email:fEmail.value,
@@ -678,7 +731,7 @@ function refreshReports(){
       <button class="dark" onclick="window.print()">Drukuj raport</button>
     </div>`;
 }
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.5</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.6</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){
  app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="actions signupTopActions"><button class="primary" onclick="editChild()">+ Dodaj dziecko ręcznie</button></div>
  <div class="card"><h2>Import formularza zapisu</h2>
@@ -757,6 +810,7 @@ function showSignupReview(items,fileName){
   <div class="grid2"><div><label>Płeć</label><select id="suSex${i}">${opt(['Dziewczynka','Chłopiec'],r.sex)}</select></div><div><label>Klasa</label><input id="suClass${i}" value="${escapeAttr(r.className)}"></div></div>
   <label>Szkoła</label><select id="suSchool${i}">${signupSchoolOptions(r.school)}</select>
   <label>Świetlica</label><select id="suClub${i}">${opt(['Tak','Nie'],r.club)}</select>
+      <label>Sala / sposób odbioru</label><select id="suPickup${i}">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],"")}</select>
   ${[0,1].map(k=>`<div class="signupWorkshop"><div class="grid2"><div><label>${k===0?'Rodzaj zajęć':'Drugie zajęcia'}</label><select id="suType${i}_${k}"><option value="">— brak —</option>${signupWorkshopOptions(r.types[k]||'')}</select></div><div><label>Dzień preferowany</label><select id="suDay${i}_${k}"><option value="">— wybierz później —</option>${signupDayOptions(r.days[k]||r.days[0]||'')}</select></div></div><label>Godzina</label><select id="suTime${i}_${k}"><option value="">— ustal później —</option>${times.map(t=>`<option>${t}</option>`).join('')}</select></div>`).join('')}
   <label>Rodzic / opiekun</label><input id="suParent${i}" value="${escapeAttr(r.parent)}"><label>Telefon</label><input id="suPhone${i}" value="${escapeAttr(r.phone)}"><label>E-mail</label><input id="suEmail${i}" value="${escapeAttr(r.email)}"><label>Uwagi</label><textarea id="suNotes${i}">${escapeHtml(r.notes)}</textarea>
   <div class="consentLine">Regulamin: <b>${escapeHtml(r.rules||'brak')}</b> • Dane osobowe: <b>${escapeHtml(r.personal||'brak')}</b> • Wizerunek: <b>${escapeHtml(r.imageConsent||'brak')}</b></div>
@@ -825,9 +879,10 @@ function addSignupClassesToExisting(existing,i,src){
   parent:document.querySelector(`#suParent${i}`).value.trim(),
   phone:document.querySelector(`#suPhone${i}`).value.trim(),
   email:document.querySelector(`#suEmail${i}`).value.trim(),
-  notes:document.querySelector(`#suNotes${i}`).value.trim()
+  notes:document.querySelector(`#suNotes${i}`).value.trim(),
+  pickupPlace:document.querySelector(`#suPickup${i}`)?.value||""
  };
- ['parent','phone','email','notes'].forEach(k=>{if(!existing[k]&&values[k])existing[k]=values[k]});
+ ['parent','phone','email','notes','pickupPlace'].forEach(k=>{if(!existing[k]&&values[k])existing[k]=values[k]});
  existing.lastSignupEntryId=src.entryId||'';
  existing.lastSignupCreatedAt=src.createdAt||'';
  return {added,duplicates};
@@ -873,7 +928,8 @@ async function acceptSignup(i){
   }
  }
 
- const child={id:Date.now()+i,last,first,sex:document.querySelector(`#suSex${i}`).value,class:document.querySelector(`#suClass${i}`).value.trim(),school:document.querySelector(`#suSchool${i}`).value,club:document.querySelector(`#suClub${i}`).value,parent:document.querySelector(`#suParent${i}`).value.trim(),phone:document.querySelector(`#suPhone${i}`).value.trim(),email:document.querySelector(`#suEmail${i}`).value.trim(),notes:document.querySelector(`#suNotes${i}`).value.trim(),sourceEntryId:src.entryId||'',sourceCreatedAt:src.createdAt||'',consents:{rules:src.rules||'',personal:src.personal||'',image:src.imageConsent||''},classes:[]};
+ const child={id:Date.now()+i,last,first,sex:document.querySelector(`#suSex${i}`).value,class:document.querySelector(`#suClass${i}`).value.trim(),school:document.querySelector(`#suSchool${i}`).value,club:document.querySelector(`#suClub${i}`).value,pickupPlace:document.querySelector(`#suPickup${i}`)?.value||"",parent:document.querySelector(`#suParent${i}`).value.trim(),phone:document.querySelector(`#suPhone${i}`).value.trim(),email:document.querySelector(`#suEmail${i}`).value.trim(),notes:document.querySelector(`#suNotes${i}`).value.trim(),
+  pickupPlace:document.querySelector(`#suPickup${i}`)?.value||"",sourceEntryId:src.entryId||'',sourceCreatedAt:src.createdAt||'',consents:{rules:src.rules||'',personal:src.personal||'',image:src.imageConsent||''},classes:[]};
  child.classes=signupClassesFromForm(i,child,0);
  data.children.push(child);save();
  const card=document.querySelector(`#signupCard${i}`);card.classList.add('ocrAccepted');card.querySelectorAll('input,select,textarea,button').forEach(x=>x.disabled=true);
@@ -889,5 +945,5 @@ signupCsvInput.onchange=async e=>{
  }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
  finally{e.target.value=''}
 };
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v55.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v56.json";a.click()}
 render();

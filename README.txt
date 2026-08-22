@@ -1,10 +1,18 @@
-Rozliczenia Warsztatów v5.5 — 22.08.2026
+Rozliczenia Warsztatów v5.6 — 22.08.2026
 
-Dodano:
-- opcję „Wszystkie szkoły” w zakładce Dzieci,
-- dalsze filtrowanie po warsztatach, dniu i godzinie także dla wszystkich szkół,
-- wydruk zwykłej wybranej listy,
-- osobny wydruk „Lista obecności” z kolumnami Obecny / Nieobecny / Uwagi.
+Nowości:
+- profil dziecka: pole „Sala / sposób odbioru”,
+- gotowe opcje: Sala 1, Sala 2, Sala 3, Sala 4, Sala 5, Przychodzi sam/a,
+- pole jest widoczne także przy ręcznym dodawaniu/edycji dziecka,
+- importer zapisów ma miejsce na wybór sali / sposobu odbioru przed akceptacją,
+- w zakładce Dzieci dodano sortowanie:
+  • Sala 1 → 5, potem przychodzący sami (domyślne),
+  • Sala 5 → 1,
+  • Nazwisko A → Z,
+  • Nazwisko Z → A,
+  • Klasa rosnąco,
+- w obrębie tej samej sali dzieci są sortowane alfabetycznie,
+- wydruki ZAWSZE zachowują aktualnie wybraną kolejność,
+- zwykły wydruk oraz lista obecności zawierają kolumnę „Sala / odbiór”.
 
-Zachowane zostały wszystkie wcześniejsze funkcje wersji 5.4.
-Podmień na GitHubie pliki index.html, app.js i style.css.
+Do GitHuba podmień: index.html, app.js, style.css.

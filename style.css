@@ -92,3 +92,6 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .advancedChildrenFilters{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .childrenCount{margin:12px 4px;color:#66717d}
 .signupTopActions{margin:-8px 0 16px}
+
+/* v5.6 — sale odbioru i sortowanie */
+#sortFilter{font-weight:700}
