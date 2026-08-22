@@ -1,5 +1,5 @@
 
-const VERSION="5.4";
+const VERSION="5.5";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -68,6 +68,7 @@ function children(){
    <label>Szkoła</label>
    <select id="schoolFilter" onchange="childrenSchoolChanged()">
      <option value="">— wybierz szkołę —</option>
+     <option value="__ALL__">Wszystkie szkoły</option>
      ${schools.map(s=>`<option>${s}</option>`).join("")}
    </select>
    <div id="advancedChildrenFilters" class="advancedChildrenFilters" style="display:none">
@@ -82,6 +83,7 @@ function children(){
      </div>
      <div class="actions">
        <button class="dark" onclick="printFilteredChildren()">🖨 Drukuj wybraną listę</button>
+       <button class="soft" onclick="printAttendanceList()">✓ Lista obecności</button>
        <button class="soft" onclick="clearChildrenFilters()">Wyczyść filtry</button>
      </div>
    </div>
@@ -104,11 +106,11 @@ function getFilteredChildren(){
  if(!sf&&!q)return [];
  return data.children.filter(c=>{
    const nameOk=!q||(c.last+" "+c.first).toLowerCase().includes(q);
-   const schoolOk=!sf||c.school===sf||(c.classes||[]).some(cl=>cl.school===sf);
+   const schoolOk=!sf||sf==="__ALL__"||c.school===sf||(c.classes||[]).some(cl=>cl.school===sf);
    if(!nameOk||!schoolOk)return false;
    if(!wf&&!df&&!tf)return true;
    return (c.classes||[]).some(cl=>
-     (!wf||cl.type===wf)&&(!df||cl.day===df)&&(!tf||cl.time===tf)&&(!sf||cl.school===sf||c.school===sf)
+     (!wf||cl.type===wf)&&(!df||cl.day===df)&&(!tf||cl.time===tf)&&(!sf||sf==="__ALL__"||cl.school===sf||c.school===sf)
    );
  });
 }
@@ -137,12 +139,29 @@ function printFilteredChildren(){
  const tf=document.querySelector("#timeFilter")?.value||"Wszystkie godziny";
  let rows=[];
  arr.forEach(c=>{
-   let cls=(c.classes||[]).filter(cl=>(!sf||cl.school===sf||c.school===sf)&&(!wf||wf==="Wszystkie warsztaty"||cl.type===wf)&&(!df||df==="Wszystkie dni"||cl.day===df)&&(!tf||tf==="Wszystkie godziny"||cl.time===tf));
+   let cls=(c.classes||[]).filter(cl=>(!sf||sf==="__ALL__"||cl.school===sf||c.school===sf)&&(!wf||wf==="Wszystkie warsztaty"||cl.type===wf)&&(!df||df==="Wszystkie dni"||cl.day===df)&&(!tf||tf==="Wszystkie godziny"||cl.time===tf));
    if(!cls.length)cls=[{}];
    cls.forEach(cl=>rows.push(`<tr><td>${c.last} ${c.first}</td><td>${c.class||""}</td><td>${c.club||""}</td><td>${cl.type||""}</td><td>${cl.day||""}</td><td>${cl.time||""}</td></tr>`));
  });
  const win=window.open("","_blank");
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista dzieci</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#f2f4f7}@media print{button{display:none}}</style></head><body><h1>Lista dzieci</h1><p>${sf} • ${wf} • ${df} • ${tf}</p><table><thead><tr><th>Nazwisko i imię</th><th>Klasa</th><th>Świetlica</th><th>Warsztaty</th><th>Dzień</th><th>Godzina</th></tr></thead><tbody>${rows.join("")}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
+ win.document.close();setTimeout(()=>win.print(),250);
+}
+
+function printAttendanceList(){
+ const arr=getFilteredChildren();
+ if(!arr.length){
+   confirmModal({title:"Brak dzieci na liście",message:"Wybierz szkołę i ewentualnie warsztaty, dzień lub godzinę.",confirmText:"OK",cancelText:"Zamknij",danger:false});
+   return;
+ }
+ const sfRaw=document.querySelector("#schoolFilter")?.value||"";
+ const sf=sfRaw==="__ALL__"?"Wszystkie szkoły":sfRaw;
+ const wf=document.querySelector("#workshopFilter")?.value||"Wszystkie warsztaty";
+ const df=document.querySelector("#dayFilter")?.value||"Wszystkie dni";
+ const tf=document.querySelector("#timeFilter")?.value||"Wszystkie godziny";
+ const rows=arr.map((c,i)=>`<tr><td>${i+1}</td><td>${c.last} ${c.first}</td><td>${c.class||""}</td><td></td><td></td><td></td></tr>`).join("");
+ const win=window.open("","_blank");
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista obecności</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #999;padding:9px;text-align:left}td:nth-child(4),td:nth-child(5){height:28px;width:70px}@media print{button{display:none}}</style></head><body><h1>Lista obecności</h1><p>${sf} • ${wf} • ${df} • ${tf}</p><table><thead><tr><th>Lp.</th><th>Nazwisko i imię</th><th>Klasa</th><th>Obecny</th><th>Nieobecny</th><th>Uwagi</th></tr></thead><tbody>${rows}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
  win.document.close();setTimeout(()=>win.print(),250);
 }
 function childCard(c){
@@ -659,7 +678,7 @@ function refreshReports(){
       <button class="dark" onclick="window.print()">Drukuj raport</button>
     </div>`;
 }
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.4</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.5</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){
  app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="actions signupTopActions"><button class="primary" onclick="editChild()">+ Dodaj dziecko ręcznie</button></div>
  <div class="card"><h2>Import formularza zapisu</h2>
@@ -870,5 +889,5 @@ signupCsvInput.onchange=async e=>{
  }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
  finally{e.target.value=''}
 };
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v54.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v55.json";a.click()}
 render();

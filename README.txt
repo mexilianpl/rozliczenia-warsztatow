@@ -1,13 +1,10 @@
-Rozliczenia Warsztatów v5.4
+Rozliczenia Warsztatów v5.5 — 22.08.2026
 
-Zmiany:
-- ręczne dodawanie dziecka przeniesione z zakładki Dzieci do zakładki Zapisy,
-- w Dzieciach po wyborze szkoły pojawia się lista wszystkich dzieci z tej szkoły,
-- dodatkowe filtry: rodzaj warsztatów, dzień i godzina,
-- można filtrować stopniowo: szkoła → warsztaty → dzień → godzina,
-- wyszukiwarka imienia/nazwiska działa niezależnie,
-- pokazuje liczbę znalezionych dzieci,
-- przycisk „Drukuj wybraną listę” drukuje tylko aktualnie wyselekcjonowane dzieci,
-- wydruk: nazwisko i imię, klasa, świetlica, warsztaty, dzień, godzina.
+Dodano:
+- opcję „Wszystkie szkoły” w zakładce Dzieci,
+- dalsze filtrowanie po warsztatach, dniu i godzinie także dla wszystkich szkół,
+- wydruk zwykłej wybranej listy,
+- osobny wydruk „Lista obecności” z kolumnami Obecny / Nieobecny / Uwagi.
 
-Podmień na GitHubie: index.html, app.js, style.css.
+Zachowane zostały wszystkie wcześniejsze funkcje wersji 5.4.
+Podmień na GitHubie pliki index.html, app.js i style.css.
