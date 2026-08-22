@@ -3,19 +3,23 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Rozliczenia Warsztatów v6.2</title>
-<link rel="stylesheet" href="style.css?v=62">
+<title>Rozliczenia Warsztatów v6.3</title>
+<link rel="stylesheet" href="style.css?v=63">
 </head>
 <body>
-<header class="top">
-  <div><div class="brand">RĘKODZIEŁO Z PASJĄ</div><h1>Rozliczenia Warsztatów</h1><span class="ver">Wersja 6.2 • 22.08.2026</span></div>
-  <button class="soft" id="backupBtn">Kopia</button>
+<header class="top appHeader">
+  <img class="appLogo" src="logo-centrum-kreatywnosci.png" alt="Centrum Kreatywności">
+  <div class="appHeaderText">
+    <h1>Rozliczenia Warsztatów</h1>
+    <span class="ver">Wersja 6.3 • 22.08.2026</span>
+  </div>
 </header>
+<button id="backupBtn" class="hiddenBackupBtn" type="button" aria-hidden="true" tabindex="-1">Kopia</button>
 <main id="app"></main>
 <nav id="nav"></nav>
 <input id="screenInput" type="file" accept="image/*" hidden>
 <input id="signupCsvInput" type="file" accept=".csv,text/csv" hidden>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=62"></script>
+<script src="app.js?v=63"></script>
 </body></html>

@@ -1,9 +1,11 @@
-Rozliczenia Warsztatów v6.2
+Rozliczenia Warsztatów v6.3
 
-Zmiana w Ustawieniach:
-- przy KAŻDEJ pozycji jest przycisk „✓ Zapisz”,
-- dotyczy warsztatów i cen, godzin, szkół i dni,
-- po zapisie pojawia się krótki komunikat „Zapisano”,
-- nadal pozostaje główny przycisk zapisu na dole jako dodatkowe zabezpieczenie.
+Zmiany nagłówka:
+- dodane okrągłe logo Centrum Kreatywności używane na stronie WWW,
+- logo po lewej stronie,
+- po prawej od logo: „Rozliczenia Warsztatów”,
+- pod nazwą: numer wersji,
+- usunięty widoczny przycisk „Kopia” z nagłówka,
+- funkcja wykonywania kopii nadal działa w zakładce Ustawienia.
 
-Zachowane wszystkie funkcje v6.0.
+Zachowane wszystkie funkcje v6.2.
