@@ -16,3 +16,9 @@ Nowości:
 - zwykły wydruk oraz lista obecności zawierają kolumnę „Sala / odbiór”.
 
 Do GitHuba podmień: index.html, app.js, style.css.
+
+
+Wersja 5.7:
+- usunięto osobne pole Świetlica Tak/Nie z profilu i importera zapisów
+- pole Sala / sposób odbioru określa teraz świetlicę: Sala 1-5 = odbiór ze świetlicy, Przychodzi sam/a = bez odbioru
+- listy i grupy pokazują salę zamiast pola Świetlica

@@ -1,5 +1,5 @@
 
-const VERSION="5.6";
+const VERSION="5.7";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -217,7 +217,7 @@ function printAttendanceList(){
 }
 function childCard(c){
  const ps=paymentState(c,"Wrzesień");
- return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • świetlica: ${c.club} • ${c.sex}${c.pickupPlace?` • ${c.pickupPlace}`:""}</div>
+ return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • ${c.sex}${c.pickupPlace?` • ${c.pickupPlace}`:""}</div>
  <div class="imageConsentStatus ${consentLabel(c.consents?.image)==="Tak"?"consentYes":consentLabel(c.consents?.image)==="Nie"?"consentNo":"consentUnknown"}">
    Wizerunek: ${consentLabel(c.consents?.image)||"brak danych"}
  </div>
@@ -233,7 +233,7 @@ function consentLabel(v){
  return "";
 }
 function editChild(id){
- let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],club:"Tak",parent:"",phone:"",email:"",pickupPlace:"",consents:{rules:"",personal:"",image:""},classes:[]};
+ let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],parent:"",phone:"",email:"",pickupPlace:"",consents:{rules:"",personal:"",image:""},classes:[]};
  c.consents=c.consents||{rules:"",personal:"",image:""};
  modal(`<h2>${id?"Edytuj profil dziecka":"Dodaj dziecko"}</h2>
  <div class="grid2">
@@ -243,8 +243,8 @@ function editChild(id){
   <div><label>Klasa</label><input id="fClass" value="${c.class}"></div>
  </div>
  <label>Szkoła</label><select id="fSchool">${opt(schools,c.school)}</select>
- <label>Świetlica</label><select id="fClub">${opt(["Tak","Nie"],c.club)}</select>
  <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],c.pickupPlace||"")}</select>
+ <div class="muted" style="margin-top:8px">Wybranie sali oznacza, że dziecko jest odbierane ze świetlicy. „Przychodzi sam/a” oznacza brak odbioru ze świetlicy.</div>
  <label>Rodzic / opiekun</label><input id="fParent" value="${c.parent||""}">
  <label>Telefon</label><input id="fPhone" value="${c.phone||""}">
  <label>E-mail</label><input id="fEmail" value="${c.email||""}">
@@ -274,7 +274,7 @@ function saveChild(id,exists){
   sex:fSex.value,
   class:fClass.value,
   school:fSchool.value,
-  club:fClub.value,
+  club:fPickup.value==="Przychodzi sam/a"?"Nie":(fPickup.value?"Tak":(old?.club||"")),
   pickupPlace:fPickup.value,
   parent:fParent.value,
   phone:fPhone.value,
@@ -574,7 +574,7 @@ screenInput.onchange=async e=>{
 function income(){app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Dodatkowe przychody</h2><button class="primary" onclick="addIncome()">+ Dodaj przychód</button><div class="card">${data.income.map(i=>`<div class="classrow"><b>${i.title}</b><div>${money(i.amount)} • ${i.date}</div></div>`).join("")||"Brak dodatkowych przychodów."}</div>`}
 function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input id="iTitle"><label>Kwota</label><input id="iAmount" type="number"><label>Data</label><input id="iDate" type="date"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="data.income.push({id:Date.now(),title:iTitle.value,amount:+iAmount.value,date:iDate.value});save();closeModal();render()">Zapisz</button></div>`)}
 function groups(){app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card"><label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select><label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select><label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select><div class="actions"><button class="dark" onclick="window.print()">Drukuj listę wyselekcjonowanych nazwisk</button></div></div><div id="gList"></div>`;groupList()}
-function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.children.forEach(c=>c.classes.forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b><div class="muted">${x.c.class} • świetlica: ${x.c.club} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div></div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'}
+function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.children.forEach(c=>c.classes.forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b><div class="muted">${x.c.class} • ${x.c.pickupPlace||"Sala nieustalona"} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div></div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'}
 
 function reportYears(){
   const years=new Set();
@@ -731,7 +731,7 @@ function refreshReports(){
       <button class="dark" onclick="window.print()">Drukuj raport</button>
     </div>`;
 }
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.6</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.7</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){
  app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="actions signupTopActions"><button class="primary" onclick="editChild()">+ Dodaj dziecko ręcznie</button></div>
  <div class="card"><h2>Import formularza zapisu</h2>
@@ -781,7 +781,7 @@ function signupRecord(row,index){
  const daysSel=[signupVal(row,['Które dni odpowiadają Państwu najbardziej?']),signupVal(row,['Które dni odpowiadają Państwu najbardziej?.1'])].filter(Boolean);
  return {
   importIndex:index,entryId:signupVal(row,['entry_id']),createdAt:signupVal(row,['created_at']),entryStatus:signupVal(row,['entry_status']),
-  first:childName.first,last:childName.last,sex:'Dziewczynka',school:normalizeSchool(signupVal(row,['Szkoła'])),className:signupVal(row,['Klasa']),club:'Tak',
+  first:childName.first,last:childName.last,sex:'Dziewczynka',school:normalizeSchool(signupVal(row,['Szkoła'])),className:signupVal(row,['Klasa']),
   parent:signupVal(row,['Imię i nazwisko rodzica / opiekuna']),phone:signupVal(row,['Numer telefonu rodzica / opiekuna']),email:signupVal(row,['Adres e-mail rodzica / opiekuna']),notes:signupVal(row,['Uwagi']),
   rules:signupVal(row,['Regulamin zajęć']),personal:signupVal(row,['Dane osobowe']),imageConsent:signupVal(row,['Zgoda na wizerunek']),
   types,days:daysSel
@@ -809,8 +809,7 @@ function showSignupReview(items,fileName){
   <div class="grid2"><div><label>Nazwisko</label><input id="suLast${i}" value="${escapeAttr(r.last)}"></div><div><label>Imię</label><input id="suFirst${i}" value="${escapeAttr(r.first)}"></div></div>
   <div class="grid2"><div><label>Płeć</label><select id="suSex${i}">${opt(['Dziewczynka','Chłopiec'],r.sex)}</select></div><div><label>Klasa</label><input id="suClass${i}" value="${escapeAttr(r.className)}"></div></div>
   <label>Szkoła</label><select id="suSchool${i}">${signupSchoolOptions(r.school)}</select>
-  <label>Świetlica</label><select id="suClub${i}">${opt(['Tak','Nie'],r.club)}</select>
-      <label>Sala / sposób odbioru</label><select id="suPickup${i}">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],"")}</select>
+  <label>Sala / sposób odbioru</label><select id="suPickup${i}">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],"")}</select>
   ${[0,1].map(k=>`<div class="signupWorkshop"><div class="grid2"><div><label>${k===0?'Rodzaj zajęć':'Drugie zajęcia'}</label><select id="suType${i}_${k}"><option value="">— brak —</option>${signupWorkshopOptions(r.types[k]||'')}</select></div><div><label>Dzień preferowany</label><select id="suDay${i}_${k}"><option value="">— wybierz później —</option>${signupDayOptions(r.days[k]||r.days[0]||'')}</select></div></div><label>Godzina</label><select id="suTime${i}_${k}"><option value="">— ustal później —</option>${times.map(t=>`<option>${t}</option>`).join('')}</select></div>`).join('')}
   <label>Rodzic / opiekun</label><input id="suParent${i}" value="${escapeAttr(r.parent)}"><label>Telefon</label><input id="suPhone${i}" value="${escapeAttr(r.phone)}"><label>E-mail</label><input id="suEmail${i}" value="${escapeAttr(r.email)}"><label>Uwagi</label><textarea id="suNotes${i}">${escapeHtml(r.notes)}</textarea>
   <div class="consentLine">Regulamin: <b>${escapeHtml(r.rules||'brak')}</b> • Dane osobowe: <b>${escapeHtml(r.personal||'brak')}</b> • Wizerunek: <b>${escapeHtml(r.imageConsent||'brak')}</b></div>
@@ -928,7 +927,7 @@ async function acceptSignup(i){
   }
  }
 
- const child={id:Date.now()+i,last,first,sex:document.querySelector(`#suSex${i}`).value,class:document.querySelector(`#suClass${i}`).value.trim(),school:document.querySelector(`#suSchool${i}`).value,club:document.querySelector(`#suClub${i}`).value,pickupPlace:document.querySelector(`#suPickup${i}`)?.value||"",parent:document.querySelector(`#suParent${i}`).value.trim(),phone:document.querySelector(`#suPhone${i}`).value.trim(),email:document.querySelector(`#suEmail${i}`).value.trim(),notes:document.querySelector(`#suNotes${i}`).value.trim(),
+ const child={id:Date.now()+i,last,first,sex:document.querySelector(`#suSex${i}`).value,class:document.querySelector(`#suClass${i}`).value.trim(),school:document.querySelector(`#suSchool${i}`).value,club:(document.querySelector(`#suPickup${i}`)?.value==="Przychodzi sam/a"?"Nie":(document.querySelector(`#suPickup${i}`)?.value?"Tak":"")),pickupPlace:document.querySelector(`#suPickup${i}`)?.value||"",parent:document.querySelector(`#suParent${i}`).value.trim(),phone:document.querySelector(`#suPhone${i}`).value.trim(),email:document.querySelector(`#suEmail${i}`).value.trim(),notes:document.querySelector(`#suNotes${i}`).value.trim(),
   pickupPlace:document.querySelector(`#suPickup${i}`)?.value||"",sourceEntryId:src.entryId||'',sourceCreatedAt:src.createdAt||'',consents:{rules:src.rules||'',personal:src.personal||'',image:src.imageConsent||''},classes:[]};
  child.classes=signupClassesFromForm(i,child,0);
  data.children.push(child);save();
