@@ -1,15 +1,18 @@
-Rozliczenia Warsztatów v5.1
+Rozliczenia Warsztatów v5.3
 
-Zmiana importera zapisów:
-- jeśli dziecko o tym samym imieniu i nazwisku już istnieje, aplikacja nie blokuje zgłoszenia od razu,
-- pojawia się pytanie, czy jest to zapis na kolejne warsztaty,
-- można wybrać:
-  • „Dodaj nowe zajęcia do tego dziecka”,
-  • „Wróć i popraw zgłoszenie”,
-  • „Pomiń zgłoszenie”,
-- przy dodawaniu kolejnych zajęć nowe zajęcia trafiają do istniejącego profilu dziecka,
-- aplikacja sprawdza, czy takie same zajęcia nie są już przypisane,
-- jeśli to są drugie/trzecie zajęcia, domyślny rabat ustawiany jest na 10%,
-- brakujące dane kontaktowe istniejącego profilu mogą zostać uzupełnione z nowego zgłoszenia.
+Nowości w zakładce Raporty:
+- podsumowanie wpłat za wybrany miesiąc,
+- raport całoroczny,
+- łączne wpływy: wpłaty dzieci + dodatkowe przychody,
+- liczba wpłat,
+- podział wpływów według szkół,
+- podział wpływów według rodzaju warsztatów,
+- zestawienie miesiąc po miesiącu,
+- porównanie rok do roku,
+- różnica kwotowa i procentowa,
+- przycisk drukowania raportu.
+
+Uwaga:
+Wpłaty jednego dziecka uczęszczającego na kilka rodzajów zajęć są w raporcie warsztatów rozdzielane proporcjonalnie do należności za jego zajęcia.
 
 Podmień na GitHubie: index.html, app.js, style.css.

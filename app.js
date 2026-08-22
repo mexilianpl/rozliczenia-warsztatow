@@ -1,5 +1,5 @@
 
-const VERSION="5.1";
+const VERSION="5.3";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -80,18 +80,79 @@ function filterChildren(){
 }
 function childCard(c){
  const ps=paymentState(c,"Wrzesień");
- return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • świetlica: ${c.club} • ${c.sex}</div><div class="due">Należne Wrzesień: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div><div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
+ return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • świetlica: ${c.club} • ${c.sex}</div>
+ <div class="imageConsentStatus ${consentLabel(c.consents?.image)==="Tak"?"consentYes":consentLabel(c.consents?.image)==="Nie"?"consentNo":"consentUnknown"}">
+   Wizerunek: ${consentLabel(c.consents?.image)||"brak danych"}
+ </div>
+ <div class="due">Należne Wrzesień: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div><div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
  ${c.classes.map(cl=>`<div class="classrow"><h3>${cl.type}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}</div><div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
  <div class="actions"><button class="primary" onclick="editClass(${c.id})">+ Dodaj zajęcia</button></div></div>`}
 function modal(html){document.body.insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modalbox">${html}</div></div>`)}
 function closeModal(){document.querySelector("#modal")?.remove()}
-function editChild(id){let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],club:"Tak",parent:"",phone:"",email:"",classes:[]};
- modal(`<h2>${id?"Edytuj":"Dodaj"} dziecko</h2><div class="grid2"><div><label>Nazwisko</label><input id="fLast" value="${c.last}"></div><div><label>Imię</label><input id="fFirst" value="${c.first}"></div>
- <div><label>Płeć</label><select id="fSex">${opt(["Dziewczynka","Chłopiec"],c.sex)}</select></div><div><label>Klasa</label><input id="fClass" value="${c.class}"></div></div>
- <label>Szkoła</label><select id="fSchool">${opt(schools,c.school)}</select><label>Świetlica</label><select id="fClub">${opt(["Tak","Nie"],c.club)}</select>
- <label>Rodzic / opiekun</label><input id="fParent" value="${c.parent||""}"><label>Telefon</label><input id="fPhone" value="${c.phone||""}"><label>E-mail</label><input id="fEmail" value="${c.email||""}">
- <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`) }
-function saveChild(id,exists){let obj={id,last:fLast.value,first:fFirst.value,sex:fSex.value,class:fClass.value,school:fSchool.value,club:fClub.value,parent:fParent.value,phone:fPhone.value,email:fEmail.value,classes:exists?data.children.find(c=>c.id==id).classes:[]}; if(exists)data.children[data.children.findIndex(c=>c.id==id)]=obj;else data.children.push(obj);save();closeModal();render()}
+function consentLabel(v){
+ const x=String(v||"").trim().toLowerCase();
+ if(["tak","yes","1","true","zgoda"].includes(x))return "Tak";
+ if(["nie","no","0","false","brak"].includes(x))return "Nie";
+ return "";
+}
+function editChild(id){
+ let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],club:"Tak",parent:"",phone:"",email:"",consents:{rules:"",personal:"",image:""},classes:[]};
+ c.consents=c.consents||{rules:"",personal:"",image:""};
+ modal(`<h2>${id?"Edytuj profil dziecka":"Dodaj dziecko"}</h2>
+ <div class="grid2">
+  <div><label>Nazwisko</label><input id="fLast" value="${c.last}"></div>
+  <div><label>Imię</label><input id="fFirst" value="${c.first}"></div>
+  <div><label>Płeć</label><select id="fSex">${opt(["Dziewczynka","Chłopiec"],c.sex)}</select></div>
+  <div><label>Klasa</label><input id="fClass" value="${c.class}"></div>
+ </div>
+ <label>Szkoła</label><select id="fSchool">${opt(schools,c.school)}</select>
+ <label>Świetlica</label><select id="fClub">${opt(["Tak","Nie"],c.club)}</select>
+ <label>Rodzic / opiekun</label><input id="fParent" value="${c.parent||""}">
+ <label>Telefon</label><input id="fPhone" value="${c.phone||""}">
+ <label>E-mail</label><input id="fEmail" value="${c.email||""}">
+ <div class="consentBox">
+   <h3>Zgody z formularza</h3>
+   <div class="consentRow">
+     <span>Zgoda na wizerunek</span>
+     <select id="fImageConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.image))}</select>
+   </div>
+   <div class="consentRow">
+     <span>Dane osobowe</span>
+     <select id="fPersonalConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.personal))}</select>
+   </div>
+   <div class="consentRow">
+     <span>Regulamin zajęć</span>
+     <select id="fRulesConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.rules))}</select>
+   </div>
+ </div>
+ <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
+}
+function saveChild(id,exists){
+ const old=exists?data.children.find(c=>c.id==id):null;
+ let obj={
+  id,
+  last:fLast.value,
+  first:fFirst.value,
+  sex:fSex.value,
+  class:fClass.value,
+  school:fSchool.value,
+  club:fClub.value,
+  parent:fParent.value,
+  phone:fPhone.value,
+  email:fEmail.value,
+  consents:{
+    rules:fRulesConsent.value,
+    personal:fPersonalConsent.value,
+    image:fImageConsent.value
+  },
+  classes:old?.classes||[],
+  notes:old?.notes||"",
+  sourceEntryId:old?.sourceEntryId||"",
+  sourceCreatedAt:old?.sourceCreatedAt||""
+ };
+ if(exists)data.children[data.children.findIndex(c=>c.id==id)]=obj;else data.children.push(obj);
+ save();closeModal();render()
+}
 function editClass(cid,clid){let ch=data.children.find(c=>c.id==cid),cl=ch.classes.find(x=>x.id==clid)||{id:Date.now(),type:workshops[0],day:days[0],time:times[0],school:ch.school,price:155,discount:0,status:"brak"};
  modal(`<h2>${clid?"Edytuj":"Dodaj"} zajęcia</h2><label>Rodzaj zajęć</label><select id="clType">${opt(workshops,cl.type)}</select><label>Szkoła</label><select id="clSchool">${opt(schools,cl.school)}</select>
  <div class="grid2"><div><label>Dzień</label><select id="clDay">${opt(days,cl.day)}</select></div><div><label>Godzina</label><select id="clTime">${opt(times,cl.time)}</select></div></div>
@@ -375,8 +436,163 @@ function income(){app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="ti
 function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input id="iTitle"><label>Kwota</label><input id="iAmount" type="number"><label>Data</label><input id="iDate" type="date"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="data.income.push({id:Date.now(),title:iTitle.value,amount:+iAmount.value,date:iDate.value});save();closeModal();render()">Zapisz</button></div>`)}
 function groups(){app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card"><label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select><label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select><label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select><div class="actions"><button class="dark" onclick="window.print()">Drukuj listę wyselekcjonowanych nazwisk</button></div></div><div id="gList"></div>`;groupList()}
 function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.children.forEach(c=>c.classes.forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b><div class="muted">${x.c.class} • świetlica: ${x.c.club} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div></div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'}
-function reports(){app.innerHTML=`<div class="eyebrow">RAPORTY</div><h2 class="title">Raporty</h2><div class="card"><button class="dark" onclick="window.print()">Drukuj bieżący widok</button><p class="muted">Dane są zapisane lokalnie w tej przeglądarce.</p></div>`}
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.1</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+
+function reportYears(){
+  const years=new Set();
+  data.payments.forEach(p=>{const y=String(p.date||"").slice(0,4);if(/^\d{4}$/.test(y))years.add(+y)});
+  data.income.forEach(p=>{const y=String(p.date||"").slice(0,4);if(/^\d{4}$/.test(y))years.add(+y)});
+  const current=new Date().getFullYear();
+  years.add(current);years.add(current-1);
+  return [...years].sort((a,b)=>b-a);
+}
+function reportMonthNumber(name){
+  const map={"Styczeń":1,"Luty":2,"Marzec":3,"Kwiecień":4,"Maj":5,"Czerwiec":6,"Lipiec":7,"Sierpień":8,"Wrzesień":9,"Październik":10,"Listopad":11,"Grudzień":12};
+  return map[name]||0;
+}
+function paymentYearMonth(p){
+  const d=String(p.date||"");
+  if(/^\d{4}-\d{2}/.test(d))return {year:+d.slice(0,4),month:+d.slice(5,7)};
+  return {year:null,month:reportMonthNumber(p.month)};
+}
+function incomeYearMonth(i){
+  const d=String(i.date||"");
+  if(/^\d{4}-\d{2}/.test(d))return {year:+d.slice(0,4),month:+d.slice(5,7)};
+  return {year:null,month:null};
+}
+function reportFilterYearMonth(item,year,month,type="payment"){
+  const ym=type==="income"?incomeYearMonth(item):paymentYearMonth(item);
+  if(year && ym.year!==+year)return false;
+  if(month && ym.month!==+month)return false;
+  return true;
+}
+function workshopAllocation(payment){
+  const ch=data.children.find(c=>Number(c.id)===Number(payment.childId));
+  if(!ch||!ch.classes?.length)return [{"type":"Nieprzypisane",amount:Number(payment.amount||0)}];
+  const active=ch.classes.filter(c=>c.status!=="bezplatne");
+  if(!active.length)return [{"type":"Bezpłatne / brak należności",amount:Number(payment.amount||0)}];
+  const dues=active.map(c=>({type:c.type||"Inne",due:Math.max(0,dueClass(c))}));
+  const total=dues.reduce((s,x)=>s+x.due,0);
+  if(total<=0){
+    const each=Number(payment.amount||0)/active.length;
+    return active.map(c=>({type:c.type||"Inne",amount:each}));
+  }
+  let remaining=Number(payment.amount||0);
+  return dues.map((x,idx)=>{
+    let amount=idx===dues.length-1?remaining:Number(payment.amount||0)*(x.due/total);
+    remaining-=amount;
+    return {type:x.type,amount};
+  });
+}
+function aggregateReport(year,month){
+  const pays=data.payments.filter(p=>reportFilterYearMonth(p,year,month,"payment"));
+  const inc=data.income.filter(i=>reportFilterYearMonth(i,year,month,"income"));
+  const childPaid=pays.reduce((s,p)=>s+Number(p.amount||0),0);
+  const extra=inc.reduce((s,i)=>s+Number(i.amount||0),0);
+
+  const schoolMap={};
+  pays.forEach(p=>{
+    const ch=data.children.find(c=>Number(c.id)===Number(p.childId));
+    const school=ch?.school||"Nieprzypisane";
+    schoolMap[school]=(schoolMap[school]||0)+Number(p.amount||0);
+  });
+
+  const workshopMap={};
+  pays.forEach(p=>workshopAllocation(p).forEach(a=>{
+    workshopMap[a.type]=(workshopMap[a.type]||0)+Number(a.amount||0);
+  }));
+
+  const monthMap={};
+  for(let m=1;m<=12;m++)monthMap[m]=0;
+  data.payments.filter(p=>reportFilterYearMonth(p,year,null,"payment")).forEach(p=>{
+    const ym=paymentYearMonth(p); if(ym.month)monthMap[ym.month]+=Number(p.amount||0);
+  });
+  data.income.filter(i=>reportFilterYearMonth(i,year,null,"income")).forEach(i=>{
+    const ym=incomeYearMonth(i); if(ym.month)monthMap[ym.month]+=Number(i.amount||0);
+  });
+
+  return {pays,inc,childPaid,extra,total:childPaid+extra,schoolMap,workshopMap,monthMap};
+}
+function reportTable(obj,emptyText){
+  const rows=Object.entries(obj).sort((a,b)=>b[1]-a[1]);
+  if(!rows.length)return `<div class="muted">${emptyText}</div>`;
+  const total=rows.reduce((s,x)=>s+x[1],0)||1;
+  return rows.map(([name,val])=>`<div class="reportRow">
+    <div class="reportRowHead"><b>${name}</b><span>${money(val)}</span></div>
+    <div class="reportBar"><div style="width:${Math.min(100,(val/total)*100)}%"></div></div>
+  </div>`).join("");
+}
+function reports(){
+  const years=reportYears();
+  const defaultYear=years[0]||new Date().getFullYear();
+  app.innerHTML=`<div class="eyebrow">RAPORTY</div><h2 class="title">Raporty i podsumowania</h2>
+  <div class="card reportFilters">
+    <div class="grid2">
+      <div><label>Rok</label><select id="rYear" onchange="refreshReports()">${years.map(y=>`<option value="${y}">${y}</option>`).join("")}</select></div>
+      <div><label>Miesiąc</label><select id="rMonth" onchange="refreshReports()">
+        <option value="">Cały rok</option>
+        ${["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"].map((m,i)=>`<option value="${i+1}">${m}</option>`).join("")}
+      </select></div>
+    </div>
+    <label>Porównaj rok do roku</label>
+    <select id="rCompare" onchange="refreshReports()">
+      <option value="">Bez porównania</option>
+      ${years.filter(y=>y!==defaultYear).map(y=>`<option value="${y}">${y}</option>`).join("")}
+    </select>
+  </div>
+  <div id="reportContent"></div>`;
+  refreshReports();
+}
+function refreshReports(){
+  const year=Number(document.querySelector("#rYear")?.value||new Date().getFullYear());
+  const monthVal=document.querySelector("#rMonth")?.value||"";
+  const month=monthVal?Number(monthVal):null;
+  const compareVal=document.querySelector("#rCompare")?.value||"";
+  const compare=compareVal?Number(compareVal):null;
+  const r=aggregateReport(year,month);
+  const monthName=month?["","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"][month]:"Cały rok";
+  let compareHtml="";
+  if(compare){
+    const c=aggregateReport(compare,month);
+    const diff=r.total-c.total;
+    const pct=c.total?((diff/c.total)*100):null;
+    compareHtml=`<div class="card">
+      <h2>Rok do roku</h2>
+      <div class="yoyGrid">
+        <div class="stat">${year}<b>${money(r.total)}</b></div>
+        <div class="stat">${compare}<b>${money(c.total)}</b></div>
+        <div class="stat">Różnica<b class="${diff>=0?'positive':'negative'}">${diff>=0?'+':''}${money(diff)}</b>${pct!==null?`<small>${pct>=0?'+':''}${pct.toFixed(1)}%</small>`:""}</div>
+      </div>
+    </div>`;
+  }
+
+  document.querySelector("#reportContent").innerHTML=`
+    <div class="card">
+      <h2>${monthName} ${year}</h2>
+      <div class="summary">
+        <div class="stat">Wpłaty dzieci<b>${money(r.childPaid)}</b></div>
+        <div class="stat">Dodatkowe przychody<b>${money(r.extra)}</b></div>
+        <div class="stat">Łączne wpływy<b>${money(r.total)}</b></div>
+        <div class="stat">Liczba wpłat<b>${r.pays.length}</b></div>
+      </div>
+    </div>
+    ${compareHtml}
+    <div class="card">
+      <h2>Wpływy według szkół</h2>
+      ${reportTable(r.schoolMap,"Brak wpłat przypisanych do szkół w wybranym okresie.")}
+    </div>
+    <div class="card">
+      <h2>Wpływy według rodzaju warsztatów</h2>
+      <p class="muted">Jeżeli dziecko chodzi na kilka zajęć, jego wpłata jest dzielona proporcjonalnie do należności za poszczególne zajęcia.</p>
+      ${reportTable(r.workshopMap,"Brak wpłat przypisanych do warsztatów w wybranym okresie.")}
+    </div>
+    ${!month?`<div class="card"><h2>Miesiąc po miesiącu — ${year}</h2>
+      ${Object.entries(r.monthMap).map(([m,val])=>`<div class="reportMonthRow"><span>${["","Sty","Lut","Mar","Kwi","Maj","Cze","Lip","Sie","Wrz","Paź","Lis","Gru"][+m]}</span><b>${money(val)}</b></div>`).join("")}
+    </div>`:""}
+    <div class="card print-hide">
+      <button class="dark" onclick="window.print()">Drukuj raport</button>
+    </div>`;
+}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.3</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){
  app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2>
  <div class="card"><h2>Import formularza zapisu</h2>
@@ -587,5 +803,5 @@ signupCsvInput.onchange=async e=>{
  }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
  finally{e.target.value=''}
 };
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v51.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v53.json";a.click()}
 render();
