@@ -1,5 +1,5 @@
 
-const VERSION="4.6";
+const VERSION="4.7";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -87,71 +87,176 @@ function parseDate(s){
   if(!m)return "";
   return `${m[3]}-${String(m[2]).padStart(2,"0")}-${String(m[1]).padStart(2,"0")}`;
 }
+function normPerson(s){
+  return (s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase()
+    .replace(/[^A-Z0-9 -]/g," ").replace(/\s+/g," ").trim();
+}
+function nameTokens(s){
+  return normPerson(s).split(" ").filter(x=>x.length>=2);
+}
 function probableName(line){
-  let cleaned=line.replace(/\d[\d\s,.]*\s*(PLN|zł)?/ig,"").replace(/PRZELEW.*$/i,"").trim();
+  let cleaned=(line||"")
+    .replace(/\b\d{1,4}(?:[ .]\d{3})*[,.]\d{2}\s*(?:PLN|ZŁ)?\b/ig," ")
+    .replace(/\bPRZELEW\b.*$/i," ").trim();
   let words=cleaned.split(/\s+/).filter(w=>/^[A-ZĄĆĘŁŃÓŚŹŻ-]{2,}$/.test(w));
   if(words.length>=2)return words.slice(0,4).join(" ");
   return "";
 }
-function bestChildMatch(text){
-  let low=(text||"").toLowerCase(),best=null,score=0;
+function personPairMatch(sourceName,targetName){
+  const s=nameTokens(sourceName), t=nameTokens(targetName);
+  if(s.length<2||t.length<2)return 0;
+  const sFirst=s[0], sLast=s[s.length-1], tFirst=t[0], tLast=t[t.length-1];
+  const firstOk=sFirst===tFirst || (Math.min(sFirst.length,tFirst.length)>=3 && (sFirst.startsWith(tFirst)||tFirst.startsWith(sFirst)));
+  const lastMin=Math.min(sLast.length,tLast.length);
+  const lastOk=sLast===tLast || (lastMin>=4 && (sLast.startsWith(tLast)||tLast.startsWith(sLast)));
+  if(sFirst===tFirst && sLast===tLast)return 100;
+  if(firstOk && lastOk)return 88;
+  return 0;
+}
+function textContainsPerson(text,person){
+  const src=normPerson(text), p=nameTokens(person);
+  if(p.length<2)return 0;
+  const first=p[0], last=p[p.length-1];
+  const words=src.split(" ");
+  const firstOk=words.some(w=>w===first || (Math.min(w.length,first.length)>=3 && (w.startsWith(first)||first.startsWith(w))));
+  const lastOk=words.some(w=>w===last || (Math.min(w.length,last.length)>=4 && (w.startsWith(last)||last.startsWith(w))));
+  if(firstOk&&lastOk)return words.includes(first)&&words.includes(last)?82:72;
+  return 0;
+}
+function bestChildMatch(tx){
+  let candidates=[];
   data.children.forEach(c=>{
-    let s=0, last=(c.last||"").toLowerCase(), first=(c.first||"").toLowerCase(), parent=(c.parent||"").toLowerCase();
-    if(last&&low.includes(last))s+=6;
-    if(first&&low.includes(first))s+=4;
-    parent.split(/\s+/).filter(x=>x.length>2).forEach(x=>{if(low.includes(x))s+=2});
-    if(s>score){score=s;best=c}
+    let parentScore=personPairMatch(tx.payer,c.parent||"");
+    let childScore=textContainsPerson(tx.title||tx.raw,`${c.first} ${c.last}`);
+    let parentInText=textContainsPerson(tx.payer||tx.raw,c.parent||"");
+    let score=Math.max(parentScore,parentInText?90:0,childScore);
+    if(score>0)candidates.push({child:c,score});
   });
-  return score?{child:best,score}:null;
+  candidates.sort((a,b)=>b.score-a.score);
+  if(!candidates.length)return null;
+  // Automatyczne zaznaczenie tylko przy mocnym, jednoznacznym dopasowaniu.
+  if(candidates[0].score<70)return null;
+  if(candidates[1] && candidates[1].score===candidates[0].score)return null;
+  return candidates[0];
+}
+function stripAmount(line){
+  return (line||"").replace(/\b\d{1,4}(?:[ .]\d{3})*[,.]\d{2}\s*(?:PLN|ZŁ)?\b/ig," ").replace(/\s+/g," ").trim();
 }
 function parseBankOCR(text){
-  let raw=(text||"").split(/\n+/).map(x=>normalizeOCR(x)).filter(Boolean);
-  let dates=[],currentDate="",tx=[];
+  const raw=(text||"").split(/\n+/).map(x=>normalizeOCR(x)).filter(Boolean);
+  let currentDate="",tx=[];
   for(let i=0;i<raw.length;i++){
-    let line=raw[i],d=parseDate(line);
-    if(d){currentDate=d;dates.push(d);continue}
-    let amount=parseMoney(line);
-    if(amount!==null){
-      let block=[raw[i-2]||"",raw[i-1]||"",line,raw[i+1]||"",raw[i+2]||""].join(" ");
-      tx.push({id:Date.now()+i,date:currentDate,amount,raw:block,name:probableName(line)||probableName(raw[i-1]||""),match:bestChildMatch(block)});
-    }
+    const line=raw[i],d=parseDate(line);
+    if(d){currentDate=d;continue}
+    const amount=parseMoney(line);
+    if(amount===null)continue;
+
+    const prev=raw[i-1]||"";
+    const next=raw[i+1]||"";
+    const prevIsDate=!!parseDate(prev), prevHasAmount=parseMoney(prev)!==null;
+    const nextIsDate=!!parseDate(next), nextHasAmount=parseMoney(next)!==null;
+
+    // W widoku bankowym nadawca jest zwykle w wierszu nad tytułem/kwotą.
+    const payerLine=(!prevIsDate&&!prevHasAmount)?prev:"";
+    const payer=probableName(payerLine);
+    let title=stripAmount(line);
+    if(!nextIsDate&&!nextHasAmount && next && !probableName(next)) title += " "+next;
+
+    const item={
+      id:Date.now()+i,
+      date:currentDate,
+      amount,
+      payer:payer||"",
+      title:title.trim(),
+      raw:[payerLine,line].filter(Boolean).join(" ")
+    };
+    item.match=bestChildMatch(item);
+    tx.push(item);
   }
-  // deduplicate same amount + neighboring repeated OCR
-  let seen=new Set();
-  return tx.filter(t=>{let k=`${t.date}|${t.amount}|${t.name}`; if(seen.has(k))return false; seen.add(k); return true});
+  const seen=new Set();
+  return tx.filter(t=>{
+    const k=`${t.date}|${t.amount}|${normPerson(t.payer)}|${normPerson(t.title)}`;
+    if(seen.has(k))return false; seen.add(k); return true;
+  });
+}
+function ocrChildOptions(selected){
+  return `<option value="">— wybierz dziecko —</option>`+
+    data.children.slice().sort((a,b)=>a.last.localeCompare(b.last,"pl"))
+      .map(c=>`<option value="${c.id}" ${String(c.id)===String(selected)?"selected":""}>${c.last} ${c.first}</option>`).join("");
 }
 function showOCRReview(items,fileName){
   if(!items.length){
-    modal(`<h2>Nie udało się rozpoznać wpłat</h2><div class="notice">Plik: <b>${fileName}</b></div><p>Spróbuj zrobić screen tak, aby były widoczne całe wiersze: data, nadawca/tytuł i kwota. Możesz też przyciąć górny pasek telefonu.</p><div class="actions"><button class="soft" onclick="closeModal()">Zamknij</button><button class="dark" onclick="closeModal();screenInput.click()">Spróbuj inny screen</button></div>`);
+    modal(`<h2>Nie udało się rozpoznać wpłat</h2><div class="notice">Plik: <b>${fileName}</b></div><p>Spróbuj zrobić screen tak, aby były widoczne całe wiersze: data, nadawca/tytuł i kwota.</p><div class="actions"><button class="soft" onclick="closeModal()">Zamknij</button><button class="dark" onclick="closeModal();screenInput.click()">Spróbuj inny screen</button></div>`);
     return;
   }
-  let childrenOpts=data.children.map(c=>`<option value="${c.id}">${c.last} ${c.first}</option>`).join("");
-  modal(`<h2>Weryfikacja rozpoznanych wpłat</h2><div class="notice">Rozpoznano <b>${items.length}</b> pozycji. Nic nie zostanie zapisane bez zatwierdzenia.</div>
-  <div id="ocrReview">${items.map((t,idx)=>`<div class="ocrLine">
-    <h4>${t.name||"Niepewny nadawca"} — ${money(t.amount)}</h4>
-    <div class="muted">${t.date||"brak daty"}<br>${t.raw}</div>
-    <div class="ocrGrid">
-      <div><label>Przypisz do dziecka</label><select id="ocrChild${idx}"><option value="">— wybierz —</option>${childrenOpts}</select></div>
-      <div><label>Miesiąc</label><select id="ocrMonth${idx}">${months.map(m=>`<option>${m}</option>`).join("")}</select></div>
-    </div>
-    <div class="${t.match?'ocrOk':'ocrWarn'}">${t.match?`Propozycja: ${t.match.child.last} ${t.match.child.first}`:"Nie znaleziono pewnego dopasowania"}</div>
-  </div>`).join("")}</div>
-  <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick='saveOCRPayments(${JSON.stringify(items).replace(/'/g,"&#39;")})'>Zapisz zaznaczone wpłaty</button></div>`);
-  items.forEach((t,idx)=>{if(t.match)document.querySelector(`#ocrChild${idx}`).value=t.match.child.id});
+  window.__ocrItems=items;
+  modal(`<h2>Weryfikacja rozpoznanych wpłat</h2>
+    <div class="notice">Rozpoznano <b>${items.length}</b> pozycji. Każdą wpłatę możesz zaakceptować osobno.</div>
+    <div id="ocrReview">${items.map((t,idx)=>`<div class="ocrLine" id="ocrLine${idx}">
+      <h4>${t.payer||"Niepewny nadawca"} — ${money(t.amount)}</h4>
+      <div class="muted">${t.date||"brak daty"}${t.title?`<br>${t.title}`:""}</div>
+      <div class="ocrGrid">
+        <div><label>Przypisz do dziecka</label><select id="ocrChild${idx}">${ocrChildOptions(t.match?.child?.id||"")}</select></div>
+        <div><label>Miesiąc</label><select id="ocrMonth${idx}">${months.map(m=>`<option>${m}</option>`).join("")}</select></div>
+      </div>
+      <div class="${t.match?'ocrOk':'ocrWarn'}" id="ocrHint${idx}">
+        ${t.match?`Propozycja: ${t.match.child.last} ${t.match.child.first}`:"Brak pewnego automatycznego dopasowania"}
+      </div>
+      <div class="actions ocrItemActions">
+        <button class="primary" id="ocrAccept${idx}" onclick="acceptOCRPayment(${idx})">✓ Akceptuję tę wpłatę</button>
+        <button class="soft" onclick="skipOCRPayment(${idx})">Pomiń</button>
+      </div>
+    </div>`).join("")}</div>
+    <div class="actions"><button class="soft" onclick="closeModal()">Zamknij</button><button class="dark" onclick="saveAllAssignedOCR()">Zapisz wszystkie przypisane</button></div>`);
 }
-function saveOCRPayments(items){
-  let saved=0;
-  items.forEach((t,idx)=>{
-    let cid=Number(document.querySelector(`#ocrChild${idx}`).value||0);
-    if(!cid)return;
-    let ch=data.children.find(c=>c.id==cid),month=document.querySelector(`#ocrMonth${idx}`).value;
-    data.payments.push({id:Date.now()+idx,childId:cid,child:ch.last+" "+ch.first,month,amount:t.amount,date:t.date||"",note:"Import OCR ze screena"});
-    // do not blindly mark every class paid if multiple classes exist; only if total payment covers all current due
-    if(t.amount>=childDue(ch)) ch.classes.forEach(c=>{if(c.status!=="bezplatne")c.status="oplacone"});
-    saved++;
+function persistOCRItem(t,idx){
+  const select=document.querySelector(`#ocrChild${idx}`);
+  const monthEl=document.querySelector(`#ocrMonth${idx}`);
+  if(!select||!monthEl)return false;
+  const cid=Number(select.value||0);
+  if(!cid)return false;
+  const ch=data.children.find(c=>c.id===cid);
+  if(!ch)return false;
+  data.payments.push({
+    id:Date.now()+idx,
+    childId:cid,
+    child:ch.last+" "+ch.first,
+    month:monthEl.value,
+    amount:t.amount,
+    date:t.date||"",
+    note:`Import OCR: ${t.payer||"nadawca niepewny"}${t.title?" • "+t.title:""}`
   });
-  save(); closeModal(); render(); alert(`Zapisano ${saved} wpłat.`);
+  if(t.amount>=childDue(ch)) ch.classes.forEach(c=>{if(c.status!=="bezplatne")c.status="oplacone"});
+  return true;
 }
+function markOCRDone(idx,label="Zapisano"){
+  const line=document.querySelector(`#ocrLine${idx}`);
+  if(!line)return;
+  line.classList.add("ocrAccepted");
+  line.querySelectorAll("select,button").forEach(el=>el.disabled=true);
+  const btn=document.querySelector(`#ocrAccept${idx}`);
+  if(btn){btn.textContent="✓ "+label;btn.classList.add("acceptedBtn")}
+}
+function acceptOCRPayment(idx){
+  const t=window.__ocrItems?.[idx];
+  if(!t)return;
+  const cid=Number(document.querySelector(`#ocrChild${idx}`)?.value||0);
+  if(!cid){document.querySelector(`#ocrHint${idx}`).textContent="Najpierw wybierz dziecko.";document.querySelector(`#ocrHint${idx}`).className="ocrWarn";return}
+  if(persistOCRItem(t,idx)){save();markOCRDone(idx,"Wpłata zaakceptowana")}
+}
+function skipOCRPayment(idx){markOCRDone(idx,"Pominięto")}
+function saveAllAssignedOCR(){
+  let saved=0;
+  (window.__ocrItems||[]).forEach((t,idx)=>{
+    const line=document.querySelector(`#ocrLine${idx}`);
+    if(line?.classList.contains("ocrAccepted"))return;
+    if(persistOCRItem(t,idx)){saved++;markOCRDone(idx,"Wpłata zaakceptowana")}
+  });
+  save();
+  const note=document.querySelector("#ocrReview");
+  if(saved===0) return;
+}
+function saveOCRPayments(items){ window.__ocrItems=items; saveAllAssignedOCR(); }
 screenInput.onchange=async e=>{
   let f=e.target.files[0]; if(!f)return;
   if(typeof Tesseract==="undefined"){alert("Nie udało się załadować modułu OCR. Sprawdź internet i odśwież stronę.");return}
@@ -177,7 +282,7 @@ function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input 
 function groups(){app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card"><label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select><label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select><label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select><div class="actions"><button class="dark" onclick="window.print()">Drukuj listę wyselekcjonowanych nazwisk</button></div></div><div id="gList"></div>`;groupList()}
 function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.children.forEach(c=>c.classes.forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b><div class="muted">${x.c.class} • świetlica: ${x.c.club} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div></div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'}
 function reports(){app.innerHTML=`<div class="eyebrow">RAPORTY</div><h2 class="title">Raporty</h2><div class="card"><button class="dark" onclick="window.print()">Drukuj bieżący widok</button><p class="muted">Dane są zapisane lokalnie w tej przeglądarce.</p></div>`}
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>4.6</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>4.7</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="card"><p>Moduł przygotowany do dalszego połączenia z formularzem zgłoszeń.</p></div>`}
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v45.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v47.json";a.click()}
 render();

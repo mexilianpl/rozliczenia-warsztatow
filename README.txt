@@ -1,21 +1,12 @@
-Rozliczenia Warsztatów v4.6
+Rozliczenia Warsztatów v4.7
 
-Podmień na GitHub Pages:
-- index.html
-- style.css
-- app.js
+Najważniejsze zmiany OCR:
+- każdy rozpoznany przelew ma własny przycisk „Akceptuję tę wpłatę”,
+- można zatwierdzać wpłaty pojedynczo bez przewijania na sam dół,
+- poprawione dzielenie przelewów: OCR nie powinien mieszać sąsiednich transakcji,
+- dopasowanie bazuje przede wszystkim na pełnym imieniu + nazwisku rodzica/opiekuna,
+- obsługiwane jest też częściowe długie nazwisko, jeśli imię się zgadza,
+- dziecko może być dopasowane po imieniu i nazwisku widocznym w tytule przelewu,
+- słabe lub niejednoznaczne dopasowania nie są automatycznie wybierane.
 
-NOWE:
-- prawdziwy OCR screena bankowego w przeglądarce przez Tesseract.js,
-- rozpoznawanie kwot, dat i tekstu operacji,
-- próba dopasowania dziecka po imieniu/nazwisku/rodzicu,
-- ekran weryfikacji przed zapisaniem,
-- nieznane przelewy nadal są pokazane i można ręcznie wybrać dziecko,
-- nic nie zapisuje się bez zatwierdzenia,
-- czerwony przycisk Usuń zajęcia z potwierdzeniem,
-- widoczna wersja 4.6.
-
-Ważne:
-OCR działa w przeglądarce. Przy pierwszym użyciu potrzebny jest internet do pobrania biblioteki OCR z CDN.
-
-Nowe w v4.6: własne, lekkie okna potwierdzenia usuwania zajęć i wpłat, bez systemowego komunikatu przeglądarki.
+Podmień na GitHubie: index.html, app.js, style.css.

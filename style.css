@@ -36,3 +36,8 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .confirmBox h2{margin:0 0 10px;color:var(--blue);font-size:26px}.confirmBox p{margin:0 auto 22px;color:#707985;font-size:17px;line-height:1.5;max-width:390px}
 .confirmActions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.confirmDanger{background:#fff0f2;color:var(--red);border:1px solid #f2c8d0;border-radius:18px;padding:13px 18px;font-weight:800;font-size:16px}
 @media(max-width:430px){.confirmBox{border-radius:26px;padding:24px 18px 18px}.confirmBox h2{font-size:24px}.confirmActions button{padding:14px 10px}}
+
+/* v4.7 — akceptacja pojedynczych wpłat OCR */
+.ocrItemActions{margin-top:14px}
+.ocrAccepted{opacity:.62;background:#f2fbf8!important;border-color:#bfe7d9!important}
+.acceptedBtn{background:#168765!important;color:#fff!important}
