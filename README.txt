@@ -1,4 +1,4 @@
-Rozliczenia Warsztatów v4.5
+Rozliczenia Warsztatów v4.6
 
 Podmień na GitHub Pages:
 - index.html
@@ -13,7 +13,9 @@ NOWE:
 - nieznane przelewy nadal są pokazane i można ręcznie wybrać dziecko,
 - nic nie zapisuje się bez zatwierdzenia,
 - czerwony przycisk Usuń zajęcia z potwierdzeniem,
-- widoczna wersja 4.5.
+- widoczna wersja 4.6.
 
 Ważne:
 OCR działa w przeglądarce. Przy pierwszym użyciu potrzebny jest internet do pobrania biblioteki OCR z CDN.
+
+Nowe w v4.6: własne, lekkie okna potwierdzenia usuwania zajęć i wpłat, bez systemowego komunikatu przeglądarki.
