@@ -125,3 +125,17 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .dashboardSummary .missingStat b{color:var(--red)!important}
 .dashboardNotice{margin:12px 0 18px}
 @media(min-width:760px){.dashboardSummary{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+/* v5.10 hotfix Start + pełny pakiet operacyjny */
+.todoGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.todoItem{border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:4px}
+.todoItem b{font-size:28px}.todoItem span{font-size:13px;font-weight:700}
+.dangerLite{background:#fff0f2;color:var(--red)}.warnLite{background:#fff5df;color:#a86500}.infoLite{background:#edf7fa;color:var(--blue)}
+.nextClassCard{width:100%;border:1px solid var(--line);border-radius:18px;background:#f8fbfd;padding:15px;margin:7px 0;text-align:left;color:var(--blue)}
+.nextClassCard b,.nextClassCard span{display:block}.nextClassCard span{margin-top:5px;color:#6e7883}
+.attendanceRow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.attendanceRow small{display:block;color:#74808c;margin-top:4px}.attendanceBtns{display:flex;gap:7px}
+.attActive{border:0;border-radius:14px;padding:11px 13px;font-weight:900}.presentBtn{background:#e4f7ef;color:var(--green)}.absentBtn{background:#fff0f2;color:var(--red)}
+.consentDiffList{background:#f7f9fb;border-radius:15px;padding:12px;margin:12px 0}.consentDiffList>div{padding:8px 0;border-bottom:1px solid var(--line)}
+.groupContact{margin-top:8px;font-weight:700}
+@media(max-width:600px){.todoGrid{grid-template-columns:1fr}.attendanceRow{align-items:flex-start;flex-direction:column}.attendanceBtns{width:100%}.attendanceBtns button{flex:1}}

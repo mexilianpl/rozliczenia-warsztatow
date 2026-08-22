@@ -1,18 +1,23 @@
-Rozliczenia Warsztatów v5.9 — aktualny miesiąc na Start
+Rozliczenia Warsztatów v5.10 — HOTFIX START
 
-Zmiany:
-- strona główna automatycznie używa bieżącego miesiąca i roku z urządzenia,
-- kafelki pokazują tylko dane bieżącego miesiąca:
-  • Należne w miesiącu,
-  • Wpłaty dzieci,
-  • Brakuje wpłat,
-  • Dodatkowe przychody,
-  • Razem wpływy,
-- „Brakuje wpłat” jest wyróżnione czerwoną czcionką,
-- brakująca kwota = należne w bieżącym miesiącu minus wpłaty z tego miesiąca (minimum 0 zł),
-- panel „Do zrobienia” również odnosi statusy wpłat do bieżącego miesiąca,
-- w lipcu i sierpniu, które są poza standardowym okresem zajęć Wrzesień–Czerwiec, należność miesięczna jest ustawiona na 0 zł i pojawia się informacja wyjaśniająca.
+Naprawiono błąd wersji 5.9, przez który zakładka Start nie otwierała się.
 
-Zachowane wszystkie funkcje v5.8.
+Strona Start:
+- automatycznie pokazuje bieżący miesiąc i rok,
+- Należne w miesiącu,
+- Wpłaty dzieci,
+- Brakuje wpłat — na czerwono,
+- Dodatkowe przychody,
+- Razem wpływy,
+- panel Do zrobienia,
+- dzisiejsze / najbliższe zajęcia,
+- szybkie wyszukiwanie dziecka.
 
+Dodatkowo przywrócono i sprawdzono funkcje wcześniej zapowiedziane:
+- elektroniczna obecność,
+- lista kontaktów grupy,
+- lista brakujących wpłat grupy,
+- porównanie zgód przy kolejnym formularzu istniejącego dziecka.
+
+Zachowane wszystkie wcześniejsze funkcje v5.7–5.9.
 Podmień na GitHubie: index.html, app.js, style.css.

@@ -14,6 +14,7 @@ let data=JSON.parse(localStorage.getItem("rw45")||"null")||{
  {id:2,last:"Kowalski",first:"Jan",sex:"Chłopiec",class:"5A",school:"ZSP 17",club:"Nie",parent:"",phone:"",email:"",classes:[{id:21,type:"Rękodzieło",day:"Wtorek",time:"15:30",school:"ZSP 17",price:155,discount:0,status:"brak"}]},
  {id:3,last:"Nowak",first:"Maja",sex:"Dziewczynka",class:"3B",school:"SP 162",club:"Tak",parent:"",phone:"",email:"",classes:[{id:31,type:"Artystyczne",day:"Wtorek",time:"15:30",school:"SP 162",price:155,discount:100,status:"bezplatne"}]}
  ],payments:[],income:[]};
+data.attendance=data.attendance||{};
 let page="start"; const app=document.querySelector("#app"), nav=document.querySelector("#nav");
 function save(){localStorage.setItem("rw45",JSON.stringify(data))}
 function money(v){return Number(v||0).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})+" zł"}
@@ -56,6 +57,57 @@ function renderNav(){nav.innerHTML=tabs.map(t=>`<button class="${page==t[0]?"act
 function go(p){page=p;render()}
 function render(){renderNav(); ({start,children,payments,income,signups,groups,reports,lists}[page]||start)()}
 
+
+function currentMonthName(){
+ const names=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+ return names[new Date().getMonth()];
+}
+function taskCounts(){
+ const period=currentDashboardPeriod();
+ const activeSchoolMonth=months.includes(period.month);
+ let unpaid=0,partial=0,noConsent=0;
+ data.children.forEach(c=>{
+   if(activeSchoolMonth){
+     const paid=data.payments.filter(p=>Number(p.childId)===Number(c.id)&&paymentBelongsToDashboardMonth(p,period))
+       .reduce((s,p)=>s+Number(p.amount||0),0);
+     const due=childDue(c);
+     if(due>0&&paid<=0)unpaid++;
+     else if(due>0&&paid<due)partial++;
+   }
+   if(consentLabel(c.consents?.image)==="")noConsent++;
+ });
+ return {unpaid,partial,noConsent};
+}
+function dayIndex(name){
+ return {"Niedziela":0,"Poniedziałek":1,"Wtorek":2,"Środa":3,"Czwartek":4,"Piątek":5,"Sobota":6}[name]??99;
+}
+function nextClassDayInfo(){
+ const today=new Date(),td=today.getDay(),entries=[];
+ data.children.forEach(c=>(c.classes||[]).forEach(cl=>{
+   const di=dayIndex(cl.day);if(di===99)return;
+   entries.push({delta:(di-td+7)%7,cl,c});
+ }));
+ if(!entries.length)return {delta:null,items:[]};
+ const min=Math.min(...entries.map(x=>x.delta));
+ return {delta:min,items:entries.filter(x=>x.delta===min)};
+}
+function classesGroupedForDay(items){
+ const map={};
+ items.forEach(({c,cl})=>{
+   const key=[cl.school,cl.type,cl.day,cl.time].join("|");
+   if(!map[key])map[key]={school:cl.school,type:cl.type,day:cl.day,time:cl.time,children:[]};
+   if(!map[key].children.some(x=>x.id===c.id))map[key].children.push(c);
+ });
+ return Object.values(map).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
+}
+function goToGroup(school,day,time){
+ page="groups";render();
+ setTimeout(()=>{
+   const s=document.querySelector("#gSchool"),d=document.querySelector("#gDay"),t=document.querySelector("#gTime");
+   if(s)s.value=school;if(d)d.value=day;if(t)t.value=time;
+   if(typeof groupList==="function")groupList();
+ },0);
+}
 function currentDashboardPeriod(){
  const now=new Date();
  return {month:currentMonthName(),year:now.getFullYear(),monthNumber:now.getMonth()+1};
@@ -617,16 +669,67 @@ screenInput.onchange=async e=>{
 };
 function income(){app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Dodatkowe przychody</h2><button class="primary" onclick="addIncome()">+ Dodaj przychód</button><div class="card">${data.income.map(i=>`<div class="classrow"><b>${i.title}</b><div>${money(i.amount)} • ${i.date}</div></div>`).join("")||"Brak dodatkowych przychodów."}</div>`}
 function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input id="iTitle"><label>Kwota</label><input id="iAmount" type="number"><label>Data</label><input id="iDate" type="date"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="data.income.push({id:Date.now(),title:iTitle.value,amount:+iAmount.value,date:iDate.value});save();closeModal();render()">Zapisz</button></div>`)}
-function groups(){app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card"><label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select><label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select><label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select><div class="actions"><button class="dark" onclick="window.print()">Drukuj listę wyselekcjonowanych nazwisk</button></div></div><div id="gList"></div>`;groupList()}
-function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.children.forEach(c=>c.classes.forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b><div class="muted">${x.c.class} • ${x.c.pickupPlace||"Sala nieustalona"} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div></div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'}
-
-function reportYears(){
-  const years=new Set();
-  data.payments.forEach(p=>{const y=String(p.date||"").slice(0,4);if(/^\d{4}$/.test(y))years.add(+y)});
-  data.income.forEach(p=>{const y=String(p.date||"").slice(0,4);if(/^\d{4}$/.test(y))years.add(+y)});
-  const current=new Date().getFullYear();
-  years.add(current);years.add(current-1);
-  return [...years].sort((a,b)=>b-a);
+function groups(){
+ app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card">
+ <label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select>
+ <label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select>
+ <label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select>
+ <div class="actions">
+   <button class="dark" onclick="printGroupList()">🖨 Drukuj listę</button>
+   <button class="soft" onclick="showAttendance()">✓ Obecność</button>
+   <button class="soft" onclick="printGroupContacts()">☎ Kontakty</button>
+   <button class="soft" onclick="printGroupArrears()">Braki wpłat</button>
+ </div></div><div id="gList"></div>`;
+ groupList()
+}
+function selectedGroupRows(){
+ const s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];
+ data.children.forEach(c=>(c.classes||[]).forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));
+ const seen=new Set();
+ return arr.filter(x=>{if(seen.has(x.c.id))return false;seen.add(x.c.id);return true})
+   .sort((a,b)=>pickupSortValue(a.c)-pickupSortValue(b.c)||(a.c.last+" "+a.c.first).localeCompare(b.c.last+" "+b.c.first,"pl"));
+}
+function groupList(){
+ const arr=selectedGroupRows();
+ gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b>
+ <div class="muted">${x.c.class||""} • ${x.c.pickupPlace||"Sala nieustalona"} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div>
+ ${x.c.parent||x.c.phone?`<div class="groupContact">${x.c.parent||""}${x.c.phone?` • <a href="tel:${x.c.phone}">${x.c.phone}</a>`:""}</div>`:""}</div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'
+}
+function printSimpleTable(title,headers,rows){
+ if(!rows.length){confirmModal({title:"Brak danych",message:"Brak pozycji dla wybranej grupy.",confirmText:"OK",cancelText:"Zamknij",danger:false});return}
+ const win=window.open("","_blank");
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #aaa;padding:8px;text-align:left}th{background:#f1f4f7}@media print{button{display:none}}</style></head><body><h1>${title}</h1><p>${gSchool.value} • ${gDay.value} • ${gTime.value}</p><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join("")}</tr>`).join("")}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
+ win.document.close();setTimeout(()=>win.print(),250)
+}
+function printGroupList(){
+ const arr=selectedGroupRows();
+ printSimpleTable("Lista grupy",["Dziecko","Klasa","Sala / odbiór","Warsztaty","Dzień","Godzina"],arr.map(x=>[x.c.last+" "+x.c.first,x.c.class||"",x.c.pickupPlace||"",x.cl.type||"",x.cl.day||"",x.cl.time||""]))
+}
+function printGroupContacts(){
+ const arr=selectedGroupRows();
+ printSimpleTable("Kontakty grupy",["Dziecko","Rodzic / opiekun","Telefon","E-mail","Sala / odbiór"],arr.map(x=>[x.c.last+" "+x.c.first,x.c.parent||"",x.c.phone||"",x.c.email||"",x.c.pickupPlace||""]))
+}
+function printGroupArrears(){
+ const period=currentDashboardPeriod(),arr=selectedGroupRows().map(x=>{
+   const paid=data.payments.filter(p=>Number(p.childId)===Number(x.c.id)&&paymentBelongsToDashboardMonth(p,period)).reduce((s,p)=>s+Number(p.amount||0),0);
+   const due=childDue(x.c);return {x,due,paid,missing:Math.max(0,due-paid)}
+ }).filter(y=>y.missing>0);
+ printSimpleTable(`Braki wpłat — ${period.month} ${period.year}`,["Dziecko","Należne","Wpłacono","Brakuje"],arr.map(y=>[y.x.c.last+" "+y.x.c.first,money(y.due),money(y.paid),money(y.missing)]))
+}
+function attendanceKey(){return `${new Date().toISOString().slice(0,10)}|${gSchool.value}|${gDay.value}|${gTime.value}`}
+function showAttendance(){
+ const arr=selectedGroupRows();if(!arr.length)return;
+ const key=attendanceKey(),saved=data.attendance[key]||{};
+ modal(`<h2>Obecność — ${gSchool.value}</h2><div class="muted">${gDay.value} ${gTime.value}</div>
+ ${arr.map(({c})=>`<div class="attendanceRow"><div><b>${c.last} ${c.first}</b><small>${c.class||""} • ${c.pickupPlace||""}</small></div>
+ <div class="attendanceBtns"><button class="${saved[c.id]==="present"?"attActive presentBtn":"soft"}" onclick="setAttendance('${key}',${c.id},'present',this)">Obecny</button>
+ <button class="${saved[c.id]==="absent"?"attActive absentBtn":"soft"}" onclick="setAttendance('${key}',${c.id},'absent',this)">Nieobecny</button></div></div>`).join("")}
+ <div class="actions"><button class="primary" onclick="save();closeModal()">Zapisz obecność</button><button class="soft" onclick="closeModal()">Zamknij</button></div>`)
+}
+function setAttendance(key,cid,status,btn){
+ data.attendance[key]=data.attendance[key]||{};data.attendance[key][cid]=status;
+ const row=btn.closest(".attendanceBtns");row.querySelectorAll("button").forEach(b=>b.className="soft");
+ btn.className=status==="present"?"attActive presentBtn":"attActive absentBtn";
 }
 function reportMonthNumber(name){
   const map={"Styczeń":1,"Luty":2,"Marzec":3,"Kwiecień":4,"Maj":5,"Czerwiec":6,"Lipiec":7,"Sierpień":8,"Wrzesień":9,"Październik":10,"Listopad":11,"Grudzień":12};
@@ -863,6 +966,35 @@ function showSignupReview(items,fileName){
 function escapeAttr(v){return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escapeHtml(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
+
+function normalizeConsentValue(v){return consentLabel(v)||""}
+function consentChanges(existing,src){
+ const old=existing.consents||{};
+ return [
+  {key:"image",label:"Zgoda na wizerunek",old:normalizeConsentValue(old.image),next:normalizeConsentValue(src.imageConsent)},
+  {key:"personal",label:"Dane osobowe",old:normalizeConsentValue(old.personal),next:normalizeConsentValue(src.personal)},
+  {key:"rules",label:"Regulamin zajęć",old:normalizeConsentValue(old.rules),next:normalizeConsentValue(src.rules)}
+ ].filter(x=>x.next&&x.old!==x.next);
+}
+function consentUpdateDialog(changes){
+ return new Promise(resolve=>{
+  if(!changes.length){resolve(false);return}
+  const wrap=document.createElement("div");wrap.className="confirmOverlay";wrap.id="consentUpdateDialog";
+  wrap.innerHTML=`<div class="confirmBox"><div class="confirmIcon">?</div><h2>Nowe zgody w formularzu</h2>
+  <p>Nowy formularz różni się od zapisanych danych:</p>
+  <div class="consentDiffList">${changes.map(x=>`<div><b>${x.label}</b><br>${x.old||"brak danych"} → <b>${x.next}</b></div>`).join("")}</div>
+  <p>Czy zaktualizować zgody w profilu?</p><div class="confirmActions"><button class="soft" data-no>Zostaw obecne</button><button class="primary" data-yes>Aktualizuj</button></div></div>`;
+  const done=v=>{wrap.remove();resolve(v)};
+  wrap.querySelector("[data-no]").onclick=()=>done(false);wrap.querySelector("[data-yes]").onclick=()=>done(true);
+  document.body.appendChild(wrap)
+ })
+}
+function applyConsentChanges(existing,src){
+ existing.consents=existing.consents||{};
+ if(normalizeConsentValue(src.imageConsent))existing.consents.image=normalizeConsentValue(src.imageConsent);
+ if(normalizeConsentValue(src.personal))existing.consents.personal=normalizeConsentValue(src.personal);
+ if(normalizeConsentValue(src.rules))existing.consents.rules=normalizeConsentValue(src.rules);
+}
 function existingChildDialog(existing){
  return new Promise(resolve=>{
   const old=document.getElementById('existingChildDialog');if(old)old.remove();
@@ -953,6 +1085,8 @@ async function acceptSignup(i){
    return;
   }
   if(action==='add'){
+   const changes=consentChanges(existing,src);
+   if(changes.length && await consentUpdateDialog(changes))applyConsentChanges(existing,src);
    const result=addSignupClassesToExisting(existing,i,src);
    if(result.added===0){
     info.className='ocrWarn';
