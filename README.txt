@@ -1,19 +1,25 @@
-Rozliczenia Warsztatów v5.12 — Eksport Excel
+Rozliczenia Warsztatów v6.0 — Listy + Ustawienia
 
-Nowość w zakładce Raporty:
-- przycisk „Eksport do Excel”,
-- eksportuje aktualnie wybrany rok i miesiąc albo cały rok,
-- plik XLSX zawiera osobne arkusze:
-  • Podsumowanie,
-  • Wpłaty,
-  • Szkoły,
-  • Warsztaty,
-  • Zaległości,
-  • Przychody,
-  • Dzieci,
-  • Zajęcia,
-- wartości kwotowe są zapisane jako liczby, więc można je dalej sumować i analizować w Excelu,
-- nazwa pliku zawiera wybrany okres.
+NOWA ZAKŁADKA LISTY:
+- lista dzieci,
+- lista obecności,
+- lista odbioru dzieci (sortowana po salach),
+- lista kontaktowa,
+- lista zaległości,
+- lista zgód,
+- lista dzieci bezpłatnych,
+- lista zapisów na warsztaty,
+- wspólne filtry: szkoła, warsztaty, dzień, godzina,
+- druk,
+- eksport wybranej listy do Excel.
 
-Zachowane wszystkie funkcje wersji 5.11.
-Podmień na GitHubie: index.html, app.js, style.css.
+NOWA ZAKŁADKA USTAWIENIA:
+- dodawanie, usuwanie i edycja szkół,
+- dodawanie, usuwanie i edycja nazw warsztatów,
+- przypisywanie domyślnej ceny do rodzaju warsztatów,
+- dodawanie i usuwanie godzin zajęć,
+- edycja listy dni zajęć,
+- ustawienia są zapisywane razem z danymi aplikacji,
+- nowe warsztaty/ceny są używane przy dodawaniu kolejnych zajęć i importach.
+
+Zachowane wszystkie funkcje v5.12, w tym Raporty i eksport do Excel.

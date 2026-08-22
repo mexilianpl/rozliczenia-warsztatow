@@ -1,5 +1,5 @@
 
-const VERSION="5.12";
+const VERSION="6.0";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -9,12 +9,26 @@ const pickupPlaces=["Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam
 let data=JSON.parse(localStorage.getItem("rw45")||"null")||{
  children:[
  {id:1,last:"Kolasa",first:"Nikola",sex:"Dziewczynka",class:"4A",school:"SP 162",club:"Tak",parent:"Łukasz Kolasa",phone:"50340488",email:"mexilianpl@gmail.com",classes:[
-  {id:11,type:"Rękodzieło",day:"Wtorek",time:"15:00",school:"SP 162",price:155,discount:0,status:"brak"},
+  {id:11,type:"Rękodzieło",day:"Wtorek",time:"15:00",school:"SP 162",price:defaultWorkshopPrice(workshops[0]),discount:0,status:"brak"},
   {id:12,type:"Zaawansowane",day:"Środa",time:"15:30",school:"SP 162",price:165,discount:10,status:"brak"}]},
- {id:2,last:"Kowalski",first:"Jan",sex:"Chłopiec",class:"5A",school:"ZSP 17",club:"Nie",parent:"",phone:"",email:"",classes:[{id:21,type:"Rękodzieło",day:"Wtorek",time:"15:30",school:"ZSP 17",price:155,discount:0,status:"brak"}]},
+ {id:2,last:"Kowalski",first:"Jan",sex:"Chłopiec",class:"5A",school:"ZSP 17",club:"Nie",parent:"",phone:"",email:"",classes:[{id:21,type:"Rękodzieło",day:"Wtorek",time:"15:30",school:"ZSP 17",price:defaultWorkshopPrice(workshops[0]),discount:0,status:"brak"}]},
  {id:3,last:"Nowak",first:"Maja",sex:"Dziewczynka",class:"3B",school:"SP 162",club:"Tak",parent:"",phone:"",email:"",classes:[{id:31,type:"Artystyczne",day:"Wtorek",time:"15:30",school:"SP 162",price:155,discount:100,status:"bezplatne"}]}
  ],payments:[],income:[]};
 data.attendance=data.attendance||{};
+
+data.settings=data.settings||{};
+data.settings.schools=data.settings.schools||[...schools];
+data.settings.workshops=data.settings.workshops||workshops.map((name,i)=>({name,price:[155,165,155][i]||155}));
+data.settings.days=data.settings.days||[...days];
+data.settings.times=data.settings.times||[...times];
+function syncSettingsArrays(){
+ schools.splice(0,schools.length,...data.settings.schools);
+ workshops.splice(0,workshops.length,...data.settings.workshops.map(x=>x.name));
+ days.splice(0,days.length,...data.settings.days);
+ times.splice(0,times.length,...data.settings.times);
+}
+syncSettingsArrays();
+
 let page="start"; const app=document.querySelector("#app"), nav=document.querySelector("#nav");
 function save(){localStorage.setItem("rw45",JSON.stringify(data))}
 function money(v){return Number(v||0).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})+" zł"}
@@ -51,11 +65,16 @@ function findDuplicatePayment(candidate){
   return data.payments.find(p=>existingPaymentFingerprint(p)===fp) || null;
 }
 
+
+function defaultWorkshopPrice(type){
+ const row=data.settings?.workshops?.find(x=>x.name===type);
+ return Number(row?.price||155);
+}
 function opt(arr,val){return arr.map(x=>`<option ${x==val?"selected":""}>${x}</option>`).join("")}
-const tabs=[["start","⌂","Start"],["children","👥","Dzieci"],["payments","✓","Wpłaty"],["income","+","Przychody"],["signups","✉","Zapisy"],["groups","☷","Grupy"],["reports","▥","Raporty"],["lists","⚙","Listy"]];
+const tabs=[["start","⌂","Start"],["children","👥","Dzieci"],["payments","✓","Wpłaty"],["income","+","Przychody"],["signups","✉","Zapisy"],["groups","☷","Grupy"],["reports","▥","Raporty"],["lists","☑","Listy"],["settings","⚙","Ustawienia"]];
 function renderNav(){nav.innerHTML=tabs.map(t=>`<button class="${page==t[0]?"active":""}" onclick="go('${t[0]}')"><div>${t[1]}</div>${t[2]}</button>`).join("")}
 function go(p){page=p;render()}
-function render(){renderNav(); ({start,children,payments,income,signups,groups,reports,lists}[page]||start)()}
+function render(){renderNav(); ({start,children,payments,income,signups,groups,reports,lists,settings}[page]||start)()}
 
 
 function currentMonthName(){
@@ -388,10 +407,10 @@ function saveChild(id,exists){
  if(exists)data.children[data.children.findIndex(c=>c.id==id)]=obj;else data.children.push(obj);
  save();closeModal();render()
 }
-function editClass(cid,clid){let ch=data.children.find(c=>c.id==cid),cl=ch.classes.find(x=>x.id==clid)||{id:Date.now(),type:workshops[0],day:days[0],time:times[0],school:ch.school,price:155,discount:0,status:"brak"};
- modal(`<h2>${clid?"Edytuj":"Dodaj"} zajęcia</h2><label>Rodzaj zajęć</label><select id="clType">${opt(workshops,cl.type)}</select><label>Szkoła</label><select id="clSchool">${opt(schools,cl.school)}</select>
+function editClass(cid,clid){let ch=data.children.find(c=>c.id==cid),cl=ch.classes.find(x=>x.id==clid)||{id:Date.now(),type:workshops[0],day:days[0],time:times[0],school:ch.school,price:defaultWorkshopPrice(workshops[0]),discount:0,status:"brak"};
+ modal(`<h2>${clid?"Edytuj":"Dodaj"} zajęcia</h2><label>Rodzaj zajęć</label><select id="clType" onchange="if(!this.dataset.edited){clPrice.value=defaultWorkshopPrice(this.value)}">${opt(workshops,cl.type)}</select><label>Szkoła</label><select id="clSchool">${opt(schools,cl.school)}</select>
  <div class="grid2"><div><label>Dzień</label><select id="clDay">${opt(days,cl.day)}</select></div><div><label>Godzina</label><select id="clTime">${opt(times,cl.time)}</select></div></div>
- <div class="grid2"><div><label>Cena regularna</label><input id="clPrice" type="number" value="${cl.price}"></div><div><label>Rabat %</label><select id="clDisc">${opt([0,10,20,30,50,100],cl.discount)}</select></div></div>
+ <div class="grid2"><div><label>Cena regularna</label><input id="clPrice" type="number" value="${cl.price}" oninput="clType.dataset.edited=1"></div><div><label>Rabat %</label><select id="clDisc">${opt([0,10,20,30,50,100],cl.discount)}</select></div></div>
  <label>Status</label><select id="clStatus"><option value="brak" ${cl.status=="brak"?"selected":""}>Brak wpłaty</option><option value="oplacone" ${cl.status=="oplacone"?"selected":""}>Wpłacono</option><option value="bezplatne" ${cl.status=="bezplatne"?"selected":""}>Bezpłatne</option></select>
  <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveClass(${cid},${cl.id},${clid?1:0})">Zapisz</button></div>`) }
 function saveClass(cid,id,exists){let ch=data.children.find(c=>c.id==cid),cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value};if(exists)ch.classes[ch.classes.findIndex(x=>x.id==id)]=cl;else ch.classes.push(cl);save();closeModal();render()}
@@ -1001,7 +1020,110 @@ function refreshReports(){
       <button class="dark" onclick="window.print()">Drukuj raport</button><button class="primary" onclick="exportReportsExcel()">⬇ Eksport do Excel</button>
     </div>`;
 }
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.12</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function listFilteredChildren(){
+ const sf=document.querySelector("#lSchool")?.value||"__ALL__";
+ const wf=document.querySelector("#lWorkshop")?.value||"";
+ const df=document.querySelector("#lDay")?.value||"";
+ const tf=document.querySelector("#lTime")?.value||"";
+ let arr=data.children.filter(c=>{
+  const schoolOk=sf==="__ALL__"||c.school===sf||(c.classes||[]).some(cl=>cl.school===sf);
+  if(!schoolOk)return false;
+  if(!wf&&!df&&!tf)return true;
+  return (c.classes||[]).some(cl=>(!wf||cl.type===wf)&&(!df||cl.day===df)&&(!tf||cl.time===tf)&&(sf==="__ALL__"||cl.school===sf||c.school===sf));
+ });
+ return arr.sort((a,b)=>pickupSortValue(a)-pickupSortValue(b)||(a.last+" "+a.first).localeCompare(b.last+" "+b.first,"pl"));
+}
+function listRows(type){
+ const arr=listFilteredChildren(),month=currentMonthName();
+ if(type==="children")return {title:"Lista dzieci",headers:["Dziecko","Klasa","Szkoła","Sala / odbiór"],rows:arr.map(c=>[`${c.last} ${c.first}`,c.class||"",c.school||"",c.pickupPlace||""])};
+ if(type==="attendance")return {title:"Lista obecności",headers:["Lp.","Dziecko","Klasa","Sala / odbiór","Obecny","Nieobecny","Uwagi"],rows:arr.map((c,i)=>[i+1,`${c.last} ${c.first}`,c.class||"",c.pickupPlace||"","","",""])};
+ if(type==="pickup")return {title:"Lista odbioru dzieci",headers:["Lp.","Sala / odbiór","Dziecko","Klasa"],rows:arr.map((c,i)=>[i+1,c.pickupPlace||"Nieustalone",`${c.last} ${c.first}`,c.class||""])};
+ if(type==="contacts")return {title:"Lista kontaktowa",headers:["Dziecko","Rodzic / opiekun","Telefon","E-mail","Sala / odbiór"],rows:arr.map(c=>[`${c.last} ${c.first}`,c.parent||"",c.phone||"",c.email||"",c.pickupPlace||""])};
+ if(type==="arrears"){
+   const rows=arr.map(c=>{const ps=paymentState(c,month);return ["unpaid","partial"].includes(ps.kind)?[`${c.last} ${c.first}`,c.school||"",money(ps.due),money(ps.paid),money(ps.missing),ps.label]:null}).filter(Boolean);
+   return {title:`Lista zaległości — ${month}`,headers:["Dziecko","Szkoła","Należne","Wpłacono","Brakuje","Status"],rows};
+ }
+ if(type==="consents")return {title:"Lista zgód",headers:["Dziecko","Wizerunek","Dane osobowe","Regulamin"],rows:arr.map(c=>[`${c.last} ${c.first}`,consentLabel(c.consents?.image)||"brak danych",consentLabel(c.consents?.personal)||"brak danych",consentLabel(c.consents?.rules)||"brak danych"])};
+ if(type==="free"){
+   const f=arr.filter(c=>(c.classes||[]).some(cl=>cl.status==="bezplatne"));
+   return {title:"Lista dzieci bezpłatnych",headers:["Dziecko","Szkoła","Warsztaty"],rows:f.map(c=>[`${c.last} ${c.first}`,c.school||"",(c.classes||[]).filter(cl=>cl.status==="bezplatne").map(cl=>cl.type).join(", ")])};
+ }
+ if(type==="workshops"){
+   const rows=[];
+   arr.forEach(c=>(c.classes||[]).forEach(cl=>{
+     const sf=document.querySelector("#lSchool")?.value||"__ALL__",wf=document.querySelector("#lWorkshop")?.value||"",df=document.querySelector("#lDay")?.value||"",tf=document.querySelector("#lTime")?.value||"";
+     if((sf==="__ALL__"||cl.school===sf||c.school===sf)&&(!wf||cl.type===wf)&&(!df||cl.day===df)&&(!tf||cl.time===tf))
+       rows.push([`${c.last} ${c.first}`,c.class||"",cl.school||c.school||"",cl.type||"",cl.day||"",cl.time||"",c.pickupPlace||""]);
+   }));
+   return {title:"Lista zapisów na warsztaty",headers:["Dziecko","Klasa","Szkoła","Warsztaty","Dzień","Godzina","Sala / odbiór"],rows};
+ }
+ return {title:"Lista",headers:[],rows:[]};
+}
+function lists(){
+ app.innerHTML=`<div class="eyebrow">LISTY ROBOCZE</div><h2 class="title">Listy</h2>
+ <div class="card">
+  <div class="grid2"><div><label>Szkoła</label><select id="lSchool" onchange="refreshListPreview()"><option value="__ALL__">Wszystkie szkoły</option>${schools.map(s=>`<option>${s}</option>`).join("")}</select></div>
+  <div><label>Rodzaj listy</label><select id="lType" onchange="refreshListPreview()">
+   <option value="children">Lista dzieci</option><option value="attendance">Lista obecności</option><option value="pickup">Lista odbioru dzieci</option>
+   <option value="contacts">Lista kontaktowa</option><option value="arrears">Lista zaległości</option><option value="consents">Lista zgód</option>
+   <option value="free">Lista dzieci bezpłatnych</option><option value="workshops">Lista zapisów na warsztaty</option>
+  </select></div></div>
+  <label>Warsztaty</label><select id="lWorkshop" onchange="refreshListPreview()"><option value="">Wszystkie warsztaty</option>${workshops.map(w=>`<option>${w}</option>`).join("")}</select>
+  <div class="grid2"><div><label>Dzień</label><select id="lDay" onchange="refreshListPreview()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
+  <div><label>Godzina</label><select id="lTime" onchange="refreshListPreview()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div></div>
+  <div class="actions"><button class="dark" onclick="printSelectedList()">🖨 Drukuj</button><button class="primary" onclick="exportSelectedListExcel()">⬇ Excel</button></div>
+ </div>
+ <div id="listPreview"></div>`;
+ refreshListPreview();
+}
+function refreshListPreview(){
+ const d=listRows(document.querySelector("#lType")?.value||"children");
+ document.querySelector("#listPreview").innerHTML=`<div class="card"><h2>${d.title}</h2><div class="muted">Pozycji: <b>${d.rows.length}</b></div>
+ ${d.rows.slice(0,30).map(r=>`<div class="listPreviewRow">${r.slice(0,4).map(x=>`<span>${x}</span>`).join("")}</div>`).join("")||'<div class="muted">Brak danych dla wybranych filtrów.</div>'}
+ ${d.rows.length>30?`<div class="muted">Podgląd pierwszych 30 pozycji.</div>`:""}</div>`;
+}
+function printSelectedList(){
+ const d=listRows(document.querySelector("#lType").value);printSimpleStandalone(d.title,d.headers,d.rows);
+}
+function printSimpleStandalone(title,headers,rows){
+ if(!rows.length){confirmModal({title:"Brak danych",message:"Brak pozycji dla wybranych filtrów.",confirmText:"OK",cancelText:"Zamknij",danger:false});return}
+ const win=window.open("","_blank");
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #aaa;padding:8px;text-align:left}th{background:#f2f4f7}@media print{button{display:none}}</style></head><body><h1>${title}</h1><table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(v=>`<td>${v}</td>`).join("")}</tr>`).join("")}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
+ win.document.close();setTimeout(()=>win.print(),250)
+}
+function exportSelectedListExcel(){
+ if(typeof XLSX==="undefined"){confirmModal({title:"Excel niedostępny",message:"Sprawdź internet i odśwież stronę.",confirmText:"OK",cancelText:"Zamknij",danger:false});return}
+ const d=listRows(document.querySelector("#lType").value);
+ const rows=d.rows.map(r=>Object.fromEntries(d.headers.map((h,i)=>[h,r[i]??""])));
+ const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.length?rows:[{"Brak danych":""}]),"Lista");
+ XLSX.writeFile(wb,`${d.title.toLowerCase().replace(/[^a-z0-9ąćęłńóśźż]+/gi,"-")}.xlsx`);
+}
+
+function settings(){
+ app.innerHTML=`<div class="eyebrow">KONFIGURACJA</div><h2 class="title">Ustawienia</h2>
+ <div class="card"><h2>Warsztaty i ceny</h2><div id="setWorkshops">${data.settings.workshops.map((w,i)=>`<div class="settingsRow"><input value="${escapeAttr(w.name)}" oninput="data.settings.workshops[${i}].name=this.value"><input type="number" step="0.01" value="${Number(w.price||0)}" oninput="data.settings.workshops[${i}].price=+this.value"><button class="danger" onclick="removeWorkshopSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addWorkshopSetting()">+ Dodaj warsztaty</button></div>
+ <div class="card"><h2>Godziny zajęć</h2><div id="setTimes">${data.settings.times.map((t,i)=>`<div class="settingsRow"><input type="time" value="${t}" oninput="data.settings.times[${i}]=this.value"><button class="danger" onclick="removeTimeSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addTimeSetting()">+ Dodaj godzinę</button></div>
+ <div class="card"><h2>Szkoły</h2><div id="setSchools">${data.settings.schools.map((s,i)=>`<div class="settingsRow"><input value="${escapeAttr(s)}" oninput="data.settings.schools[${i}]=this.value"><button class="danger" onclick="removeSchoolSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addSchoolSetting()">+ Dodaj szkołę</button></div>
+ <div class="card"><h2>Dni zajęć</h2><div id="setDays">${data.settings.days.map((d,i)=>`<div class="settingsRow"><input value="${escapeAttr(d)}" oninput="data.settings.days[${i}]=this.value"><button class="danger" onclick="removeDaySetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addDaySetting()">+ Dodaj dzień</button></div>
+ <div class="card"><h2>Dane programu</h2><p class="muted">Wersja ${VERSION}. Zmiany ustawień wpływają na listy wyboru w całej aplikacji.</p><div class="actions"><button class="primary" onclick="saveSettings()">✓ Zapisz ustawienia</button><button class="dark" onclick="backupBtn.click()">Kopia danych</button></div></div>`;
+}
+function saveSettings(){
+ data.settings.workshops=data.settings.workshops.filter(x=>String(x.name||"").trim()).map(x=>({name:String(x.name).trim(),price:Number(x.price||0)}));
+ data.settings.schools=data.settings.schools.filter(x=>String(x||"").trim()).map(x=>String(x).trim());
+ data.settings.times=data.settings.times.filter(Boolean).sort();
+ data.settings.days=data.settings.days.filter(x=>String(x||"").trim()).map(x=>String(x).trim());
+ syncSettingsArrays();save();
+ confirmModal({title:"Ustawienia zapisane",message:"Nowe szkoły, warsztaty, ceny i godziny są już dostępne w aplikacji.",confirmText:"OK",cancelText:"Zamknij",danger:false});
+}
+function addWorkshopSetting(){data.settings.workshops.push({name:"Nowe warsztaty",price:155});settings()}
+function removeWorkshopSetting(i){data.settings.workshops.splice(i,1);settings()}
+function addTimeSetting(){data.settings.times.push("15:00");settings()}
+function removeTimeSetting(i){data.settings.times.splice(i,1);settings()}
+function addSchoolSetting(){data.settings.schools.push("Nowa szkoła");settings()}
+function removeSchoolSetting(i){data.settings.schools.splice(i,1);settings()}
+function addDaySetting(){data.settings.days.push("Nowy dzień");settings()}
+function removeDaySetting(i){data.settings.days.splice(i,1);settings()}
+
 function signups(){
  app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="actions signupTopActions"><button class="primary" onclick="editChild()">+ Dodaj dziecko ręcznie</button></div>
  <div class="card"><h2>Import formularza zapisu</h2>
@@ -1150,7 +1272,7 @@ function signupClassesFromForm(i,child,existingCount=0){
   result.push({
    id:Date.now()+i*10+k,
    type,day,time,school:document.querySelector(`#suSchool${i}`).value,
-   price:0,
+   price:defaultWorkshopPrice(type),
    discount:(existingCount+result.length)>=1?10:0,
    status:'brak'
   });

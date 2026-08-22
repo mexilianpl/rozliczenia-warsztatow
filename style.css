@@ -139,3 +139,10 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .consentDiffList{background:#f7f9fb;border-radius:15px;padding:12px;margin:12px 0}.consentDiffList>div{padding:8px 0;border-bottom:1px solid var(--line)}
 .groupContact{margin-top:8px;font-weight:700}
 @media(max-width:600px){.todoGrid{grid-template-columns:1fr}.attendanceRow{align-items:flex-start;flex-direction:column}.attendanceBtns{width:100%}.attendanceBtns button{flex:1}}
+
+/* v6.0 — Listy + Ustawienia */
+.listPreviewRow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:10px 0;border-bottom:1px solid var(--line)}
+.listPreviewRow span{overflow-wrap:anywhere}
+.settingsRow{display:grid;grid-template-columns:2fr 1fr auto;gap:8px;align-items:center;margin:8px 0}
+#setTimes .settingsRow,#setSchools .settingsRow,#setDays .settingsRow{grid-template-columns:1fr auto}
+@media(max-width:600px){.listPreviewRow{grid-template-columns:1fr 1fr}.settingsRow{grid-template-columns:1fr}.settingsRow .danger{width:100%}}
