@@ -56,3 +56,8 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .signupReviewCard h3{margin:0 0 7px;color:var(--blue);font-size:24px}
 .signupWorkshop{background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:13px;margin:12px 0}
 .consentLine{background:#eef8fb;color:#52606e;border-radius:15px;padding:11px;margin:12px 0;line-height:1.5}
+
+/* v5.1 — istniejące dziecko / kolejne warsztaty */
+.existingChildBox{max-width:560px}
+.existingChildActions{display:grid;gap:10px;margin-top:20px}
+.existingChildActions button{width:100%;min-height:54px}

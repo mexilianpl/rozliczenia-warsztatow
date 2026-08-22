@@ -1,5 +1,5 @@
 
-const VERSION="5.0";
+const VERSION="5.1";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -376,7 +376,7 @@ function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input 
 function groups(){app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card"><label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select><label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select><label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select><div class="actions"><button class="dark" onclick="window.print()">Drukuj listę wyselekcjonowanych nazwisk</button></div></div><div id="gList"></div>`;groupList()}
 function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.children.forEach(c=>c.classes.forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b><div class="muted">${x.c.class} • świetlica: ${x.c.club} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div></div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'}
 function reports(){app.innerHTML=`<div class="eyebrow">RAPORTY</div><h2 class="title">Raporty</h2><div class="card"><button class="dark" onclick="window.print()">Drukuj bieżący widok</button><p class="muted">Dane są zapisane lokalnie w tej przeglądarce.</p></div>`}
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.0</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.1</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){
  app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2>
  <div class="card"><h2>Import formularza zapisu</h2>
@@ -463,28 +463,119 @@ function showSignupReview(items,fileName){
 }
 function escapeAttr(v){return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function escapeHtml(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+function existingChildDialog(existing){
+ return new Promise(resolve=>{
+  const old=document.getElementById('existingChildDialog');if(old)old.remove();
+  const wrap=document.createElement('div');
+  wrap.id='existingChildDialog';wrap.className='confirmOverlay';
+  wrap.innerHTML=`<div class="confirmBox existingChildBox">
+   <div class="confirmIcon">?</div>
+   <h2>Dziecko już istnieje</h2>
+   <p><b>${escapeHtml(existing.last)} ${escapeHtml(existing.first)}</b> jest już w bazie.</p>
+   <p>To może być zapis na kolejne warsztaty. Co chcesz zrobić?</p>
+   <div class="existingChildActions">
+    <button class="primary" data-action="add">+ Dodaj nowe zajęcia do tego dziecka</button>
+    <button class="soft" data-action="edit">Wróć i popraw zgłoszenie</button>
+    <button class="soft" data-action="cancel">Pomiń zgłoszenie</button>
+   </div>
+  </div>`;
+  const done=v=>{wrap.remove();resolve(v)};
+  wrap.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>done(b.dataset.action));
+  wrap.onclick=e=>{if(e.target===wrap)done('edit')};
+  document.body.appendChild(wrap);
+ });
+}
+function signupClassesFromForm(i,child,existingCount=0){
+ const result=[];
+ for(let k=0;k<2;k++){
+  const type=document.querySelector(`#suType${i}_${k}`).value;
+  if(!type)continue;
+  const day=document.querySelector(`#suDay${i}_${k}`).value||days[0];
+  const time=document.querySelector(`#suTime${i}_${k}`).value||'';
+  result.push({
+   id:Date.now()+i*10+k,
+   type,day,time,school:document.querySelector(`#suSchool${i}`).value,
+   price:0,
+   discount:(existingCount+result.length)>=1?10:0,
+   status:'brak'
+  });
+ }
+ return result;
+}
+function classLooksSame(a,b){
+ return String(a.type||'').toLowerCase()===String(b.type||'').toLowerCase()
+   && String(a.day||'').toLowerCase()===String(b.day||'').toLowerCase()
+   && String(a.school||'').toLowerCase()===String(b.school||'').toLowerCase()
+   && (!a.time || !b.time || String(a.time)===String(b.time));
+}
+function addSignupClassesToExisting(existing,i,src){
+ const proposed=signupClassesFromForm(i,existing,existing.classes?.length||0);
+ if(!proposed.length)return {added:0,duplicates:0};
+ existing.classes=existing.classes||[];
+ let added=0,duplicates=0;
+ proposed.forEach(cl=>{
+  if(existing.classes.some(old=>classLooksSame(old,cl))){duplicates++;return}
+  existing.classes.push(cl);added++;
+ });
+ // zachowujemy główny profil dziecka, ale uzupełniamy brakujące dane kontaktowe z nowego zgłoszenia
+ const values={
+  parent:document.querySelector(`#suParent${i}`).value.trim(),
+  phone:document.querySelector(`#suPhone${i}`).value.trim(),
+  email:document.querySelector(`#suEmail${i}`).value.trim(),
+  notes:document.querySelector(`#suNotes${i}`).value.trim()
+ };
+ ['parent','phone','email','notes'].forEach(k=>{if(!existing[k]&&values[k])existing[k]=values[k]});
+ existing.lastSignupEntryId=src.entryId||'';
+ existing.lastSignupCreatedAt=src.createdAt||'';
+ return {added,duplicates};
+}
+
 function signupAlreadyExists(entryId,first,last){
  return data.children.find(c=>(entryId&&String(c.sourceEntryId||'')===String(entryId))||((c.first||'').toLowerCase()===String(first||'').toLowerCase()&&(c.last||'').toLowerCase()===String(last||'').toLowerCase()));
 }
 async function acceptSignup(i){
  const src=window.__signupItems?.[i]||{};
  const first=document.querySelector(`#suFirst${i}`).value.trim(),last=document.querySelector(`#suLast${i}`).value.trim();
- if(!first||!last){const info=document.querySelector(`#suInfo${i}`);info.className='ocrWarn';info.textContent='Uzupełnij imię i nazwisko dziecka.';return}
+ const info=document.querySelector(`#suInfo${i}`);
+ if(!first||!last){info.className='ocrWarn';info.textContent='Uzupełnij imię i nazwisko dziecka.';return}
+
  const existing=signupAlreadyExists(src.entryId,first,last);
  if(existing){
-  const ok=await confirmModal({title:'Dziecko już istnieje',message:`${existing.last} ${existing.first} jest już w bazie. Nie dodam duplikatu. Możesz zamknąć to zgłoszenie lub poprawić dane.`,confirmText:'OK',cancelText:'Zamknij',danger:false});
-  return;
+  const action=await existingChildDialog(existing);
+  if(action==='edit'){
+   info.className='ocrWarn';
+   info.textContent='Dane nie zostały zapisane. Możesz poprawić zgłoszenie i spróbować ponownie.';
+   return;
+  }
+  if(action==='cancel'){
+   skipSignup(i);
+   return;
+  }
+  if(action==='add'){
+   const result=addSignupClassesToExisting(existing,i,src);
+   if(result.added===0){
+    info.className='ocrWarn';
+    info.textContent=result.duplicates
+      ?'Te zajęcia wyglądają na już zapisane przy tym dziecku. Niczego nie dodałem.'
+      :'W zgłoszeniu nie wybrano nowych zajęć do dodania.';
+    return;
+   }
+   save();
+   const card=document.querySelector(`#signupCard${i}`);
+   card.classList.add('ocrAccepted');
+   card.querySelectorAll('input,select,textarea,button').forEach(x=>x.disabled=true);
+   info.className='ocrOk';
+   info.textContent=`✓ Dodano ${result.added} ${result.added===1?'nowe zajęcia':'nowe zajęcia'} do istniejącego dziecka${result.duplicates?`. Pominięto ${result.duplicates} duplikat.`:''}`;
+   return;
+  }
  }
+
  const child={id:Date.now()+i,last,first,sex:document.querySelector(`#suSex${i}`).value,class:document.querySelector(`#suClass${i}`).value.trim(),school:document.querySelector(`#suSchool${i}`).value,club:document.querySelector(`#suClub${i}`).value,parent:document.querySelector(`#suParent${i}`).value.trim(),phone:document.querySelector(`#suPhone${i}`).value.trim(),email:document.querySelector(`#suEmail${i}`).value.trim(),notes:document.querySelector(`#suNotes${i}`).value.trim(),sourceEntryId:src.entryId||'',sourceCreatedAt:src.createdAt||'',consents:{rules:src.rules||'',personal:src.personal||'',image:src.imageConsent||''},classes:[]};
- for(let k=0;k<2;k++){
-  const type=document.querySelector(`#suType${i}_${k}`).value;
-  if(!type)continue;
-  const day=document.querySelector(`#suDay${i}_${k}`).value||days[0],time=document.querySelector(`#suTime${i}_${k}`).value||'';
-  child.classes.push({id:Date.now()+i*10+k,type,day,time,school:child.school,price:0,discount:k===0?0:10,status:'brak'});
- }
+ child.classes=signupClassesFromForm(i,child,0);
  data.children.push(child);save();
  const card=document.querySelector(`#signupCard${i}`);card.classList.add('ocrAccepted');card.querySelectorAll('input,select,textarea,button').forEach(x=>x.disabled=true);
- const info=document.querySelector(`#suInfo${i}`);info.className='ocrOk';info.textContent='✓ Dziecko zostało dodane do bazy. Ceny i godzinę możesz ustawić później w zakładce Dzieci.';
+ info.className='ocrOk';info.textContent='✓ Dziecko zostało dodane do bazy. Ceny i godzinę możesz ustawić później w zakładce Dzieci.';
 }
 function skipSignup(i){const card=document.querySelector(`#signupCard${i}`);if(card){card.classList.add('ocrAccepted');card.querySelectorAll('input,select,textarea,button').forEach(x=>x.disabled=true)} }
 signupCsvInput.onchange=async e=>{
@@ -496,5 +587,5 @@ signupCsvInput.onchange=async e=>{
  }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
  finally{e.target.value=''}
 };
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v50.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v51.json";a.click()}
 render();

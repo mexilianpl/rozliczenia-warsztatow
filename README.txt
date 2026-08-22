@@ -1,13 +1,15 @@
-Rozliczenia Warsztatów v5.0
+Rozliczenia Warsztatów v5.1
 
-NOWE — zakładka ZAPISY:
-- import CSV z WordPress / Fluent Forms,
-- obsługa dokładnie takiego formatu jak plik „Zapis dziecka na warsztaty”,
-- przed dodaniem wyświetlany jest pełny formularz do sprawdzenia i poprawy,
-- można poprawić nazwisko, imię, płeć, klasę, szkołę, świetlicę, zajęcia, dzień, godzinę, rodzica, telefon, e-mail i uwagi,
-- zgody z formularza są widoczne podczas weryfikacji,
-- każde zgłoszenie ma osobny przycisk „Akceptuję i dodaję dziecko”,
-- ochrona przed ponownym dodaniem tego samego entry_id / dziecka,
-- po zatwierdzeniu dziecko trafia do zakładki Dzieci.
+Zmiana importera zapisów:
+- jeśli dziecko o tym samym imieniu i nazwisku już istnieje, aplikacja nie blokuje zgłoszenia od razu,
+- pojawia się pytanie, czy jest to zapis na kolejne warsztaty,
+- można wybrać:
+  • „Dodaj nowe zajęcia do tego dziecka”,
+  • „Wróć i popraw zgłoszenie”,
+  • „Pomiń zgłoszenie”,
+- przy dodawaniu kolejnych zajęć nowe zajęcia trafiają do istniejącego profilu dziecka,
+- aplikacja sprawdza, czy takie same zajęcia nie są już przypisane,
+- jeśli to są drugie/trzecie zajęcia, domyślny rabat ustawiany jest na 10%,
+- brakujące dane kontaktowe istniejącego profilu mogą zostać uzupełnione z nowego zgłoszenia.
 
 Podmień na GitHubie: index.html, app.js, style.css.
