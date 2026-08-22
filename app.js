@@ -55,10 +55,54 @@ const tabs=[["start","⌂","Start"],["children","👥","Dzieci"],["payments","�
 function renderNav(){nav.innerHTML=tabs.map(t=>`<button class="${page==t[0]?"active":""}" onclick="go('${t[0]}')"><div>${t[1]}</div>${t[2]}</button>`).join("")}
 function go(p){page=p;render()}
 function render(){renderNav(); ({start,children,payments,income,signups,groups,reports,lists}[page]||start)()}
+
+function currentDashboardPeriod(){
+ const now=new Date();
+ return {month:currentMonthName(),year:now.getFullYear(),monthNumber:now.getMonth()+1};
+}
+function paymentBelongsToDashboardMonth(p,period){
+ const ym=paymentYearMonth(p);
+ if(ym.year && ym.year!==period.year)return false;
+ if(ym.month && ym.month!==period.monthNumber)return false;
+ // Dla starszych wpisów bez roku używamy nazwy miesiąca.
+ if(!ym.year && String(p.month||"")!==period.month)return false;
+ return true;
+}
+function incomeBelongsToDashboardMonth(i,period){
+ const ym=incomeYearMonth(i);
+ return ym.year===period.year && ym.month===period.monthNumber;
+}
+function currentMonthDashboard(){
+ const period=currentDashboardPeriod();
+ const activeSchoolMonth=months.includes(period.month);
+ const due=activeSchoolMonth?data.children.reduce((s,c)=>s+childDue(c),0):0;
+ const childPaid=data.payments.filter(p=>paymentBelongsToDashboardMonth(p,period))
+   .reduce((s,p)=>s+Number(p.amount||0),0);
+ const extra=data.income.filter(i=>incomeBelongsToDashboardMonth(i,period))
+   .reduce((s,i)=>s+Number(i.amount||0),0);
+ const missing=Math.max(0,due-childPaid);
+ return {period,due,childPaid,extra,total:childPaid+extra,missing,activeSchoolMonth};
+}
 function start(){
- let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), inc=data.income.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0);
+ const dash=currentMonthDashboard();
+ const tasks=taskCounts(), next=nextClassDayInfo(), groupsToday=classesGroupedForDay(next.items);
+ const dayText=next.delta===0?"Dzisiejsze zajęcia":next.delta===1?"Jutrzejsze zajęcia":next.delta!==null?`Najbliższe zajęcia za ${next.delta} dni`:"Najbliższe zajęcia";
  app.innerHTML=`<div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Wszystko w jednym miejscu</h2>
- <div class="summary"><div class="stat">Należne<b>${money(due)}</b></div><div class="stat">Wpłaty dzieci<b>${money(paid)}</b></div><div class="stat">Dodatkowe przychody<b>${money(inc)}</b></div><div class="stat">Razem wpływy<b>${money(paid+inc)}</b></div></div>
+ <div class="currentPeriodLabel">${dash.period.month} ${dash.period.year}</div>
+ <div class="summary dashboardSummary">
+   <div class="stat">Należne w miesiącu<b>${money(dash.due)}</b></div>
+   <div class="stat">Wpłaty dzieci<b>${money(dash.childPaid)}</b></div>
+   <div class="stat missingStat">Brakuje wpłat<b>${money(dash.missing)}</b></div>
+   <div class="stat">Dodatkowe przychody<b>${money(dash.extra)}</b></div>
+   <div class="stat">Razem wpływy<b>${money(dash.total)}</b></div>
+ </div>
+ ${!dash.activeSchoolMonth?`<div class="notice dashboardNotice">Aktualny miesiąc (${dash.period.month}) jest poza standardowym okresem zajęć Wrzesień–Czerwiec, dlatego należność miesięczna wynosi 0,00 zł.</div>`:""}
+ <div class="card"><h2>Do zrobienia</h2><div class="todoGrid">
+   <div class="todoItem dangerLite"><b>${tasks.unpaid}</b><span>brakujących wpłat</span></div>
+   <div class="todoItem warnLite"><b>${tasks.partial}</b><span>częściowych wpłat</span></div>
+   <div class="todoItem infoLite"><b>${tasks.noConsent}</b><span>braków danych o zgodzie na wizerunek</span></div>
+ </div></div>
+ <div class="card"><h2>${dayText}</h2>${groupsToday.map(g=>`<button class="nextClassCard" onclick="goToGroup('${g.school}','${g.day}','${g.time}')"><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span></button>`).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>
  <div class="card"><h2>Szybkie wyszukiwanie dziecka</h2><div class="search"><input id="quick" placeholder="Nazwisko lub imię..." oninput="quickSearch(this.value)"></div><div id="quickResults"></div></div>`;
 }
 function quickSearch(q){let el=document.querySelector("#quickResults");q=q.toLowerCase().trim(); if(!q){el.innerHTML="";return} el.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)).map(c=>`<div class="card" onclick="openChild(${c.id})"><b class="name">${c.last} ${c.first}</b><div class="muted">${c.class} • ${c.school} • zajęcia: ${c.classes.length}</div></div>`).join("")||"Brak wyników"}

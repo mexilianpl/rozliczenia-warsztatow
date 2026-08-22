@@ -108,3 +108,20 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .attActive{border:0;border-radius:14px;padding:11px 13px;font-weight:900}.presentBtn{background:#e4f7ef;color:var(--green)}.absentBtn{background:#fff0f2;color:var(--red)}
 .consentDiffList{background:#f7f9fb;border-radius:15px;padding:12px;margin:12px 0}.consentDiffList>div{padding:8px 0;border-bottom:1px solid var(--line)}.consentDiffList>div:last-child{border-bottom:0}
 @media(max-width:600px){.todoGrid{grid-template-columns:1fr}.attendanceRow{align-items:flex-start;flex-direction:column}.attendanceBtns{width:100%}.attendanceBtns button{flex:1}}
+
+/* v5.9 — bieżący miesiąc na stronie głównej */
+.currentPeriodLabel{
+  display:inline-block;
+  margin:-6px 0 16px;
+  padding:9px 14px;
+  border-radius:999px;
+  background:#eaf7fa;
+  color:var(--blue);
+  font-weight:900
+}
+.dashboardSummary{grid-template-columns:repeat(2,minmax(0,1fr))}
+.dashboardSummary .missingStat{border-color:#f0c9cf;background:#fffafb}
+.dashboardSummary .missingStat,
+.dashboardSummary .missingStat b{color:var(--red)!important}
+.dashboardNotice{margin:12px 0 18px}
+@media(min-width:760px){.dashboardSummary{grid-template-columns:repeat(5,minmax(0,1fr))}}
