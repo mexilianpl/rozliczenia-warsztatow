@@ -1,5 +1,5 @@
 
-const VERSION="4.8";
+const VERSION="4.9";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -18,6 +18,37 @@ function save(){localStorage.setItem("rw45",JSON.stringify(data))}
 function money(v){return Number(v||0).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})+" zł"}
 function dueClass(c){return c.status==="bezplatne"?0:Math.max(0,c.price*(1-(c.discount||0)/100))}
 function childDue(ch){return ch.classes.reduce((s,c)=>s+dueClass(c),0)}
+
+function childPaymentsForMonth(ch,month="Wrzesień"){
+  return data.payments.filter(p=>Number(p.childId)===Number(ch.id)&&p.month===month)
+    .reduce((s,p)=>s+Number(p.amount||0),0);
+}
+function paymentState(ch,month="Wrzesień"){
+  const due=childDue(ch), paid=childPaymentsForMonth(ch,month);
+  if(due<=0)return {kind:"free",due,paid,missing:0,extra:Math.max(0,paid),label:"BEZPŁATNE"};
+  if(paid<=0)return {kind:"unpaid",due,paid,missing:due,extra:0,label:"BRAK WPŁATY"};
+  if(paid<due)return {kind:"partial",due,paid,missing:due-paid,extra:0,label:`CZĘŚCIOWO WPŁACONO • BRAKUJE ${money(due-paid)}`};
+  if(paid>due)return {kind:"overpaid",due,paid,missing:0,extra:paid-due,label:`NADPŁATA ${money(paid-due)}`};
+  return {kind:"paid",due,paid,missing:0,extra:0,label:"WPŁACONO"};
+}
+function paymentStatusClass(kind){
+  return kind==="paid"?"paid":kind==="partial"?"partial":kind==="overpaid"?"overpaid":kind==="free"?"free":"unpaid";
+}
+function paymentFingerprint({date="",amount=0,payer="",title="",childId=""}){
+  const clean=s=>normPerson(String(s||"")).replace(/\s+/g," ");
+  return [date,Number(amount||0).toFixed(2),clean(payer),clean(title),String(childId||"")].join("|");
+}
+function existingPaymentFingerprint(p){
+  if(p.sourceFingerprint)return p.sourceFingerprint;
+  const note=String(p.note||"").replace(/^Import OCR:\s*/i,"");
+  const parts=note.split(" • ");
+  return paymentFingerprint({date:p.date,amount:p.amount,payer:parts[0]||"",title:parts.slice(1).join(" • "),childId:p.childId});
+}
+function findDuplicatePayment(candidate){
+  const fp=paymentFingerprint(candidate);
+  return data.payments.find(p=>existingPaymentFingerprint(p)===fp) || null;
+}
+
 function opt(arr,val){return arr.map(x=>`<option ${x==val?"selected":""}>${x}</option>`).join("")}
 const tabs=[["start","⌂","Start"],["children","👥","Dzieci"],["payments","✓","Wpłaty"],["income","+","Przychody"],["signups","✉","Zapisy"],["groups","☷","Grupy"],["reports","▥","Raporty"],["lists","⚙","Listy"]];
 function renderNav(){nav.innerHTML=tabs.map(t=>`<button class="${page==t[0]?"active":""}" onclick="go('${t[0]}')"><div>${t[1]}</div>${t[2]}</button>`).join("")}
@@ -47,8 +78,10 @@ function filterChildren(){
  let arr=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)&&(sf=="Wszystkie szkoły"||c.school==sf));
  list.innerHTML=arr.map(childCard).join("")||'<div class="card muted">Brak wyników dla wpisanej frazy.</div>';
 }
-function childCard(c){return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • świetlica: ${c.club} • ${c.sex}</div><div class="due">Do zapłaty: ${money(childDue(c))}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
- ${c.classes.map(cl=>`<div class="classrow"><span class="status ${cl.status=="oplacone"?"paid":cl.status=="bezplatne"?"free":"unpaid"}">${cl.status=="oplacone"?"WPŁACONO":cl.status=="bezplatne"?"BEZPŁATNE":"BRAK WPŁATY"}</span><h3>${cl.type}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}</div><div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
+function childCard(c){
+ const ps=paymentState(c,"Wrzesień");
+ return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • świetlica: ${c.club} • ${c.sex}</div><div class="due">Należne Wrzesień: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div><div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
+ ${c.classes.map(cl=>`<div class="classrow"><h3>${cl.type}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}</div><div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
  <div class="actions"><button class="primary" onclick="editClass(${c.id})">+ Dodaj zajęcia</button></div></div>`}
 function modal(html){document.body.insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modalbox">${html}</div></div>`)}
 function closeModal(){document.querySelector("#modal")?.remove()}
@@ -77,14 +110,32 @@ function confirmModal({title,message,confirmText="Usuń",cancelText="Anuluj",dan
 }
 async function deleteClass(cid,id){let ch=data.children.find(c=>c.id==cid),cl=ch?.classes.find(x=>x.id==id);let ok=await confirmModal({title:"Usunąć zajęcia?",message:`${cl?cl.type+" • "+cl.day+" "+cl.time+". ":""}Tej operacji nie można cofnąć.`,confirmText:"Usuń zajęcia"});if(!ok)return;ch.classes=ch.classes.filter(x=>x.id!=id);save();render()}
 function openChild(id){page="children";render();setTimeout(()=>editChild(id),0)}
-function payments(){let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0),inc=data.income.reduce((s,p)=>s+Number(p.amount),0);
+function payments(){
+ let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0),inc=data.income.reduce((s,p)=>s+Number(p.amount),0);
  app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Wpłaty</h2><div class="summary"><div class="stat">Należne<b>${money(due)}</b></div><div class="stat">Wpłaty dzieci<b>${money(paid)}</b></div><div class="stat">Dodatkowe przychody<b>${money(inc)}</b></div><div class="stat">Razem wpływy<b>${money(paid+inc)}</b></div></div>
  <div class="card"><h2>Dodaj wpłatę</h2><div class="search"><input id="paySearch" placeholder="Szukaj dziecka..." oninput="payHints(this.value)"></div><div id="payHints"></div><button class="primary" onclick="addPayment()">+ Dodaj wpłatę ręcznie</button></div>
- <div class="card"><h2>Import wpłat ze screena</h2><p class="muted">Dodaj zrzut ekranu z aplikacji bankowej. Aplikacja spróbuje lokalnie odczytać daty, nadawców, tytuły i kwoty, a potem pokaże ekran weryfikacji.</p><div class="drop" onclick="screenInput.click()">📷<h3>Dodaj zrzut ekranu</h3><div>PNG lub JPG</div></div><button class="dark" onclick="screenInput.click()">📷 Rozpoznaj wpłaty ze screena</button><div id="ocrStatus"></div></div>
- <div class="card"><h2>Lista wpłat</h2>${data.payments.map(p=>`<div class="classrow"><b>${p.child}</b><div>${money(p.amount)} • ${p.month} • ${p.date||""}</div><button class="danger" onclick="deletePayment(${p.id})">Usuń</button></div>`).join("")||'<div class="muted">Brak wpłat.</div>'}</div>`}
+ <div class="card"><h2>Import wpłat ze screena</h2><p class="muted">Dodaj zrzut ekranu z aplikacji bankowej. Aplikacja sprawdzi kwotę względem należności i ostrzeże także przed powtórnym dodaniem tego samego przelewu.</p><div class="drop" onclick="screenInput.click()">📷<h3>Dodaj zrzut ekranu</h3><div>PNG lub JPG</div></div><button class="dark" onclick="screenInput.click()">📷 Rozpoznaj wpłaty ze screena</button><div id="ocrStatus"></div></div>
+ <div class="card"><h2>Lista wpłat</h2>${data.payments.map(p=>{
+   const ch=data.children.find(c=>Number(c.id)===Number(p.childId));
+   const ps=ch?paymentState(ch,p.month):null;
+   return `<div class="classrow"><b>${p.child}</b><div>${money(p.amount)} • ${p.month} • ${p.date||""}</div>${ps?`<div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div>`:""}<button class="danger" onclick="deletePayment(${p.id})">Usuń</button></div>`;
+ }).join("")||'<div class="muted">Brak wpłat.</div>'}</div>`}
 function payHints(q){q=q.toLowerCase();payHints.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)&&q).map(c=>`<button class="soft" onclick="addPayment(${c.id})">${c.last} ${c.first}</button>`).join("")}
 function addPayment(cid){let ch=data.children.find(c=>c.id==cid);modal(`<h2>Dodaj wpłatę</h2><label>Dziecko</label><select id="pChild">${data.children.map(c=>`<option value="${c.id}" ${c.id==cid?"selected":""}>${c.last} ${c.first}</option>`).join("")}</select><div class="grid2"><div><label>Miesiąc</label><select id="pMonth">${opt(months,"Wrzesień")}</select></div><div><label>Kwota</label><input id="pAmount" type="number"></div></div><label>Data</label><input id="pDate" type="date"><label>Tytuł / uwagi</label><input id="pNote"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="savePayment()">Zapisz</button></div>`)}
-function savePayment(){let ch=data.children.find(c=>c.id==pChild.value);data.payments.push({id:Date.now(),childId:ch.id,child:ch.last+" "+ch.first,month:pMonth.value,amount:+pAmount.value,date:pDate.value,note:pNote.value});ch.classes.forEach(c=>c.status="oplacone");save();closeModal();render()}
+async function savePayment(){
+ let ch=data.children.find(c=>c.id==pChild.value), amount=+pAmount.value, month=pMonth.value;
+ const candidate={date:pDate.value,amount,payer:"RĘCZNIE",title:pNote.value,childId:ch.id};
+ const dup=findDuplicatePayment(candidate);
+ if(dup){
+   await confirmModal({title:"Ta wpłata już istnieje",message:`${ch.last} ${ch.first} • ${money(amount)} • ${pDate.value||"brak daty"}. Nie zapisuję jej ponownie.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+   return;
+ }
+ data.payments.push({id:Date.now(),childId:ch.id,child:ch.last+" "+ch.first,month,amount,date:pDate.value,note:pNote.value,sourceFingerprint:paymentFingerprint(candidate)});
+ save();closeModal();render();
+ const ps=paymentState(ch,month);
+ if(ps.kind==="partial") await confirmModal({title:"Wpłata częściowa",message:`Wpłacono ${money(ps.paid)} z ${money(ps.due)}. Brakuje ${money(ps.missing)}.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+ else if(ps.kind==="overpaid") await confirmModal({title:"Nadpłata",message:`Wpłacono ${money(ps.paid)}, należne ${money(ps.due)}. Nadpłata: ${money(ps.extra)}.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+}
 async function deletePayment(id){let p=data.payments.find(x=>x.id==id);let ok=await confirmModal({title:"Usunąć wpłatę?",message:`${p?p.child+" • "+money(p.amount)+". ":""}Tej operacji nie można cofnąć.`,confirmText:"Usuń wpłatę"});if(!ok)return;data.payments=data.payments.filter(p=>p.id!=id);save();render()}
 
 function normalizeOCR(s){return (s||"").replace(/\u00a0/g," ").replace(/[|]/g,"I").replace(/\s+/g," ").trim()}
@@ -223,11 +274,14 @@ function showOCRReview(items,fileName){
 function persistOCRItem(t,idx){
   const select=document.querySelector(`#ocrChild${idx}`);
   const monthEl=document.querySelector(`#ocrMonth${idx}`);
-  if(!select||!monthEl)return false;
+  if(!select||!monthEl)return {ok:false,reason:"missing"};
   const cid=Number(select.value||0);
-  if(!cid)return false;
+  if(!cid)return {ok:false,reason:"nochild"};
   const ch=data.children.find(c=>c.id===cid);
-  if(!ch)return false;
+  if(!ch)return {ok:false,reason:"nochild"};
+  const candidate={date:t.date||"",amount:t.amount,payer:t.payer||"",title:t.title||"",childId:cid};
+  const duplicate=findDuplicatePayment(candidate);
+  if(duplicate)return {ok:false,reason:"duplicate",duplicate,ch};
   data.payments.push({
     id:Date.now()+idx,
     childId:cid,
@@ -235,10 +289,10 @@ function persistOCRItem(t,idx){
     month:monthEl.value,
     amount:t.amount,
     date:t.date||"",
-    note:`Import OCR: ${t.payer||"nadawca niepewny"}${t.title?" • "+t.title:""}`
+    note:`Import OCR: ${t.payer||"nadawca niepewny"}${t.title?" • "+t.title:""}`,
+    sourceFingerprint:paymentFingerprint(candidate)
   });
-  if(t.amount>=childDue(ch)) ch.classes.forEach(c=>{if(c.status!=="bezplatne")c.status="oplacone"});
-  return true;
+  return {ok:true,ch,month:monthEl.value,state:paymentState(ch,monthEl.value)};
 }
 function markOCRDone(idx,label="Zapisano"){
   const line=document.querySelector(`#ocrLine${idx}`);
@@ -248,24 +302,53 @@ function markOCRDone(idx,label="Zapisano"){
   const btn=document.querySelector(`#ocrAccept${idx}`);
   if(btn){btn.textContent="✓ "+label;btn.classList.add("acceptedBtn")}
 }
-function acceptOCRPayment(idx){
+async function acceptOCRPayment(idx){
   const t=window.__ocrItems?.[idx];
   if(!t)return;
   const cid=Number(document.querySelector(`#ocrChild${idx}`)?.value||0);
   if(!cid){document.querySelector(`#ocrHint${idx}`).textContent="Najpierw wybierz dziecko.";document.querySelector(`#ocrHint${idx}`).className="ocrWarn";return}
-  if(persistOCRItem(t,idx)){save();markOCRDone(idx,"Wpłata zaakceptowana")}
+  const result=persistOCRItem(t,idx);
+  if(result.reason==="duplicate"){
+    document.querySelector(`#ocrHint${idx}`).textContent="⚠ Ta sama wpłata została już wcześniej zapisana — pomijam duplikat.";
+    document.querySelector(`#ocrHint${idx}`).className="ocrDuplicate";
+    markOCRDone(idx,"Duplikat — nie zapisano");
+    return;
+  }
+  if(result.ok){
+    save();
+    const ps=result.state;
+    if(ps.kind==="partial"){
+      document.querySelector(`#ocrHint${idx}`).textContent=`CZĘŚCIOWO WPŁACONO • BRAKUJE ${money(ps.missing)}`;
+      document.querySelector(`#ocrHint${idx}`).className="ocrPartial";
+      markOCRDone(idx,"Wpłata częściowa");
+    }else if(ps.kind==="overpaid"){
+      document.querySelector(`#ocrHint${idx}`).textContent=`NADPŁATA ${money(ps.extra)}`;
+      document.querySelector(`#ocrHint${idx}`).className="ocrOverpaid";
+      markOCRDone(idx,"Wpłata z nadpłatą");
+    }else{
+      document.querySelector(`#ocrHint${idx}`).textContent=ps.label;
+      document.querySelector(`#ocrHint${idx}`).className="ocrOk";
+      markOCRDone(idx,"Wpłata zaakceptowana");
+    }
+  }
 }
 function skipOCRPayment(idx){markOCRDone(idx,"Pominięto")}
 function saveAllAssignedOCR(){
-  let saved=0;
+  let saved=0,duplicates=0;
   (window.__ocrItems||[]).forEach((t,idx)=>{
     const line=document.querySelector(`#ocrLine${idx}`);
     if(line?.classList.contains("ocrAccepted"))return;
-    if(persistOCRItem(t,idx)){saved++;markOCRDone(idx,"Wpłata zaakceptowana")}
+    const result=persistOCRItem(t,idx);
+    if(result.reason==="duplicate"){
+      duplicates++;
+      const hint=document.querySelector(`#ocrHint${idx}`);
+      if(hint){hint.textContent="⚠ Duplikat — ta wpłata już istnieje.";hint.className="ocrDuplicate"}
+      markOCRDone(idx,"Duplikat — nie zapisano");
+      return;
+    }
+    if(result.ok){saved++;markOCRDone(idx,result.state.kind==="partial"?"Wpłata częściowa":"Wpłata zaakceptowana")}
   });
-  save();
-  const note=document.querySelector("#ocrReview");
-  if(saved===0) return;
+  if(saved)save();
 }
 function saveOCRPayments(items){ window.__ocrItems=items; saveAllAssignedOCR(); }
 screenInput.onchange=async e=>{
@@ -293,7 +376,7 @@ function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input 
 function groups(){app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card"><label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select><label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select><label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select><div class="actions"><button class="dark" onclick="window.print()">Drukuj listę wyselekcjonowanych nazwisk</button></div></div><div id="gList"></div>`;groupList()}
 function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.children.forEach(c=>c.classes.forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b><div class="muted">${x.c.class} • świetlica: ${x.c.club} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div></div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'}
 function reports(){app.innerHTML=`<div class="eyebrow">RAPORTY</div><h2 class="title">Raporty</h2><div class="card"><button class="dark" onclick="window.print()">Drukuj bieżący widok</button><p class="muted">Dane są zapisane lokalnie w tej przeglądarce.</p></div>`}
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>4.8</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>4.9</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="card"><p>Moduł przygotowany do dalszego połączenia z formularzem zgłoszeń.</p></div>`}
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v47.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v49.json";a.click()}
 render();
