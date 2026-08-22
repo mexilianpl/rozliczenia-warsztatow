@@ -158,7 +158,7 @@ function start(){
  const dash=currentMonthDashboard();
  const tasks=taskCounts(), next=nextClassDayInfo(), groupsToday=classesGroupedForDay(next.items);
  const dayText=next.delta===0?"Dzisiejsze zajęcia":next.delta===1?"Jutrzejsze zajęcia":next.delta!==null?`Najbliższe zajęcia za ${next.delta} dni`:"Najbliższe zajęcia";
- app.innerHTML=`<div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Wszystko w jednym miejscu</h2>
+ app.innerHTML=`<div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Podsumowanie miesiąca</h2>
  <div class="currentPeriodLabel">${dash.period.month} ${dash.period.year}</div>
  <div class="summary dashboardSummary">
    <div class="stat">Należne w miesiącu<b>${money(dash.due)}</b></div>

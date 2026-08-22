@@ -1,4 +1,4 @@
-Rozliczenia Warsztatów v6.1
+Rozliczenia Warsztatów v6.2
 
 Zmiana w Ustawieniach:
 - przy KAŻDEJ pozycji jest przycisk „✓ Zapisz”,
