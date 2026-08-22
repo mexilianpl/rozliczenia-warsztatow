@@ -1,5 +1,5 @@
 
-const VERSION="5.3";
+const VERSION="5.4";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -62,21 +62,88 @@ function start(){
 }
 function quickSearch(q){let el=document.querySelector("#quickResults");q=q.toLowerCase().trim(); if(!q){el.innerHTML="";return} el.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)).map(c=>`<div class="card" onclick="openChild(${c.id})"><b class="name">${c.last} ${c.first}</b><div class="muted">${c.class} • ${c.school} • zajęcia: ${c.classes.length}</div></div>`).join("")||"Brak wyników"}
 function children(){
- app.innerHTML=`<div class="titleline"><div><div class="eyebrow">BAZA</div><h2 class="title">Dzieci</h2></div><button class="primary" onclick="editChild()">+ Dodaj</button></div>
+ app.innerHTML=`<div class="titleline"><div><div class="eyebrow">BAZA</div><h2 class="title">Dzieci</h2></div></div>
  <div class="search"><input id="cs" placeholder="Szukaj po nazwisku / imieniu..." oninput="filterChildren()"></div>
- <select id="schoolFilter" onchange="filterChildren()"><option>Wszystkie szkoły</option>${schools.map(s=>`<option>${s}</option>`)}</select><div id="childrenList"></div>`; filterChildren()
+ <div class="childrenFilters card">
+   <label>Szkoła</label>
+   <select id="schoolFilter" onchange="childrenSchoolChanged()">
+     <option value="">— wybierz szkołę —</option>
+     ${schools.map(s=>`<option>${s}</option>`).join("")}
+   </select>
+   <div id="advancedChildrenFilters" class="advancedChildrenFilters" style="display:none">
+     <label>Rodzaj warsztatów</label>
+     <select id="workshopFilter" onchange="filterChildren()">
+       <option value="">Wszystkie warsztaty</option>
+       ${workshops.map(w=>`<option>${w}</option>`).join("")}
+     </select>
+     <div class="grid2">
+       <div><label>Dzień</label><select id="dayFilter" onchange="filterChildren()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
+       <div><label>Godzina</label><select id="timeFilter" onchange="filterChildren()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div>
+     </div>
+     <div class="actions">
+       <button class="dark" onclick="printFilteredChildren()">🖨 Drukuj wybraną listę</button>
+       <button class="soft" onclick="clearChildrenFilters()">Wyczyść filtry</button>
+     </div>
+   </div>
+ </div>
+ <div id="childrenCount" class="childrenCount"></div>
+ <div id="childrenList"></div>`;
+}
+function childrenSchoolChanged(){
+ const school=document.querySelector("#schoolFilter")?.value||"";
+ const adv=document.querySelector("#advancedChildrenFilters");
+ if(adv)adv.style.display=school?"block":"none";
+ filterChildren();
+}
+function getFilteredChildren(){
+ const q=(document.querySelector("#cs")?.value||"").trim().toLowerCase();
+ const sf=document.querySelector("#schoolFilter")?.value||"";
+ const wf=document.querySelector("#workshopFilter")?.value||"";
+ const df=document.querySelector("#dayFilter")?.value||"";
+ const tf=document.querySelector("#timeFilter")?.value||"";
+ if(!sf&&!q)return [];
+ return data.children.filter(c=>{
+   const nameOk=!q||(c.last+" "+c.first).toLowerCase().includes(q);
+   const schoolOk=!sf||c.school===sf||(c.classes||[]).some(cl=>cl.school===sf);
+   if(!nameOk||!schoolOk)return false;
+   if(!wf&&!df&&!tf)return true;
+   return (c.classes||[]).some(cl=>
+     (!wf||cl.type===wf)&&(!df||cl.day===df)&&(!tf||cl.time===tf)&&(!sf||cl.school===sf||c.school===sf)
+   );
+ });
 }
 function filterChildren(){
- let q=(document.querySelector("#cs")?.value||"").trim().toLowerCase(),
-     sf=document.querySelector("#schoolFilter")?.value,
-     list=document.querySelector("#childrenList");
+ const list=document.querySelector("#childrenList"),count=document.querySelector("#childrenCount");
  if(!list)return;
- if(!q){
-   list.innerHTML="";
+ const q=(document.querySelector("#cs")?.value||"").trim(),sf=document.querySelector("#schoolFilter")?.value||"";
+ if(!q&&!sf){list.innerHTML="";if(count)count.innerHTML="";return}
+ const arr=getFilteredChildren();
+ if(count)count.innerHTML=arr.length?`Znaleziono: <b>${arr.length}</b>`:"";
+ list.innerHTML=arr.map(childCard).join("")||'<div class="card muted">Brak dzieci spełniających wybrane kryteria.</div>';
+}
+function clearChildrenFilters(){
+ ["workshopFilter","dayFilter","timeFilter"].forEach(id=>{const e=document.getElementById(id);if(e)e.value=""});
+ filterChildren();
+}
+function printFilteredChildren(){
+ const arr=getFilteredChildren();
+ if(!arr.length){
+   confirmModal({title:"Brak dzieci do wydruku",message:"Wybierz szkołę lub zmień filtry.",confirmText:"OK",cancelText:"Zamknij",danger:false});
    return;
  }
- let arr=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)&&(sf=="Wszystkie szkoły"||c.school==sf));
- list.innerHTML=arr.map(childCard).join("")||'<div class="card muted">Brak wyników dla wpisanej frazy.</div>';
+ const sf=document.querySelector("#schoolFilter")?.value||"";
+ const wf=document.querySelector("#workshopFilter")?.value||"Wszystkie warsztaty";
+ const df=document.querySelector("#dayFilter")?.value||"Wszystkie dni";
+ const tf=document.querySelector("#timeFilter")?.value||"Wszystkie godziny";
+ let rows=[];
+ arr.forEach(c=>{
+   let cls=(c.classes||[]).filter(cl=>(!sf||cl.school===sf||c.school===sf)&&(!wf||wf==="Wszystkie warsztaty"||cl.type===wf)&&(!df||df==="Wszystkie dni"||cl.day===df)&&(!tf||tf==="Wszystkie godziny"||cl.time===tf));
+   if(!cls.length)cls=[{}];
+   cls.forEach(cl=>rows.push(`<tr><td>${c.last} ${c.first}</td><td>${c.class||""}</td><td>${c.club||""}</td><td>${cl.type||""}</td><td>${cl.day||""}</td><td>${cl.time||""}</td></tr>`));
+ });
+ const win=window.open("","_blank");
+ win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista dzieci</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #bbb;padding:8px;text-align:left}th{background:#f2f4f7}@media print{button{display:none}}</style></head><body><h1>Lista dzieci</h1><p>${sf} • ${wf} • ${df} • ${tf}</p><table><thead><tr><th>Nazwisko i imię</th><th>Klasa</th><th>Świetlica</th><th>Warsztaty</th><th>Dzień</th><th>Godzina</th></tr></thead><tbody>${rows.join("")}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
+ win.document.close();setTimeout(()=>win.print(),250);
 }
 function childCard(c){
  const ps=paymentState(c,"Wrzesień");
@@ -592,9 +659,9 @@ function refreshReports(){
       <button class="dark" onclick="window.print()">Drukuj raport</button>
     </div>`;
 }
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.3</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.4</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){
- app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2>
+ app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="actions signupTopActions"><button class="primary" onclick="editChild()">+ Dodaj dziecko ręcznie</button></div>
  <div class="card"><h2>Import formularza zapisu</h2>
  <p class="muted">Wczytaj plik CSV wyeksportowany z formularza WordPress / Fluent Forms. Dane nie zostaną dodane automatycznie — najpierw zobaczysz je do sprawdzenia i poprawy.</p>
  <div class="drop" onclick="signupCsvInput.click()">📄<h3>Wybierz plik CSV</h3><div>Format jak w eksporcie formularza zapisu dziecka</div></div>
@@ -803,5 +870,5 @@ signupCsvInput.onchange=async e=>{
  }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
  finally{e.target.value=''}
 };
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v53.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v54.json";a.click()}
 render();

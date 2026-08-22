@@ -86,3 +86,9 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .reportMonthRow{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
 .reportMonthRow:last-child{border-bottom:0}
 @media(max-width:620px){.yoyGrid{grid-template-columns:1fr}.reportRowHead{align-items:flex-start}}
+
+/* v5.4 — filtrowanie dzieci i druk list */
+.childrenFilters{margin-top:8px}
+.advancedChildrenFilters{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.childrenCount{margin:12px 4px;color:#66717d}
+.signupTopActions{margin:-8px 0 16px}

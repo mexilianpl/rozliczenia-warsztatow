@@ -1,18 +1,13 @@
-Rozliczenia Warsztatów v5.3
+Rozliczenia Warsztatów v5.4
 
-Nowości w zakładce Raporty:
-- podsumowanie wpłat za wybrany miesiąc,
-- raport całoroczny,
-- łączne wpływy: wpłaty dzieci + dodatkowe przychody,
-- liczba wpłat,
-- podział wpływów według szkół,
-- podział wpływów według rodzaju warsztatów,
-- zestawienie miesiąc po miesiącu,
-- porównanie rok do roku,
-- różnica kwotowa i procentowa,
-- przycisk drukowania raportu.
-
-Uwaga:
-Wpłaty jednego dziecka uczęszczającego na kilka rodzajów zajęć są w raporcie warsztatów rozdzielane proporcjonalnie do należności za jego zajęcia.
+Zmiany:
+- ręczne dodawanie dziecka przeniesione z zakładki Dzieci do zakładki Zapisy,
+- w Dzieciach po wyborze szkoły pojawia się lista wszystkich dzieci z tej szkoły,
+- dodatkowe filtry: rodzaj warsztatów, dzień i godzina,
+- można filtrować stopniowo: szkoła → warsztaty → dzień → godzina,
+- wyszukiwarka imienia/nazwiska działa niezależnie,
+- pokazuje liczbę znalezionych dzieci,
+- przycisk „Drukuj wybraną listę” drukuje tylko aktualnie wyselekcjonowane dzieci,
+- wydruk: nazwisko i imię, klasa, świetlica, warsztaty, dzień, godzina.
 
 Podmień na GitHubie: index.html, app.js, style.css.
