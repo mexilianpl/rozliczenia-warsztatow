@@ -1,5 +1,5 @@
 
-const VERSION="5.7";
+const VERSION="5.12";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -807,6 +807,129 @@ function reportTable(obj,emptyText){
     <div class="reportBar"><div style="width:${Math.min(100,(val/total)*100)}%"></div></div>
   </div>`).join("");
 }
+function reportYears(){
+  const years=new Set([new Date().getFullYear()]);
+  data.payments.forEach(p=>{const ym=paymentYearMonth(p);if(ym.year)years.add(ym.year)});
+  data.income.forEach(i=>{const ym=incomeYearMonth(i);if(ym.year)years.add(ym.year)});
+  return [...years].sort((a,b)=>b-a);
+}
+
+function excelSafeDate(v){
+ const s=String(v||"");
+ return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:"";
+}
+function exportReportsExcel(){
+ if(typeof XLSX==="undefined"){
+   confirmModal({title:"Eksport Excel niedostępny",message:"Nie udało się załadować modułu Excel. Sprawdź połączenie z internetem i odśwież stronę.",confirmText:"OK",cancelText:"Zamknij",danger:false});
+   return;
+ }
+ const year=Number(document.querySelector("#rYear")?.value||new Date().getFullYear());
+ const monthVal=document.querySelector("#rMonth")?.value||"";
+ const month=monthVal?Number(monthVal):null;
+ const r=aggregateReport(year,month);
+ const monthName=month?["","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"][month]:"Cały rok";
+
+ const wb=XLSX.utils.book_new();
+
+ const summary=[
+  ["Raport",`${monthName} ${year}`],
+  ["Wpłaty dzieci",r.childPaid],
+  ["Dodatkowe przychody",r.extra],
+  ["Łączne wpływy",r.total],
+  ["Liczba wpłat",r.pays.length]
+ ];
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(summary),"Podsumowanie");
+
+ const paymentsRows=r.pays.map(p=>{
+   const ch=data.children.find(c=>Number(c.id)===Number(p.childId));
+   const ps=ch?paymentState(ch,p.month):null;
+   return {
+    "Data":excelSafeDate(p.date),
+    "Miesiąc":p.month||"",
+    "Dziecko":p.child||"",
+    "Szkoła":ch?.school||"",
+    "Kwota":Number(p.amount||0),
+    "Należne":ps?Number(ps.due||0):0,
+    "Wpłacono łącznie":ps?Number(ps.paid||0):0,
+    "Brakuje":ps?Number(ps.missing||0):0,
+    "Status":ps?ps.label:"",
+    "Uwagi":p.note||""
+   };
+ });
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(paymentsRows.length?paymentsRows:[{"Brak danych":""}]),"Wpłaty");
+
+ const schoolRows=Object.entries(r.schoolMap).sort((a,b)=>b[1]-a[1]).map(([school,val])=>({
+   "Szkoła":school,"Wpływy":Number(val||0)
+ }));
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(schoolRows.length?schoolRows:[{"Brak danych":""}]),"Szkoły");
+
+ const workshopRows=Object.entries(r.workshopMap).sort((a,b)=>b[1]-a[1]).map(([type,val])=>({
+   "Rodzaj warsztatów":type,"Wpływy":Number(val||0)
+ }));
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(workshopRows.length?workshopRows:[{"Brak danych":""}]),"Warsztaty");
+
+ const arrearsRows=data.children.map(c=>{
+   let paid=0;
+   if(month){
+     const mName=["","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"][month];
+     paid=data.payments.filter(p=>Number(p.childId)===Number(c.id)&&p.month===mName&&reportFilterYearMonth(p,year,month,"payment"))
+       .reduce((s,p)=>s+Number(p.amount||0),0);
+   }else{
+     paid=data.payments.filter(p=>Number(p.childId)===Number(c.id)&&reportFilterYearMonth(p,year,null,"payment"))
+       .reduce((s,p)=>s+Number(p.amount||0),0);
+   }
+   const due=month?childDue(c):childDue(c)*months.length;
+   const missing=Math.max(0,due-paid);
+   return missing>0?{
+     "Dziecko":`${c.last} ${c.first}`,
+     "Szkoła":c.school||"",
+     "Należne":due,
+     "Wpłacono":paid,
+     "Brakuje":missing
+   }:null;
+ }).filter(Boolean);
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(arrearsRows.length?arrearsRows:[{"Brak zaległości":""}]),"Zaległości");
+
+ const incomeRows=r.inc.map(i=>({
+   "Data":excelSafeDate(i.date),
+   "Tytuł":i.title||"",
+   "Kwota":Number(i.amount||0)
+ }));
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(incomeRows.length?incomeRows:[{"Brak danych":""}]),"Przychody");
+
+ const childrenRows=data.children.map(c=>({
+   "Nazwisko":c.last||"",
+   "Imię":c.first||"",
+   "Klasa":c.class||"",
+   "Szkoła":c.school||"",
+   "Sala / odbiór":c.pickupPlace||"",
+   "Rodzic / opiekun":c.parent||"",
+   "Telefon":c.phone||"",
+   "E-mail":c.email||"",
+   "Zgoda na wizerunek":consentLabel(c.consents?.image)||"brak danych",
+   "Dane osobowe":consentLabel(c.consents?.personal)||"brak danych",
+   "Regulamin":consentLabel(c.consents?.rules)||"brak danych",
+   "Liczba zajęć":(c.classes||[]).length
+ }));
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(childrenRows),"Dzieci");
+
+ const classesRows=[];
+ data.children.forEach(c=>(c.classes||[]).forEach(cl=>classesRows.push({
+   "Dziecko":`${c.last} ${c.first}`,
+   "Szkoła":cl.school||c.school||"",
+   "Rodzaj warsztatów":cl.type||"",
+   "Dzień":cl.day||"",
+   "Godzina":cl.time||"",
+   "Cena regularna":Number(cl.price||0),
+   "Rabat %":Number(cl.discount||0),
+   "Należne":Number(dueClass(cl)||0),
+   "Status":cl.status||""
+ })));
+ XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(classesRows.length?classesRows:[{"Brak danych":""}]),"Zajęcia");
+
+ const filename=`raport-rozliczenia-${year}-${month?String(month).padStart(2,"0"):"caly-rok"}.xlsx`;
+ XLSX.writeFile(wb,filename);
+}
 function reports(){
   const years=reportYears();
   const defaultYear=years[0]||new Date().getFullYear();
@@ -875,10 +998,10 @@ function refreshReports(){
       ${Object.entries(r.monthMap).map(([m,val])=>`<div class="reportMonthRow"><span>${["","Sty","Lut","Mar","Kwi","Maj","Cze","Lip","Sie","Wrz","Paź","Lis","Gru"][+m]}</span><b>${money(val)}</b></div>`).join("")}
     </div>`:""}
     <div class="card print-hide">
-      <button class="dark" onclick="window.print()">Drukuj raport</button>
+      <button class="dark" onclick="window.print()">Drukuj raport</button><button class="primary" onclick="exportReportsExcel()">⬇ Eksport do Excel</button>
     </div>`;
 }
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.7</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.12</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
 function signups(){
  app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="actions signupTopActions"><button class="primary" onclick="editChild()">+ Dodaj dziecko ręcznie</button></div>
  <div class="card"><h2>Import formularza zapisu</h2>
