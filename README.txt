@@ -1,14 +1,13 @@
-Rozliczenia Warsztatów v4.9
+Rozliczenia Warsztatów v5.0
 
-Nowości:
-- po wpłacie system porównuje wpłaconą kwotę z należnością dziecka,
-- status CZĘŚCIOWO WPŁACONO pokazuje dokładną brakującą kwotę,
-- status NADPŁATA pokazuje nadwyżkę,
-- WPŁACONO pojawia się dopiero po pokryciu całej należności,
-- OCR zabezpiecza przed ponownym zaakceptowaniem tego samego przelewu,
-- duplikat jest oznaczany i nie trafia ponownie do rozliczeń,
-- ręczne dodawanie wpłat również ma podstawowe zabezpieczenie przed duplikatem.
-
-Przykład: należne 180 zł, wpłata 155 zł → CZĘŚCIOWO WPŁACONO • BRAKUJE 25,00 zł.
+NOWE — zakładka ZAPISY:
+- import CSV z WordPress / Fluent Forms,
+- obsługa dokładnie takiego formatu jak plik „Zapis dziecka na warsztaty”,
+- przed dodaniem wyświetlany jest pełny formularz do sprawdzenia i poprawy,
+- można poprawić nazwisko, imię, płeć, klasę, szkołę, świetlicę, zajęcia, dzień, godzinę, rodzica, telefon, e-mail i uwagi,
+- zgody z formularza są widoczne podczas weryfikacji,
+- każde zgłoszenie ma osobny przycisk „Akceptuję i dodaję dziecko”,
+- ochrona przed ponownym dodaniem tego samego entry_id / dziecka,
+- po zatwierdzeniu dziecko trafia do zakładki Dzieci.
 
 Podmień na GitHubie: index.html, app.js, style.css.

@@ -50,3 +50,9 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .paymentBadgeText.overpaid,.ocrOverpaid{color:#6550b8;font-weight:900}
 .paymentBadgeText.free{color:#65707e}
 .ocrDuplicate{color:#c73f52;font-weight:900;background:#fff0f2;border-radius:12px;padding:9px;margin-top:8px}
+
+/* v5.0 — importer zgłoszeń z formularza */
+.signupReviewCard{border:1px solid var(--line);border-radius:22px;padding:18px;margin:14px 0;background:#fff}
+.signupReviewCard h3{margin:0 0 7px;color:var(--blue);font-size:24px}
+.signupWorkshop{background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:13px;margin:12px 0}
+.consentLine{background:#eef8fb;color:#52606e;border-radius:15px;padding:11px;margin:12px 0;line-height:1.5}

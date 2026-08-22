@@ -1,5 +1,5 @@
 
-const VERSION="4.9";
+const VERSION="5.0";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -376,7 +376,125 @@ function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input 
 function groups(){app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card"><label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select><label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select><label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select><div class="actions"><button class="dark" onclick="window.print()">Drukuj listę wyselekcjonowanych nazwisk</button></div></div><div id="gList"></div>`;groupList()}
 function groupList(){let s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];data.children.forEach(c=>c.classes.forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));gList.innerHTML=arr.map(x=>`<div class="card"><b class="name">${x.c.last} ${x.c.first}</b><div class="muted">${x.c.class} • świetlica: ${x.c.club} • ${x.cl.type} • ${x.cl.day} ${x.cl.time}</div></div>`).join("")||'<div class="card">Brak dzieci dla wybranych filtrów.</div>'}
 function reports(){app.innerHTML=`<div class="eyebrow">RAPORTY</div><h2 class="title">Raporty</h2><div class="card"><button class="dark" onclick="window.print()">Drukuj bieżący widok</button><p class="muted">Dane są zapisane lokalnie w tej przeglądarce.</p></div>`}
-function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>4.9</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
-function signups(){app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2><div class="card"><p>Moduł przygotowany do dalszego połączenia z formularzem zgłoszeń.</p></div>`}
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v49.json";a.click()}
+function lists(){app.innerHTML=`<div class="eyebrow">USTAWIENIA</div><h2 class="title">Listy</h2><div class="card"><h3>Wersja programu</h3><b>5.0</b><p class="muted">Szkoły: ${schools.join(", ")}<br>Zajęcia: ${workshops.join(", ")}</p><button class="danger" onclick="if(confirm('Przywrócić dane demonstracyjne?')){localStorage.removeItem('rw44');location.reload()}">Reset demo</button></div>`}
+function signups(){
+ app.innerHTML=`<div class="eyebrow">ZGŁOSZENIA</div><h2 class="title">Zapisy</h2>
+ <div class="card"><h2>Import formularza zapisu</h2>
+ <p class="muted">Wczytaj plik CSV wyeksportowany z formularza WordPress / Fluent Forms. Dane nie zostaną dodane automatycznie — najpierw zobaczysz je do sprawdzenia i poprawy.</p>
+ <div class="drop" onclick="signupCsvInput.click()">📄<h3>Wybierz plik CSV</h3><div>Format jak w eksporcie formularza zapisu dziecka</div></div>
+ <button class="dark" onclick="signupCsvInput.click()">Importuj zgłoszenia z CSV</button></div>
+ <div class="card"><h2>Ostatnio dodane zgłoszenia</h2><div class="muted">Po zaakceptowaniu formularza dziecko trafia do zakładki Dzieci razem z danymi rodzica i wybranymi zajęciami.</div></div>`
+}
+function parseCSV(text){
+ const rows=[]; let row=[],cell='',quoted=false;
+ for(let i=0;i<text.length;i++){
+   const ch=text[i],next=text[i+1];
+   if(ch==='"'){
+     if(quoted&&next==='"'){cell+='"';i++;}
+     else quoted=!quoted;
+   }else if(ch===','&&!quoted){row.push(cell);cell='';}
+   else if((ch==='\n'||ch==='\r')&&!quoted){
+     if(ch==='\r'&&next==='\n')i++;
+     row.push(cell);cell='';
+     if(row.some(x=>String(x).trim()!==''))rows.push(row);
+     row=[];
+   }else cell+=ch;
+ }
+ row.push(cell); if(row.some(x=>String(x).trim()!==''))rows.push(row);
+ if(!rows.length)return [];
+ const headers=rows.shift().map(x=>String(x).trim());
+ return rows.map(r=>Object.fromEntries(headers.map((h,i)=>[h,r[i]??''])));
+}
+function signupVal(obj,names){
+ for(const n of names){if(obj[n]!==undefined&&String(obj[n]).trim()!=='')return String(obj[n]).trim()}
+ return '';
+}
+function splitPersonName(full){
+ const p=String(full||'').trim().split(/\s+/).filter(Boolean);
+ if(p.length<=1)return {first:p[0]||'',last:''};
+ return {first:p.slice(0,-1).join(' '),last:p[p.length-1]};
+}
+function normalizeSchool(v){
+ const x=String(v||'').trim().toLowerCase().replace(/\s+/g,'');
+ if(x==='sp162'||x==='162')return 'SP 162';
+ if(x==='zsp17'||x==='17')return 'ZSP 17';
+ return String(v||'').trim()||schools[0];
+}
+function signupRecord(row,index){
+ const childName=splitPersonName(signupVal(row,['Imię i nazwisko dziecka']));
+ const types=[signupVal(row,['Rodzaj zajęć']),signupVal(row,['Rodzaj zajęć.1'])].filter(Boolean);
+ const daysSel=[signupVal(row,['Które dni odpowiadają Państwu najbardziej?']),signupVal(row,['Które dni odpowiadają Państwu najbardziej?.1'])].filter(Boolean);
+ return {
+  importIndex:index,entryId:signupVal(row,['entry_id']),createdAt:signupVal(row,['created_at']),entryStatus:signupVal(row,['entry_status']),
+  first:childName.first,last:childName.last,sex:'Dziewczynka',school:normalizeSchool(signupVal(row,['Szkoła'])),className:signupVal(row,['Klasa']),club:'Tak',
+  parent:signupVal(row,['Imię i nazwisko rodzica / opiekuna']),phone:signupVal(row,['Numer telefonu rodzica / opiekuna']),email:signupVal(row,['Adres e-mail rodzica / opiekuna']),notes:signupVal(row,['Uwagi']),
+  rules:signupVal(row,['Regulamin zajęć']),personal:signupVal(row,['Dane osobowe']),imageConsent:signupVal(row,['Zgoda na wizerunek']),
+  types,days:daysSel
+ };
+}
+function signupSchoolOptions(value){
+ const all=[...new Set([...schools,value].filter(Boolean))];
+ return all.map(x=>`<option ${x===value?'selected':''}>${x}</option>`).join('');
+}
+function signupWorkshopOptions(value){
+ const all=[...new Set([...workshops,value].filter(Boolean))];
+ return all.map(x=>`<option ${x===value?'selected':''}>${x}</option>`).join('');
+}
+function signupDayOptions(value){
+ const nice=value?value.charAt(0).toUpperCase()+value.slice(1).toLowerCase():days[0];
+ const all=[...new Set([...days,nice].filter(Boolean))];
+ return all.map(x=>`<option ${x===nice?'selected':''}>${x}</option>`).join('');
+}
+function showSignupReview(items,fileName){
+ window.__signupItems=items;
+ if(!items.length){modal(`<h2>Brak zgłoszeń</h2><p>Nie znalazłem danych w pliku ${fileName}.</p><button class="soft" onclick="closeModal()">Zamknij</button>`);return}
+ modal(`<h2>Sprawdź zgłoszenia przed dodaniem</h2><div class="notice">Plik: <b>${fileName}</b> • znaleziono <b>${items.length}</b> zgłoszeń. Możesz poprawić każde pole przed akceptacją.</div>
+ <div id="signupReview">${items.map((r,i)=>`<div class="signupReviewCard" id="signupCard${i}">
+  <h3>${r.last} ${r.first}</h3>${r.entryId?`<div class="muted">ID formularza: ${r.entryId} • ${r.createdAt||''}</div>`:''}
+  <div class="grid2"><div><label>Nazwisko</label><input id="suLast${i}" value="${escapeAttr(r.last)}"></div><div><label>Imię</label><input id="suFirst${i}" value="${escapeAttr(r.first)}"></div></div>
+  <div class="grid2"><div><label>Płeć</label><select id="suSex${i}">${opt(['Dziewczynka','Chłopiec'],r.sex)}</select></div><div><label>Klasa</label><input id="suClass${i}" value="${escapeAttr(r.className)}"></div></div>
+  <label>Szkoła</label><select id="suSchool${i}">${signupSchoolOptions(r.school)}</select>
+  <label>Świetlica</label><select id="suClub${i}">${opt(['Tak','Nie'],r.club)}</select>
+  ${[0,1].map(k=>`<div class="signupWorkshop"><div class="grid2"><div><label>${k===0?'Rodzaj zajęć':'Drugie zajęcia'}</label><select id="suType${i}_${k}"><option value="">— brak —</option>${signupWorkshopOptions(r.types[k]||'')}</select></div><div><label>Dzień preferowany</label><select id="suDay${i}_${k}"><option value="">— wybierz później —</option>${signupDayOptions(r.days[k]||r.days[0]||'')}</select></div></div><label>Godzina</label><select id="suTime${i}_${k}"><option value="">— ustal później —</option>${times.map(t=>`<option>${t}</option>`).join('')}</select></div>`).join('')}
+  <label>Rodzic / opiekun</label><input id="suParent${i}" value="${escapeAttr(r.parent)}"><label>Telefon</label><input id="suPhone${i}" value="${escapeAttr(r.phone)}"><label>E-mail</label><input id="suEmail${i}" value="${escapeAttr(r.email)}"><label>Uwagi</label><textarea id="suNotes${i}">${escapeHtml(r.notes)}</textarea>
+  <div class="consentLine">Regulamin: <b>${escapeHtml(r.rules||'brak')}</b> • Dane osobowe: <b>${escapeHtml(r.personal||'brak')}</b> • Wizerunek: <b>${escapeHtml(r.imageConsent||'brak')}</b></div>
+  <div id="suInfo${i}"></div><div class="actions"><button class="primary" onclick="acceptSignup(${i})">✓ Akceptuję i dodaję dziecko</button><button class="soft" onclick="skipSignup(${i})">Pomiń</button></div>
+ </div>`).join('')}</div><div class="actions"><button class="soft" onclick="closeModal()">Zamknij</button></div>`);
+}
+function escapeAttr(v){return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escapeHtml(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function signupAlreadyExists(entryId,first,last){
+ return data.children.find(c=>(entryId&&String(c.sourceEntryId||'')===String(entryId))||((c.first||'').toLowerCase()===String(first||'').toLowerCase()&&(c.last||'').toLowerCase()===String(last||'').toLowerCase()));
+}
+async function acceptSignup(i){
+ const src=window.__signupItems?.[i]||{};
+ const first=document.querySelector(`#suFirst${i}`).value.trim(),last=document.querySelector(`#suLast${i}`).value.trim();
+ if(!first||!last){const info=document.querySelector(`#suInfo${i}`);info.className='ocrWarn';info.textContent='Uzupełnij imię i nazwisko dziecka.';return}
+ const existing=signupAlreadyExists(src.entryId,first,last);
+ if(existing){
+  const ok=await confirmModal({title:'Dziecko już istnieje',message:`${existing.last} ${existing.first} jest już w bazie. Nie dodam duplikatu. Możesz zamknąć to zgłoszenie lub poprawić dane.`,confirmText:'OK',cancelText:'Zamknij',danger:false});
+  return;
+ }
+ const child={id:Date.now()+i,last,first,sex:document.querySelector(`#suSex${i}`).value,class:document.querySelector(`#suClass${i}`).value.trim(),school:document.querySelector(`#suSchool${i}`).value,club:document.querySelector(`#suClub${i}`).value,parent:document.querySelector(`#suParent${i}`).value.trim(),phone:document.querySelector(`#suPhone${i}`).value.trim(),email:document.querySelector(`#suEmail${i}`).value.trim(),notes:document.querySelector(`#suNotes${i}`).value.trim(),sourceEntryId:src.entryId||'',sourceCreatedAt:src.createdAt||'',consents:{rules:src.rules||'',personal:src.personal||'',image:src.imageConsent||''},classes:[]};
+ for(let k=0;k<2;k++){
+  const type=document.querySelector(`#suType${i}_${k}`).value;
+  if(!type)continue;
+  const day=document.querySelector(`#suDay${i}_${k}`).value||days[0],time=document.querySelector(`#suTime${i}_${k}`).value||'';
+  child.classes.push({id:Date.now()+i*10+k,type,day,time,school:child.school,price:0,discount:k===0?0:10,status:'brak'});
+ }
+ data.children.push(child);save();
+ const card=document.querySelector(`#signupCard${i}`);card.classList.add('ocrAccepted');card.querySelectorAll('input,select,textarea,button').forEach(x=>x.disabled=true);
+ const info=document.querySelector(`#suInfo${i}`);info.className='ocrOk';info.textContent='✓ Dziecko zostało dodane do bazy. Ceny i godzinę możesz ustawić później w zakładce Dzieci.';
+}
+function skipSignup(i){const card=document.querySelector(`#signupCard${i}`);if(card){card.classList.add('ocrAccepted');card.querySelectorAll('input,select,textarea,button').forEach(x=>x.disabled=true)} }
+signupCsvInput.onchange=async e=>{
+ const f=e.target.files[0];if(!f)return;
+ try{
+  const text=await f.text();
+  const rows=parseCSV(text);const items=rows.map(signupRecord);
+  showSignupReview(items,f.name);
+ }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
+ finally{e.target.value=''}
+};
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v50.json";a.click()}
 render();
