@@ -1,5 +1,5 @@
 
-const VERSION="7.4";
+const VERSION="7.5";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -1165,12 +1165,12 @@ function listRowsBase(type){
  if(type==="attendance")return {title:"Lista obecności",headers:["Lp.","Dziecko","Klasa","Sala / odbiór","Obecny","Nieobecny","Uwagi"],rows:arr.map((c,i)=>[i+1,`${c.last} ${c.first}`,c.class||"",c.pickupPlace||"","","",""])};
  if(type==="attendanceReport")return {title:"Raport frekwencji",headers:["Lp.","Dziecko","Klasa","Zajęcia","Obecności","Nieobecności","Frekwencja","Daty nieobecności"],rows:arr.map((c,i)=>{const a=attendanceSummary(c.id);return [i+1,`${c.last} ${c.first}`,c.class||"",a.total,a.present,a.absent,a.total?`${a.pct}%`:"—",a.h.filter(x=>x.status==="absent").map(x=>attendanceDatePL(x.date)).join(", ")]})};
  if(type==="pickup")return {title:"Lista odbioru dzieci",headers:["Lp.","Sala / odbiór","Dziecko","Klasa"],rows:arr.map((c,i)=>[i+1,c.pickupPlace||"Nieustalone",`${c.last} ${c.first}`,c.class||""])};
- if(type==="contacts")return {title:"Lista kontaktowa",headers:["Dziecko","Rodzic / opiekun","Telefon","E-mail","Sala / odbiór"],rows:arr.map(c=>[`${c.last} ${c.first}`,c.parent||"",c.phone||"",c.email||"",c.pickupPlace||""])};
+ if(type==="contacts")return {title:"Lista kontaktowa",headers:["Imię i nazwisko dziecka","Imię i nazwisko rodzica / opiekuna","Telefon","E-mail","Sala / odbiór"],rows:arr.map(c=>[`${c.last} ${c.first}`,c.parent||"",c.phone||"",c.email||"",c.pickupPlace||""])};
  if(type==="arrears"){
    const rows=arr.map(c=>{const ps=paymentState(c,month);return ["unpaid","partial"].includes(ps.kind)?[`${c.last} ${c.first}`,c.school||"",money(ps.due),money(ps.paid),money(ps.missing),ps.label]:null}).filter(Boolean);
    return {title:`Lista zaległości — ${month}`,headers:["Dziecko","Szkoła","Należne","Wpłacono","Brakuje","Status"],rows};
  }
- if(type==="consents")return {title:"Lista zgód",headers:["Dziecko","Wizerunek","Dane osobowe","Regulamin"],rows:arr.map(c=>[`${c.last} ${c.first}`,consentLabel(c.consents?.image)||"brak danych",consentLabel(c.consents?.personal)||"brak danych",consentLabel(c.consents?.rules)||"brak danych"])};
+ if(type==="consents")return {title:"Lista zgód",headers:["Imię i nazwisko dziecka","Zgoda na wizerunek","Zgoda na przetwarzanie danych osobowych","Akceptacja regulaminu"],rows:arr.map(c=>[`${c.last} ${c.first}`,consentLabel(c.consents?.image)||"brak danych",consentLabel(c.consents?.personal)||"brak danych",consentLabel(c.consents?.rules)||"brak danych"])};
  if(type==="free"){
    const f=arr.filter(c=>(c.classes||[]).some(cl=>cl.status==="bezplatne"));
    return {title:"Lista dzieci bezpłatnych",headers:["Dziecko","Szkoła","Warsztaty"],rows:f.map(c=>[`${c.last} ${c.first}`,c.school||"",(c.classes||[]).filter(cl=>cl.status==="bezplatne").map(cl=>cl.type).join(", ")])};
@@ -1203,10 +1203,21 @@ function lists(){
  <div id="listPreview"></div><div id="listInteractiveHost"></div>`;
  refreshListPreview();
 }
+function listPreviewCell(type,index,value){
+ const text=String(value??"");
+ if(type==="consents" && index>0){
+   const n=text.trim().toLowerCase();
+   if(n==="tak" || n==="zgoda" || n==="zaakceptowano")return `<span class="consentStatus consentYes">${text}</span>`;
+   if(n==="nie" || n==="brak zgody" || n==="odmowa")return `<span class="consentStatus consentNo">${text}</span>`;
+   return `<span class="consentStatus consentUnknown">${text}</span>`;
+ }
+ return text;
+}
 function refreshListPreview(){
- const d=listRows(document.querySelector("#lType")?.value||"children");
+ const type=document.querySelector("#lType")?.value||"children";
+ const d=listRows(type);
  document.querySelector("#listPreview").innerHTML=`<div class="card"><h2>${d.title}</h2><div class="muted">Pozycji: <b>${d.rows.length}</b></div>
- ${d.rows.slice(0,30).map(r=>`<div class="listPreviewRow">${r.slice(0,4).map(x=>`<span>${x}</span>`).join("")}</div>`).join("")||'<div class="muted">Brak danych dla wybranych filtrów.</div>'}
+ ${d.rows.slice(0,30).map(r=>`<div class="listPreviewRow ${type==="consents"?"consentPreviewRow":""}">${r.slice(0,4).map((x,i)=>`<span>${listPreviewCell(type,i,x)}</span>`).join("")}</div>`).join("")||'<div class="muted">Brak danych dla wybranych filtrów.</div>'}
  ${d.rows.length>30?`<div class="muted">Podgląd pierwszych 30 pozycji.</div>`:""}</div>`;
  const activeType=document.getElementById("lType")?.value||"";
  injectInteractiveList(activeType);
@@ -1899,5 +1910,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v74.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v75.json";a.click()}
 render();

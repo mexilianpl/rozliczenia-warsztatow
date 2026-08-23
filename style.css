@@ -290,3 +290,11 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
  .interactiveActions button{flex:1 1 auto}
  .interactiveHeader{align-items:stretch;flex-direction:column}
 }
+
+/* v7.5 — czytelniejsze listy zgód i kontaktów */
+.consentStatus{font-weight:800;display:inline-block}
+.consentYes{color:#16835b}
+.consentNo{color:#c43d4d}
+.consentUnknown{color:#7b8490;font-weight:600}
+.consentPreviewRow span{overflow-wrap:anywhere}
+.listPreviewRow span{min-width:0;overflow-wrap:anywhere}
