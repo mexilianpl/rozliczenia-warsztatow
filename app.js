@@ -110,6 +110,14 @@ function nextClassDayInfo(){
  const min=Math.min(...entries.map(x=>x.delta));
  return {delta:min,items:entries.filter(x=>x.delta===min)};
 }
+
+function formatNextClassDate(delta){
+ if(delta===null || delta===undefined)return "";
+ const d=new Date();
+ d.setHours(12,0,0,0);
+ d.setDate(d.getDate()+Number(delta||0));
+ return new Intl.DateTimeFormat("pl-PL",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(d);
+}
 function classesGroupedForDay(items){
  const map={};
  items.forEach(({c,cl})=>{
@@ -162,7 +170,7 @@ function start(){
  <div class="currentPeriodLabel">${dash.period.month} ${dash.period.year}</div>
  <div class="summary dashboardSummary">
    <div class="stat">Należne w miesiącu<b>${money(dash.due)}</b></div>
-   <div class="stat">Wpłaty dzieci<b>${money(dash.childPaid)}</b></div>
+   <div class="stat paidStat">Wpłaty dzieci<b>${money(dash.childPaid)}</b></div>
    <div class="stat missingStat">Brakuje wpłat<b>${money(dash.missing)}</b></div>
    <div class="stat">Dodatkowe przychody<b>${money(dash.extra)}</b></div>
    <div class="stat">Razem wpływy<b>${money(dash.total)}</b></div>
@@ -173,7 +181,7 @@ function start(){
    <div class="todoItem warnLite"><b>${tasks.partial}</b><span>częściowych wpłat</span></div>
    <div class="todoItem infoLite"><b>${tasks.noConsent}</b><span>braków danych o zgodzie na wizerunek</span></div>
  </div></div>
- <div class="card"><h2>${dayText}</h2>${groupsToday.map(g=>`<button class="nextClassCard" onclick="goToGroup('${g.school}','${g.day}','${g.time}')"><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span></button>`).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>
+ <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>`<button class="nextClassCard" onclick="goToGroup('${g.school}','${g.day}','${g.time}')"><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span></button>`).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>
  <div class="card"><h2>Szybkie wyszukiwanie dziecka</h2><div class="search"><input id="quick" placeholder="Nazwisko lub imię..." oninput="quickSearch(this.value)"></div><div id="quickResults"></div></div>`;
 }
 function quickSearch(q){let el=document.querySelector("#quickResults");q=q.toLowerCase().trim(); if(!q){el.innerHTML="";return} el.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)).map(c=>`<div class="card" onclick="openChild(${c.id})"><b class="name">${c.last} ${c.first}</b><div class="muted">${c.class} • ${c.school} • zajęcia: ${c.classes.length}</div></div>`).join("")||"Brak wyników"}
