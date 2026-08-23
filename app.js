@@ -1,5 +1,5 @@
 
-const VERSION="6.7";
+const VERSION="6.8";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -21,6 +21,11 @@ data.settings.schools=data.settings.schools||[...schools];
 data.settings.workshops=data.settings.workshops||workshops.map((name,i)=>({name,price:[155,165,155][i]||155}));
 data.settings.days=data.settings.days||[...days];
 data.settings.times=data.settings.times||[...times];
+data.settings.schoolSchedules=data.settings.schoolSchedules||[
+ {school:"SP 162",day:"Wtorek",time:"15:00"},
+ {school:"SP 162",day:"Środa",time:"15:30"},
+ {school:"ZSP 17",day:"Wtorek",time:"15:30"}
+];
 function syncSettingsArrays(){
  schools.splice(0,schools.length,...data.settings.schools);
  workshops.splice(0,workshops.length,...data.settings.workshops.map(x=>x.name));
@@ -428,12 +433,23 @@ function saveChild(id,exists){
  if(exists)data.children[data.children.findIndex(c=>c.id==id)]=obj;else data.children.push(obj);
  save();closeModal();render()
 }
+function schoolScheduleFor(school){return (data.settings.schoolSchedules||[]).filter(x=>x.school===school)}
+function refreshClassSchedule(selectedDay="",selectedTime=""){
+ const rows=schoolScheduleFor(clSchool.value), ds=[...new Set(rows.map(x=>x.day))], allowedDays=ds.length?ds:days;
+ clDay.innerHTML=opt(allowedDays,allowedDays.includes(selectedDay)?selectedDay:allowedDays[0]);
+ refreshClassTimes(selectedTime);
+ const note=document.querySelector("#scheduleHint");if(note)note.textContent=rows.length?"Dni i godziny zgodne z planem tej szkoły.":"Brak planu szkoły — dostępne są wszystkie dni i godziny.";
+}
+function refreshClassTimes(selectedTime=""){
+ const rows=schoolScheduleFor(clSchool.value).filter(x=>x.day===clDay.value), ts=[...new Set(rows.map(x=>x.time))], allowed=ts.length?ts:times;
+ clTime.innerHTML=opt(allowed,allowed.includes(selectedTime)?selectedTime:allowed[0]);
+}
 function editClass(cid,clid){let ch=data.children.find(c=>c.id==cid),cl=ch.classes.find(x=>x.id==clid)||{id:Date.now(),type:workshops[0],day:days[0],time:times[0],school:ch.school,price:defaultWorkshopPrice(workshops[0]),discount:0,status:"brak"};
- modal(`<h2>${clid?"Edytuj":"Dodaj"} zajęcia</h2><label>Rodzaj zajęć</label><select id="clType" onchange="if(!this.dataset.edited){clPrice.value=defaultWorkshopPrice(this.value)}">${opt(workshops,cl.type)}</select><label>Szkoła</label><select id="clSchool">${opt(schools,cl.school)}</select>
- <div class="grid2"><div><label>Dzień</label><select id="clDay">${opt(days,cl.day)}</select></div><div><label>Godzina</label><select id="clTime">${opt(times,cl.time)}</select></div></div>
+ modal(`<h2>${clid?"Edytuj":"Dodaj"} zajęcia</h2><label>Rodzaj zajęć</label><select id="clType" onchange="if(!this.dataset.edited){clPrice.value=defaultWorkshopPrice(this.value)}">${opt(workshops,cl.type)}</select><label>Szkoła</label><select id="clSchool" onchange="refreshClassSchedule()">${opt(schools,cl.school)}</select>
+ <div class="grid2"><div><label>Dzień</label><select id="clDay" onchange="refreshClassTimes()"></select></div><div><label>Godzina</label><select id="clTime"></select></div></div><div id="scheduleHint" class="muted"></div>
  <div class="grid2"><div><label>Cena regularna</label><input id="clPrice" type="number" value="${cl.price}" oninput="clType.dataset.edited=1"></div><div><label>Rabat %</label><select id="clDisc">${opt([0,10,20,30,50,100],cl.discount)}</select></div></div>
  <label>Status</label><select id="clStatus"><option value="brak" ${cl.status=="brak"?"selected":""}>Brak wpłaty</option><option value="oplacone" ${cl.status=="oplacone"?"selected":""}>Wpłacono</option><option value="bezplatne" ${cl.status=="bezplatne"?"selected":""}>Bezpłatne</option></select>
- <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveClass(${cid},${cl.id},${clid?1:0})">Zapisz</button></div>`) }
+ <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveClass(${cid},${cl.id},${clid?1:0})">Zapisz</button></div>`);refreshClassSchedule(cl.day,cl.time) }
 function saveClass(cid,id,exists){let ch=data.children.find(c=>c.id==cid),cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value};if(exists)ch.classes[ch.classes.findIndex(x=>x.id==id)]=cl;else ch.classes.push(cl);save();closeModal();render()}
 function confirmModal({title,message,confirmText="Usuń",cancelText="Anuluj",danger=true}){
  return new Promise(resolve=>{
@@ -1141,7 +1157,8 @@ function settings(){
  app.innerHTML=`<div class="eyebrow">KONFIGURACJA</div><h2 class="title">Ustawienia</h2>
  <div class="card"><h2>Warsztaty i ceny</h2><div id="setWorkshops">${data.settings.workshops.map((w,i)=>`<div class="settingsRow"><input value="${escapeAttr(w.name)}" oninput="data.settings.workshops[${i}].name=this.value"><input type="number" step="0.01" value="${Number(w.price||0)}" oninput="data.settings.workshops[${i}].price=+this.value"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeWorkshopSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addWorkshopSetting()">+ Dodaj warsztaty</button></div>
  <div class="card"><h2>Godziny zajęć</h2><div id="setTimes">${data.settings.times.map((t,i)=>`<div class="settingsRow"><input type="time" value="${t}" oninput="data.settings.times[${i}]=this.value"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeTimeSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addTimeSetting()">+ Dodaj godzinę</button></div>
- <div class="card"><h2>Szkoły</h2><div id="setSchools">${data.settings.schools.map((s,i)=>`<div class="settingsRow"><input value="${escapeAttr(s)}" oninput="data.settings.schools[${i}]=this.value"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeSchoolSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addSchoolSetting()">+ Dodaj szkołę</button></div>
+ <div class="card"><h2>Szkoły</h2><div id="setSchools">${data.settings.schools.map((s,i)=>`<div class="settingsRow"><input value="${escapeAttr(s)}" oninput="renameSchoolSetting(${i},this.value)"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeSchoolSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addSchoolSetting()">+ Dodaj szkołę</button></div>
+ <div class="card"><h2>Plan szkół — dni i godziny</h2><p class="muted">Przypisz każdej szkole dni i godziny zajęć. Możesz dodać kilka terminów dla tej samej szkoły.</p><div id="setSchoolSchedules">${(data.settings.schoolSchedules||[]).map((r,i)=>`<div class="settingsRow scheduleSettingRow"><select onchange="data.settings.schoolSchedules[${i}].school=this.value">${opt(data.settings.schools,r.school)}</select><select onchange="data.settings.schoolSchedules[${i}].day=this.value">${opt(data.settings.days,r.day)}</select><select onchange="data.settings.schoolSchedules[${i}].time=this.value">${opt(data.settings.times,r.time)}</select><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeSchoolSchedule(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addSchoolSchedule()">+ Dodaj termin szkoły</button></div>
  <div class="card"><h2>Dni zajęć</h2><div id="setDays">${data.settings.days.map((d,i)=>`<div class="settingsRow"><input value="${escapeAttr(d)}" oninput="data.settings.days[${i}]=this.value"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeDaySetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addDaySetting()">+ Dodaj dzień</button></div>
  <div class="card"><h2>Dane programu</h2><p class="muted">Wersja ${VERSION}. Zmiany ustawień wpływają na listy wyboru w całej aplikacji.</p><div class="actions"><button class="primary" onclick="saveSettings()">✓ Zapisz ustawienia</button><button class="dark" onclick="backupBtn.click()">Kopia danych</button></div></div>`;
 }
@@ -1150,6 +1167,7 @@ function saveSettings(quiet=false){
  data.settings.schools=data.settings.schools.filter(x=>String(x||"").trim()).map(x=>String(x).trim());
  data.settings.times=data.settings.times.filter(Boolean).sort();
  data.settings.days=data.settings.days.filter(x=>String(x||"").trim()).map(x=>String(x).trim());
+ data.settings.schoolSchedules=(data.settings.schoolSchedules||[]).filter(r=>r.school&&r.day&&r.time).map(r=>({school:String(r.school).trim(),day:String(r.day).trim(),time:String(r.time).trim()}));
  syncSettingsArrays();save();
  if(!quiet) confirmModal({title:"Ustawienia zapisane",message:"Nowe szkoły, warsztaty, ceny i godziny są już dostępne w aplikacji.",confirmText:"OK",cancelText:"Zamknij",danger:false}); else showToast("Zapisano");
 }
@@ -1158,7 +1176,10 @@ function removeWorkshopSetting(i){data.settings.workshops.splice(i,1);settings()
 function addTimeSetting(){data.settings.times.push("15:00");settings()}
 function removeTimeSetting(i){data.settings.times.splice(i,1);settings()}
 function addSchoolSetting(){data.settings.schools.push("Nowa szkoła");settings()}
-function removeSchoolSetting(i){data.settings.schools.splice(i,1);settings()}
+function renameSchoolSetting(i,newName){const old=data.settings.schools[i];data.settings.schools[i]=newName;(data.settings.schoolSchedules||[]).forEach(r=>{if(r.school===old)r.school=newName})}
+function removeSchoolSetting(i){const old=data.settings.schools[i];data.settings.schools.splice(i,1);data.settings.schoolSchedules=(data.settings.schoolSchedules||[]).filter(r=>r.school!==old);settings()}
+function addSchoolSchedule(){data.settings.schoolSchedules=data.settings.schoolSchedules||[];data.settings.schoolSchedules.push({school:data.settings.schools[0]||"",day:data.settings.days[0]||"Poniedziałek",time:data.settings.times[0]||"15:00"});settings()}
+function removeSchoolSchedule(i){data.settings.schoolSchedules.splice(i,1);settings()}
 function addDaySetting(){data.settings.days.push("Nowy dzień");settings()}
 function removeDaySetting(i){data.settings.days.splice(i,1);settings()}
 
