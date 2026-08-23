@@ -215,8 +215,6 @@ function children(){
        <option value="classAsc">Klasa rosnąco</option>
      </select>
      <div class="actions">
-       <button class="dark" onclick="printFilteredChildren()">🖨 Drukuj wybraną listę</button>
-       <button class="soft" onclick="printAttendanceList()">✓ Lista obecności</button>
        <button class="soft" onclick="clearChildrenFilters()">Wyczyść filtry</button>
      </div>
    </div>
@@ -435,7 +433,7 @@ async function deleteClass(cid,id){let ch=data.children.find(c=>c.id==cid),cl=ch
 function openChild(id){page="children";render();setTimeout(()=>editChild(id),0)}
 function payments(){
  let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0),inc=data.income.reduce((s,p)=>s+Number(p.amount),0);
- app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Wpłaty</h2><div class="summary"><div class="stat">Należne<b>${money(due)}</b></div><div class="stat">Wpłaty dzieci<b>${money(paid)}</b></div><div class="stat">Dodatkowe przychody<b>${money(inc)}</b></div><div class="stat">Razem wpływy<b>${money(paid+inc)}</b></div></div>
+ app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Wpłaty</h2>
  <div class="card"><h2>Dodaj wpłatę</h2><div class="search"><input id="paySearch" placeholder="Szukaj dziecka..." oninput="payHints(this.value)"></div><div id="payHints"></div><button class="primary" onclick="addPayment(null,paySearch.value)">+ Dodaj wpłatę ręcznie</button></div>
  <div class="card"><h2>Import wpłat ze screena</h2><p class="muted">Dodaj zrzut ekranu z aplikacji bankowej. Aplikacja sprawdzi kwotę względem należności i ostrzeże także przed powtórnym dodaniem tego samego przelewu.</p><div class="drop" onclick="screenInput.click()">📷<h3>Dodaj zrzut ekranu</h3><div>PNG lub JPG</div></div><button class="dark" onclick="screenInput.click()">📷 Rozpoznaj wpłaty ze screena</button><div id="ocrStatus"></div></div>
  <div class="card"><h2>Lista wpłat</h2>${data.payments.map(p=>{
@@ -714,10 +712,7 @@ function groups(){
  <label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select>
  <label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select>
  <div class="actions">
-   <button class="dark" onclick="printGroupList()">🖨 Drukuj listę</button>
-   <button class="soft" onclick="showAttendance()">✓ Obecność</button>
-   <button class="soft" onclick="printGroupContacts()">☎ Kontakty</button>
-   <button class="soft" onclick="printGroupArrears()">Braki wpłat</button>
+   <button class="primary" onclick="showAttendance()">✓ Sprawdź obecność</button>
  </div></div><div id="gList"></div>`;
  groupList()
 }
@@ -1080,7 +1075,7 @@ function listRows(type){
  return {title:"Lista",headers:[],rows:[]};
 }
 function lists(){
- app.innerHTML=`<div class="eyebrow">LISTY ROBOCZE</div><h2 class="title">Listy</h2>
+ app.innerHTML=`<div class="eyebrow">WYDRUKI I ZESTAWIENIA</div><h2 class="title">Listy</h2><div class="notice listsIntro">Tutaj znajdziesz wszystkie listy robocze, wydruki i eksporty do Excel.</div>
  <div class="card">
   <div class="grid2"><div><label>Szkoła</label><select id="lSchool" onchange="refreshListPreview()"><option value="__ALL__">Wszystkie szkoły</option>${schools.map(s=>`<option>${s}</option>`).join("")}</select></div>
   <div><label>Rodzaj listy</label><select id="lType" onchange="refreshListPreview()">

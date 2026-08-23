@@ -229,3 +229,6 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
   font-weight:800;
   text-transform:capitalize;
 }
+
+/* v6.6 — uporządkowanie sekcji */
+.listsIntro{margin-bottom:16px}

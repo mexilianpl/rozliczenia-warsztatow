@@ -1,10 +1,13 @@
-Rozliczenia Warsztatów v6.4
+Rozliczenia Warsztatów v6.6 — porządkowanie sekcji
 
-Zmiana w ręcznym dodawaniu wpłaty:
-- jeżeli przed kliknięciem „Dodaj wpłatę ręcznie” wpiszesz np. „Pasiut”, w formularzu pojawią się tylko dzieci pasujące do wpisanego tekstu,
-- działa również po fragmencie imienia i nazwiska,
-- jeżeli nie ma żadnego dopasowania, aplikacja pokaże czytelny komunikat,
-- po kliknięciu podpowiedzi konkretnego dziecka formularz pokazuje tylko to dziecko,
-- pusta wyszukiwarka nadal pozwala wybrać z całej listy.
+Zmiany:
+- Dzieci: pozostawiono wyszukiwanie, filtry i profile dzieci; usunięto stąd druk listy i listę obecności,
+- Grupy: pozostawiono wybór grupy, listę dzieci oraz elektroniczne sprawdzanie obecności,
+- Grupy: usunięto duplikujące się wydruki, kontakty i zaległości — są teraz tylko w Listach,
+- Wpłaty: usunięto duplikujące się kafelki podsumowania finansowego,
+- Start: pozostaje głównym miejscem bieżącego podsumowania miesiąca,
+- Raporty: pozostają miejscem analiz finansowych,
+- Listy: są centralnym miejscem wszystkich wydruków, list roboczych i eksportów do Excel,
+- żadnych danych nie usunięto; zmieniono tylko rozmieszczenie funkcji.
 
-Zachowane wszystkie funkcje v6.3.
+Zachowane wszystkie funkcje v6.5.
