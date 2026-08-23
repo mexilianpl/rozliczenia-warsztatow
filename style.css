@@ -244,3 +244,6 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
  .schoolPlanRow{grid-template-columns:1fr 1fr}
  .schoolPlanRow .primary,.schoolPlanRow .danger{width:100%}
 }
+
+/* v7.0 — spójna kolejność wyboru */
+.schoolPlanBox + .schoolPlanBox{margin-top:14px}

@@ -1,5 +1,5 @@
 
-const VERSION="6.9";
+const VERSION="7.0";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -153,7 +153,7 @@ function classesGroupedForDay(items){
  });
  return Object.values(map).sort((a,b)=>(a.time||"").localeCompare(b.time||""));
 }
-function goToGroup(school,day,time){
+function goToGroup(school,day,time,type=""){
  page="groups";render();
  setTimeout(()=>{
    const s=document.querySelector("#gSchool"),d=document.querySelector("#gDay"),t=document.querySelector("#gTime");
@@ -207,7 +207,7 @@ function start(){
    <div class="todoItem warnLite"><b>${tasks.partial}</b><span>częściowych wpłat</span></div>
    <div class="todoItem infoLite"><b>${tasks.noConsent}</b><span>braków danych o zgodzie na wizerunek</span></div>
  </div></div>
- <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>`<button class="nextClassCard" onclick="goToGroup('${g.school}','${g.day}','${g.time}')"><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span></button>`).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>
+ <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>`<button class="nextClassCard" onclick="goToGroup('${g.school}','${g.day}','${g.time}','${g.type}')"><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span></button>`).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>
  <div class="card"><h2>Szybkie wyszukiwanie dziecka</h2><div class="search"><input id="quick" placeholder="Nazwisko lub imię..." oninput="quickSearch(this.value)"></div><div id="quickResults"></div></div>`;
 }
 function quickSearch(q){let el=document.querySelector("#quickResults");q=q.toLowerCase().trim(); if(!q){el.innerHTML="";return} el.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)).map(c=>`<div class="card" onclick="openChild(${c.id})"><b class="name">${c.last} ${c.first}</b><div class="muted">${c.class} • ${c.school} • zajęcia: ${c.classes.length}</div></div>`).join("")||"Brak wyników"}
@@ -216,7 +216,7 @@ function children(){
  <div class="search"><input id="cs" placeholder="Szukaj po nazwisku / imieniu..." oninput="filterChildren()"></div>
  <div class="childrenFilters card">
    <label>Szkoła</label>
-   <select id="schoolFilter" onchange="childrenSchoolChanged()">
+   <select id="schoolFilter" onchange="childrenSchoolChanged();if(this.value&&this.value!=='__ALL__')updateScheduleSelects('schoolFilter','dayFilter','timeFilter')">
      <option value="">— wybierz szkołę —</option>
      <option value="__ALL__">Wszystkie szkoły</option>
      ${schools.map(s=>`<option>${s}</option>`).join("")}
@@ -228,7 +228,7 @@ function children(){
        ${workshops.map(w=>`<option>${w}</option>`).join("")}
      </select>
      <div class="grid2">
-       <div><label>Dzień</label><select id="dayFilter" onchange="filterChildren()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
+       <div><label>Dzień</label><select id="dayFilter" onchange="if(document.getElementById('schoolFilter')?.value&&document.getElementById('schoolFilter').value!=='__ALL__')updateTimeSelect('schoolFilter','dayFilter','timeFilter');filterChildren()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
        <div><label>Godzina</label><select id="timeFilter" onchange="filterChildren()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div>
      </div>
 
@@ -403,7 +403,12 @@ function editChild(id){
   <div><label>Płeć</label><select id="fSex">${opt(["Dziewczynka","Chłopiec"],c.sex)}</select></div>
   <div><label>Klasa</label><input id="fClass" value="${c.class}"></div>
  </div>
- <label>Szkoła</label><select id="fSchool">${opt(schools,c.school)}</select>
+ <label>Szkoła</label><select id="fSchool" onchange="updateScheduleSelects('fSchool','fDay','fTime')">${opt(schools,c.school)}</select>
+ <label>Rodzaj warsztatów</label><select id="fWorkshop">${opt(workshops,c.classes?.[0]?.type||workshops[0])}</select>
+ <div class="grid2">
+   <div><label>Dzień tygodnia</label><select id="fDay" onchange="updateTimeSelect('fSchool','fDay','fTime')">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).days,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).day)}</select></div>
+   <div><label>Godzina</label><select id="fTime">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).times,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).time)}</select></div>
+ </div>
  <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],c.pickupPlace||"")}</select>
  <div class="muted" style="margin-top:8px">Wybranie sali oznacza, że dziecko jest odbierane ze świetlicy. „Przychodzi sam/a” oznacza brak odbioru ze świetlicy.</div>
  <label>Rodzic / opiekun</label><input id="fParent" value="${c.parent||""}">
@@ -451,10 +456,46 @@ function saveChild(id,exists){
   sourceEntryId:old?.sourceEntryId||"",
   sourceCreatedAt:old?.sourceCreatedAt||""
  };
+ const selectedType=document.getElementById("fWorkshop")?.value||"";
+ if(selectedType){
+   const prev=obj.classes?.[0];
+   const firstClass=prev?{...prev}:{id:Date.now(),price:defaultWorkshopPrice(selectedType),discount:0,status:"brak"};
+   firstClass.school=fSchool.value;
+   firstClass.type=selectedType;
+   firstClass.day=document.getElementById("fDay")?.value||days[0];
+   firstClass.time=document.getElementById("fTime")?.value||times[0];
+   if(!firstClass.price)firstClass.price=defaultWorkshopPrice(selectedType);
+   if(obj.classes?.length)obj.classes[0]=firstClass;else obj.classes=[firstClass];
+ }
  if(exists)data.children[data.children.findIndex(c=>c.id==id)]=obj;else data.children.push(obj);
  save();closeModal();render()
 }
 
+
+function dependentSchedule(school,currentDay,currentTime){
+ const allowedDays=schoolScheduleDays(school);
+ const useDays=allowedDays.length?allowedDays:days;
+ const chosenDay=useDays.includes(currentDay)?currentDay:(useDays[0]||currentDay||days[0]);
+ const allowedTimes=schoolScheduleTimes(school,chosenDay);
+ const useTimes=allowedTimes.length?allowedTimes:times;
+ const chosenTime=useTimes.includes(currentTime)?currentTime:(useTimes[0]||currentTime||times[0]);
+ return {days:useDays,times:useTimes,day:chosenDay,time:chosenTime};
+}
+function updateScheduleSelects(schoolId,dayId,timeId){
+ const school=document.getElementById(schoolId)?.value||"";
+ const d=document.getElementById(dayId),t=document.getElementById(timeId);
+ if(!d||!t)return;
+ const cfg=dependentSchedule(school,d.value,t.value);
+ d.innerHTML=cfg.days.map(x=>`<option ${x===cfg.day?"selected":""}>${x}</option>`).join("");
+ t.innerHTML=cfg.times.map(x=>`<option ${x===cfg.time?"selected":""}>${x}</option>`).join("");
+}
+function updateTimeSelect(schoolId,dayId,timeId){
+ const school=document.getElementById(schoolId)?.value||"";
+ const day=document.getElementById(dayId)?.value||"";
+ const t=document.getElementById(timeId); if(!t)return;
+ const allowed=schoolScheduleTimes(school,day),use=allowed.length?allowed:times,current=t.value;
+ t.innerHTML=use.map(x=>`<option ${x===current?"selected":""}>${x}</option>`).join("");
+}
 function classScheduleOptions(school,currentDay,currentTime){
  const schedule=ensureSchoolSchedule(school);
  const allowedDays=schoolScheduleDays(school);
@@ -775,17 +816,18 @@ function income(){app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="ti
 function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input id="iTitle"><label>Kwota</label><input id="iAmount" type="number"><label>Data</label><input id="iDate" type="date"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="data.income.push({id:Date.now(),title:iTitle.value,amount:+iAmount.value,date:iDate.value});save();closeModal();render()">Zapisz</button></div>`)}
 function groups(){
  app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card">
- <label>Szkoła</label><select id="gSchool" onchange="groupList()">${opt(schools,schools[0])}</select>
- <label>Dzień</label><select id="gDay" onchange="groupList()">${opt(days,"Wtorek")}</select>
- <label>Godzina</label><select id="gTime" onchange="groupList()">${opt(times,"15:00")}</select>
+ <label>Szkoła</label><select id="gSchool" onchange="updateScheduleSelects('gSchool','gDay','gTime');groupList()">${opt(schools,schools[0])}</select>
+ <label>Rodzaj warsztatów</label><select id="gWorkshop" onchange="groupList()"><option value="">Wszystkie warsztaty</option>${workshops.map(w=>`<option>${w}</option>`).join("")}</select>
+ <label>Dzień</label><select id="gDay" onchange="updateTimeSelect('gSchool','gDay','gTime');groupList()">${opt(dependentSchedule(schools[0],days[0],times[0]).days,dependentSchedule(schools[0],days[0],times[0]).day)}</select>
+ <label>Godzina</label><select id="gTime" onchange="groupList()">${opt(dependentSchedule(schools[0],days[0],times[0]).times,dependentSchedule(schools[0],days[0],times[0]).time)}</select>
  <div class="actions">
    <button class="primary" onclick="showAttendance()">✓ Sprawdź obecność</button>
  </div></div><div id="gList"></div>`;
  groupList()
 }
 function selectedGroupRows(){
- const s=gSchool.value,d=gDay.value,t=gTime.value,arr=[];
- data.children.forEach(c=>(c.classes||[]).forEach(cl=>{if(cl.school==s&&cl.day==d&&cl.time==t)arr.push({c,cl})}));
+ const s=gSchool.value,w=gWorkshop.value,d=gDay.value,t=gTime.value,arr=[];
+ data.children.forEach(c=>(c.classes||[]).forEach(cl=>{if(cl.school==s&&(!w||cl.type==w)&&cl.day==d&&cl.time==t)arr.push({c,cl})}));
  const seen=new Set();
  return arr.filter(x=>{if(seen.has(x.c.id))return false;seen.add(x.c.id);return true})
    .sort((a,b)=>pickupSortValue(a.c)-pickupSortValue(b.c)||(a.c.last+" "+a.c.first).localeCompare(b.c.last+" "+b.c.first,"pl"));
@@ -1145,14 +1187,14 @@ function listRows(type){
 function lists(){
  app.innerHTML=`<div class="eyebrow">WYDRUKI I ZESTAWIENIA</div><h2 class="title">Listy</h2><div class="notice listsIntro">Tutaj znajdziesz wszystkie listy robocze, wydruki i eksporty do Excel.</div>
  <div class="card">
-  <div class="grid2"><div><label>Szkoła</label><select id="lSchool" onchange="refreshListPreview()"><option value="__ALL__">Wszystkie szkoły</option>${schools.map(s=>`<option>${s}</option>`).join("")}</select></div>
+  <div class="grid2"><div><label>Szkoła</label><select id="lSchool" onchange="if(this.value!=='__ALL__')updateScheduleSelects('lSchool','lDay','lTime');refreshListPreview()"><option value="__ALL__">Wszystkie szkoły</option>${schools.map(s=>`<option>${s}</option>`).join("")}</select></div>
   <div><label>Rodzaj listy</label><select id="lType" onchange="refreshListPreview()">
    <option value="children">Lista dzieci</option><option value="attendance">Lista obecności — na zajęcia</option><option value="attendanceReport">Raport frekwencji</option><option value="pickup">Lista odbioru dzieci</option>
    <option value="contacts">Lista kontaktowa</option><option value="arrears">Lista zaległości</option><option value="consents">Lista zgód</option>
    <option value="free">Lista dzieci bezpłatnych</option><option value="workshops">Lista zapisów na warsztaty</option>
   </select></div></div>
   <label>Warsztaty</label><select id="lWorkshop" onchange="refreshListPreview()"><option value="">Wszystkie warsztaty</option>${workshops.map(w=>`<option>${w}</option>`).join("")}</select>
-  <div class="grid2"><div><label>Dzień</label><select id="lDay" onchange="refreshListPreview()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
+  <div class="grid2"><div><label>Dzień</label><select id="lDay" onchange="if(document.getElementById('lSchool')?.value!=='__ALL__')updateTimeSelect('lSchool','lDay','lTime');refreshListPreview()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
   <div><label>Godzina</label><select id="lTime" onchange="refreshListPreview()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div></div>
   <div class="actions"><button class="dark" onclick="printSelectedList()">🖨 Drukuj</button><button class="primary" onclick="exportSelectedListExcel()">⬇ Excel</button></div>
  </div>
@@ -1293,6 +1335,23 @@ function signupDayOptions(value){
  const all=[...new Set([...days,nice].filter(Boolean))];
  return all.map(x=>`<option ${x===nice?'selected':''}>${x}</option>`).join('');
 }
+
+function updateSignupSchedule(i,k){
+ const school=document.getElementById(`suSchool${i}`)?.value||"";
+ const day=document.getElementById(`suDay${i}_${k}`),time=document.getElementById(`suTime${i}_${k}`);
+ if(!day||!time)return;
+ const cfg=dependentSchedule(school,day.value,time.value);
+ day.innerHTML='<option value="">— wybierz później —</option>'+cfg.days.map(x=>`<option ${x===cfg.day?"selected":""}>${x}</option>`).join("");
+ time.innerHTML='<option value="">— ustal później —</option>'+cfg.times.map(x=>`<option ${x===cfg.time?"selected":""}>${x}</option>`).join("");
+}
+function updateAllSignupSchedules(i){updateSignupSchedule(i,0);updateSignupSchedule(i,1)}
+function updateSignupTimes(i,k){
+ const school=document.getElementById(`suSchool${i}`)?.value||"",day=document.getElementById(`suDay${i}_${k}`)?.value||"";
+ const time=document.getElementById(`suTime${i}_${k}`);if(!time)return;
+ const allowed=schoolScheduleTimes(school,day),use=allowed.length?allowed:times;
+ time.innerHTML='<option value="">— ustal później —</option>'+use.map(x=>`<option>${x}</option>`).join("");
+}
+
 function showSignupReview(items,fileName){
  window.__signupItems=items;
  if(!items.length){modal(`<h2>Brak zgłoszeń</h2><p>Nie znalazłem danych w pliku ${fileName}.</p><button class="soft" onclick="closeModal()">Zamknij</button>`);return}
@@ -1301,9 +1360,9 @@ function showSignupReview(items,fileName){
   <h3>${r.last} ${r.first}</h3>${r.entryId?`<div class="muted">ID formularza: ${r.entryId} • ${r.createdAt||''}</div>`:''}
   <div class="grid2"><div><label>Nazwisko</label><input id="suLast${i}" value="${escapeAttr(r.last)}"></div><div><label>Imię</label><input id="suFirst${i}" value="${escapeAttr(r.first)}"></div></div>
   <div class="grid2"><div><label>Płeć</label><select id="suSex${i}">${opt(['Dziewczynka','Chłopiec'],r.sex)}</select></div><div><label>Klasa</label><input id="suClass${i}" value="${escapeAttr(r.className)}"></div></div>
-  <label>Szkoła</label><select id="suSchool${i}">${signupSchoolOptions(r.school)}</select>
+  <label>Szkoła</label><select id="suSchool${i}" onchange="updateAllSignupSchedules(${i})">${signupSchoolOptions(r.school)}</select>
   <label>Sala / sposób odbioru</label><select id="suPickup${i}">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],"")}</select>
-  ${[0,1].map(k=>`<div class="signupWorkshop"><div class="grid2"><div><label>${k===0?'Rodzaj zajęć':'Drugie zajęcia'}</label><select id="suType${i}_${k}"><option value="">— brak —</option>${signupWorkshopOptions(r.types[k]||'')}</select></div><div><label>Dzień preferowany</label><select id="suDay${i}_${k}"><option value="">— wybierz później —</option>${signupDayOptions(r.days[k]||r.days[0]||'')}</select></div></div><label>Godzina</label><select id="suTime${i}_${k}"><option value="">— ustal później —</option>${times.map(t=>`<option>${t}</option>`).join('')}</select></div>`).join('')}
+  ${[0,1].map(k=>`<div class="signupWorkshop"><div class="grid2"><div><label>${k===0?'Rodzaj zajęć':'Drugie zajęcia'}</label><select id="suType${i}_${k}"><option value="">— brak —</option>${signupWorkshopOptions(r.types[k]||'')}</select></div><div><label>Dzień preferowany</label><select id="suDay${i}_${k}" onchange="updateSignupTimes(${i},${k})"><option value="">— wybierz później —</option>${dependentSchedule(r.school,r.days[k]||r.days[0]||days[0],times[0]).days.map(d=>`<option ${d===(r.days[k]||r.days[0])?"selected":""}>${d}</option>`).join("")}</select></div></div><label>Godzina</label><select id="suTime${i}_${k}"><option value="">— ustal później —</option>${dependentSchedule(r.school,r.days[k]||r.days[0]||days[0],times[0]).times.map(t=>`<option>${t}</option>`).join('')}</select></div>`).join('')}
   <label>Rodzic / opiekun</label><input id="suParent${i}" value="${escapeAttr(r.parent)}"><label>Telefon</label><input id="suPhone${i}" value="${escapeAttr(r.phone)}"><label>E-mail</label><input id="suEmail${i}" value="${escapeAttr(r.email)}"><label>Uwagi</label><textarea id="suNotes${i}">${escapeHtml(r.notes)}</textarea>
   <div class="consentLine">Regulamin: <b>${escapeHtml(r.rules||'brak')}</b> • Dane osobowe: <b>${escapeHtml(r.personal||'brak')}</b> • Wizerunek: <b>${escapeHtml(r.imageConsent||'brak')}</b></div>
   <div id="suInfo${i}"></div><div class="actions"><button class="primary" onclick="acceptSignup(${i})">✓ Akceptuję i dodaję dziecko</button><button class="soft" onclick="skipSignup(${i})">Pomiń</button></div>
@@ -1468,5 +1527,5 @@ signupCsvInput.onchange=async e=>{
  }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
  finally{e.target.value=''}
 };
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v56.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v70.json";a.click()}
 render();
