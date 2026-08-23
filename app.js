@@ -1,5 +1,5 @@
 
-const VERSION="7.3";
+const VERSION="7.4";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -382,9 +382,11 @@ function consentLabel(v){
 function attendanceHistoryForChild(cid){
  const out=[];
  Object.entries(data.attendance||{}).forEach(([key,vals])=>{
-   const status=vals?.[cid]||vals?.[String(cid)]; if(!status)return;
+   let status=vals?.[cid]||vals?.[String(cid)];
+   if(!status && Number(vals?.childId)===Number(cid))status=vals?.status;
+   if(!status)return;
    const parts=key.split("|");
-   out.push({date:parts[0]||"",school:parts[1]||"",day:parts[2]||"",time:parts[3]||"",status});
+   out.push({date:vals?.date||parts[0]||"",school:vals?.school||parts[1]||"",day:vals?.day||parts[2]||"",time:vals?.time||parts[3]||"",status});
  });
  return out.sort((a,b)=>a.date.localeCompare(b.date));
 }
@@ -1157,7 +1159,7 @@ function listFilteredChildren(){
  });
  return arr.sort((a,b)=>pickupSortValue(a)-pickupSortValue(b)||(a.last+" "+a.first).localeCompare(b.last+" "+b.first,"pl"));
 }
-function listRows(type){
+function listRowsBase(type){
  const arr=listFilteredChildren(),month=currentMonthName();
  if(type==="children")return {title:"Lista dzieci",headers:["Dziecko","Klasa","Szkoła","Sala / odbiór"],rows:arr.map(c=>[`${c.last} ${c.first}`,c.class||"",c.school||"",c.pickupPlace||""])};
  if(type==="attendance")return {title:"Lista obecności",headers:["Lp.","Dziecko","Klasa","Sala / odbiór","Obecny","Nieobecny","Uwagi"],rows:arr.map((c,i)=>[i+1,`${c.last} ${c.first}`,c.class||"",c.pickupPlace||"","","",""])};
@@ -1206,8 +1208,9 @@ function refreshListPreview(){
  document.querySelector("#listPreview").innerHTML=`<div class="card"><h2>${d.title}</h2><div class="muted">Pozycji: <b>${d.rows.length}</b></div>
  ${d.rows.slice(0,30).map(r=>`<div class="listPreviewRow">${r.slice(0,4).map(x=>`<span>${x}</span>`).join("")}</div>`).join("")||'<div class="muted">Brak danych dla wybranych filtrów.</div>'}
  ${d.rows.length>30?`<div class="muted">Podgląd pierwszych 30 pozycji.</div>`:""}</div>`;
+ const activeType=document.getElementById("lType")?.value||"";
+ injectInteractiveList(activeType);
 }
- const activeType=document.getElementById("lType")?.value||""; injectInteractiveList(activeType);
 function printSelectedList(){
  const d=listRows(document.querySelector("#lType").value);printSimpleStandalone(d.title,d.headers,d.rows);
 }
@@ -1252,7 +1255,7 @@ function saveSettingButton(btn){
  saveSettings(true);
  markSettingSaved(btn);
 }
-function settings(){
+function settingsBase(){
  app.innerHTML=`<div class="eyebrow">KONFIGURACJA</div><h2 class="title">Ustawienia</h2>
  <div class="card"><h2>Warsztaty i ceny</h2><div id="setWorkshops">${data.settings.workshops.map((w,i)=>`<div class="settingsRow"><input value="${escapeAttr(w.name)}" oninput="data.settings.workshops[${i}].name=this.value;markSettingDirty(this)"><input type="number" step="0.01" value="${Number(w.price||0)}" oninput="data.settings.workshops[${i}].price=+this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeWorkshopSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addWorkshopSetting()">+ Dodaj warsztaty</button></div>
  <div class="card"><h2>Godziny zajęć</h2><div id="setTimes">${data.settings.times.map((t,i)=>`<div class="settingsRow"><input type="time" value="${t}" oninput="data.settings.times[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeTimeSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addTimeSetting()">+ Dodaj godzinę</button></div>
@@ -1808,9 +1811,8 @@ function selectedGroupRows(){
 }
 
 /* Ustawienia rozszerzone */
-const _settingsV71=settings;
 function settings(){
- _settingsV71();
+ settingsBase();
  const cards=document.querySelectorAll("#app .card"); if(!cards.length)return;
  const last=cards[cards.length-1];
  last.insertAdjacentHTML("beforebegin",`
@@ -1840,12 +1842,13 @@ function listAttendanceDate(){
 }
 function listAttendanceKey(c){
  const school=document.getElementById("lSchool")?.value||"",day=document.getElementById("lDay")?.value||"",time=document.getElementById("lTime")?.value||"",workshop=document.getElementById("lWorkshop")?.value||"";
- return attendanceKey(listAttendanceDate(),school,day,time,workshop,c.id);
+ return `${listAttendanceDate()}|${school}|${day}|${time}|${workshop}`;
 }
 function setQuickAttendance(cid,status,btn){
  const c=data.children.find(x=>x.id==cid);if(!c)return;
  const key=listAttendanceKey(c);
- data.attendance[key]={childId:c.id,status,date:listAttendanceDate(),school:document.getElementById("lSchool")?.value||"",day:document.getElementById("lDay")?.value||"",time:document.getElementById("lTime")?.value||"",workshop:document.getElementById("lWorkshop")?.value||""};
+ data.attendance[key]=data.attendance[key]||{};
+ data.attendance[key][c.id]=status;
  logHistory(c.id,`${status==="present"?"Obecność":"Nieobecność"} — ${listAttendanceDate()}.`);
  save();
  const row=btn.closest(".interactiveListRow");
@@ -1871,7 +1874,7 @@ function interactiveListPanel(type){
    return `<div class="card interactiveListCard"><div class="interactiveHeader"><div><h2>Lista obecności — szybkie zaznaczanie</h2><div class="muted">Kliknij „Obecny” przy dziecku. Zapis następuje od razu.</div></div>
     <div><label>Data zajęć</label><input id="lAttendanceDate" type="date" value="${date}" onchange="refreshListPreview()"></div></div>
     ${arr.length?arr.map(c=>{
-      const rec=data.attendance[listAttendanceKey(c)],st=rec?.status||"";
+      const rec=data.attendance[listAttendanceKey(c)]||{},st=rec?.[c.id]||rec?.[String(c.id)]||"";
       return `<div class="interactiveListRow attendanceInteractiveRow">
        <div class="interactiveMain"><b>${c.last} ${c.first}</b><span>${c.class||""}${c.pickupPlace?` • ${c.pickupPlace}`:""}</span></div>
        <div class="interactiveActions attendanceButtons"><button class="quickAttendBtn ${st==="present"?"selectedPresent":""}" onclick="setQuickAttendance(${c.id},'present',this)">✓ Obecny</button><button class="quickAttendBtn absent ${st==="absent"?"selectedAbsent":""}" onclick="setQuickAttendance(${c.id},'absent',this)">Nieobecny</button></div>
@@ -1886,9 +1889,8 @@ function injectInteractiveList(type){
 }
 
 /* Lista zaległości: dodaj telefon do eksportu/wydruku */
-const _listRowsV71=listRows;
 function listRows(type){
- const result=_listRowsV71(type);
+ const result=listRowsBase(type);
  if(type==="arrears"){
    const month=currentMonthName(),arr=listFilteredChildren();
    result.headers=["Dziecko","Telefon","Szkoła","Należne","Wpłacono","Brakuje","Status"];
@@ -1897,5 +1899,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v73.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v74.json";a.click()}
 render();
