@@ -1,5 +1,5 @@
 
-const VERSION="8.0";
+const VERSION="8.1";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -85,7 +85,7 @@ function syncSettingsArrays(){
 }
 syncSettingsArrays();
 
-let childrenViewState={q:"",school:"__ALL__",workshop:"",day:"",time:""};
+let childrenViewState={q:"",school:"",workshop:"",day:"",time:"",focusChildId:0};
 let pendingSaveButton=null;
 let savedToastTimer=null;
 
@@ -296,23 +296,23 @@ function start(){
 function quickSearch(q){let el=document.querySelector("#quickResults");q=q.toLowerCase().trim(); if(!q){el.innerHTML="";return} el.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)).map(c=>`<div class="card" onclick="openChild(${c.id})"><b class="name">${c.last} ${c.first}</b><div class="muted">${c.class} • ${c.school} • zajęcia: ${c.classes.length}</div></div>`).join("")||"Brak wyników"}
 function children(){
  app.innerHTML=`<div class="titleline"><div><div class="eyebrow">BAZA</div><h2 class="title">Dzieci</h2></div></div>
- <div class="search"><input id="cs" placeholder="Szukaj po nazwisku / imieniu..." oninput="childrenViewState.q=this.value;filterChildren()"></div>
+ <div class="search"><input id="cs" placeholder="Szukaj po nazwisku / imieniu..." value="${escapeAttr(childrenViewState.q||"")}" oninput="childrenViewState.q=this.value;childrenViewState.focusChildId=0;filterChildren()"></div>
  <div class="childrenFilters card">
    <label>Szkoła</label>
-   <select id="schoolFilter" onchange="childrenViewState.school=this.value;childrenSchoolChanged();if(this.value&&this.value!=='__ALL__')updateScheduleSelects('schoolFilter','dayFilter','timeFilter')">
+   <select id="schoolFilter" onchange="childrenViewState.focusChildId=0;childrenViewState.school=this.value;childrenSchoolChanged();if(this.value&&this.value!=='__ALL__')updateScheduleSelects('schoolFilter','dayFilter','timeFilter')">
      <option value="">— wybierz szkołę —</option>
      <option value="__ALL__">Wszystkie szkoły</option>
      ${schools.map(s=>`<option>${s}</option>`).join("")}
    </select>
    <div id="advancedChildrenFilters" class="advancedChildrenFilters" style="display:none">
      <label>Rodzaj warsztatów</label>
-     <select id="workshopFilter" onchange="childrenRememberFilters();filterChildren()">
+     <select id="workshopFilter" onchange="childrenViewState.focusChildId=0;childrenRememberFilters();filterChildren()">
        <option value="">Wszystkie warsztaty</option>
        ${workshops.map(w=>`<option>${w}</option>`).join("")}
      </select>
      <div class="grid2">
        <div><label>Dzień</label><select id="dayFilter" onchange="if(document.getElementById('schoolFilter')?.value&&document.getElementById('schoolFilter').value!=='__ALL__')updateTimeSelect('schoolFilter','dayFilter','timeFilter');filterChildren()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
-       <div><label>Godzina</label><select id="timeFilter" onchange="childrenRememberFilters();filterChildren()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div>
+       <div><label>Godzina</label><select id="timeFilter" onchange="childrenViewState.focusChildId=0;childrenRememberFilters();filterChildren()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div>
      </div>
 
      <label>Sortuj</label>
@@ -330,14 +330,21 @@ function children(){
  </div>
  <div id="childrenCount" class="childrenCount"></div>
  <div id="childrenList"></div>`;
-}
  setTimeout(()=>{
    const ids=["schoolFilter","workshopFilter","dayFilter","timeFilter"];
    const vals=[childrenViewState.school,childrenViewState.workshop,childrenViewState.day,childrenViewState.time];
-   ids.forEach((id,i)=>{const el=document.getElementById(id);if(el&&[...el.options].some(o=>o.value===vals[i]))el.value=vals[i]});
-   const q=document.getElementById("childSearch");if(q)q.value=childrenViewState.q||"";
-   if(childrenViewState.q||childrenViewState.school!=="__ALL__"||childrenViewState.workshop||childrenViewState.day||childrenViewState.time)filterChildren();
+   ids.forEach((id,i)=>{
+     const el=document.getElementById(id);
+     if(el && [...el.options].some(o=>o.value===vals[i]))el.value=vals[i];
+   });
+   const sf=document.getElementById("schoolFilter");
+   const adv=document.getElementById("advancedChildrenFilters");
+   if(adv)adv.style.display=(sf?.value||"")?"block":"none";
+   const q=document.getElementById("cs");
+   if(q)q.value=childrenViewState.q||"";
+   if(childrenViewState.q||childrenViewState.school||childrenViewState.workshop||childrenViewState.day||childrenViewState.time||childrenViewState.focusChildId)filterChildren();
  },0);
+}
 
 function childrenSchoolChanged(){
  const school=document.querySelector("#schoolFilter")?.value||"";
@@ -401,11 +408,18 @@ function getFilteredChildren(){
      (!wf||cl.type===wf)&&(!df||cl.day===df)&&(!tf||cl.time===tf)&&(!sf||sf==="__ALL__"||cl.school===sf||c.school===sf)
    );
  });
- return sortChildrenList(filtered);;
+ if(childrenViewState.focusChildId){
+   const focused=data.children.find(c=>Number(c.id)===Number(childrenViewState.focusChildId));
+   if(focused && !filtered.some(c=>Number(c.id)===Number(focused.id))){
+     const qOk=!q||(focused.last+" "+focused.first).toLowerCase().includes(q);
+     if(qOk)filtered.push(focused);
+   }
+ }
+ return sortChildrenList(filtered);
 }
 function childrenRememberFilters(){
- childrenViewState.q=document.getElementById("childSearch")?.value||childrenViewState.q||"";
- childrenViewState.school=document.getElementById("schoolFilter")?.value||"__ALL__";
+ childrenViewState.q=document.getElementById("cs")?.value??childrenViewState.q??"";
+ childrenViewState.school=document.getElementById("schoolFilter")?.value??childrenViewState.school??"";
  childrenViewState.workshop=document.getElementById("workshopFilter")?.value||"";
  childrenViewState.day=document.getElementById("dayFilter")?.value||"";
  childrenViewState.time=document.getElementById("timeFilter")?.value||"";
@@ -638,7 +652,7 @@ function confirmModal({title,message,confirmText="Usuń",cancelText="Anuluj",dan
   wrap.querySelector("[data-no]").onclick=()=>done(false); wrap.querySelector("[data-yes]").onclick=()=>done(true); wrap.onclick=e=>{if(e.target===wrap)done(false)}; document.body.appendChild(wrap);
  });
 }
-async function deleteClass(cid,id){let ch=data.children.find(c=>c.id==cid),cl=ch?.classes.find(x=>x.id==id);let ok=await confirmModal({title:"Usunąć zajęcia?",message:`${cl?cl.type+" • "+cl.day+" "+cl.time+". ":""}Tej operacji nie można cofnąć.`,confirmText:"Usuń zajęcia"});if(!ok)return;ch.classes=ch.classes.filter(x=>x.id!=id);save();render()}
+async function deleteClass(cid,id){let ch=data.children.find(c=>c.id==cid),cl=ch?.classes.find(x=>x.id==id);let ok=await confirmModal({title:"Usunąć zajęcia?",message:`${cl?cl.type+" • "+cl.day+" "+cl.time+". ":""}Tej operacji nie można cofnąć.`,confirmText:"Usuń zajęcia"});if(!ok)return;ch.classes=ch.classes.filter(x=>x.id!=id);childrenRememberFilters();childrenViewState.focusChildId=cid;save();page='children';render()}
 function openChild(id){page="children";render();setTimeout(()=>editChild(id),0)}
 function payments(){
  let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0),inc=data.income.reduce((s,p)=>s+Number(p.amount),0);
@@ -1874,7 +1888,7 @@ function saveChild(id,exists){
    changes.forEach(t=>logHistory(id,t));
  }else logHistory(id,"Dodano dziecko do bazy.");
  if(exists)data.children[data.children.findIndex(c=>c.id==id)]=obj;else data.children.push(obj);
- save();closeModal();render();
+ childrenRememberFilters();childrenViewState.focusChildId=id;save();closeModal();page='children';render();
  if(obj.classes?.[0]?.waitlist)confirmModal({title:"Grupa jest pełna",message:`Limit grupy to ${data.settings.groupLimit}. Dziecko zostało oznaczone jako lista rezerwowa.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
 }
 
@@ -1897,7 +1911,7 @@ function saveClass(cid,id,exists){
  enforceClassCapacity(ch,cl);
  if(exists)ch.classes[ch.classes.findIndex(x=>x.id==id)]=cl;else ch.classes.push(cl);
  logHistory(cid,`${exists?"Zmieniono":"Dodano"} zajęcia: ${cl.type}, ${cl.school}, ${cl.day} ${cl.time}${cl.waitlist?" — lista rezerwowa":""}.`);
- save();closeModal();render();
+ childrenRememberFilters();childrenViewState.focusChildId=cid;save();closeModal();page='children';render();
  if(cl.waitlist)confirmModal({title:"Lista rezerwowa",message:`Grupa osiągnęła limit ${data.settings.groupLimit} osób. Dziecko zapisano na listę rezerwową.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
 }
 
@@ -2033,5 +2047,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v80.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v81.json";a.click()}
 render();
