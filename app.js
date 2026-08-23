@@ -1,5 +1,5 @@
 
-const VERSION="7.8";
+const VERSION="8.0";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -85,8 +85,50 @@ function syncSettingsArrays(){
 }
 syncSettingsArrays();
 
+let childrenViewState={q:"",school:"__ALL__",workshop:"",day:"",time:""};
+let pendingSaveButton=null;
+let savedToastTimer=null;
+
+document.addEventListener("click",e=>{
+ const btn=e.target.closest("button");
+ if(!btn)return;
+ const label=(btn.textContent||"").trim().toLowerCase();
+ if(/^(zapisz|zatwierdź|potwierdź|akceptuj|zapisz grafik szkoły|zapisz limit|zapisz tekst sms|zapisz rok)/.test(label)){
+   pendingSaveButton=btn;
+ }
+},true);
+
+function showSavedFeedback(){
+ const btn=pendingSaveButton;
+ pendingSaveButton=null;
+ if(btn && document.body.contains(btn)){
+   if(!btn.dataset.originalLabel)btn.dataset.originalLabel=(btn.textContent||"").trim();
+   btn.classList.add("actionSaved");
+   btn.textContent="✓ Zapisano";
+ }
+ let toast=document.getElementById("globalSavedToast");
+ if(!toast){
+   toast=document.createElement("div");
+   toast.id="globalSavedToast";
+   toast.className="globalSavedToast";
+   document.body.appendChild(toast);
+ }
+ toast.textContent="✓ Zmiany zapisane";
+ toast.classList.add("show");
+ clearTimeout(savedToastTimer);
+ savedToastTimer=setTimeout(()=>toast.classList.remove("show"),1800);
+}
+
+function markButtonDirty(el){
+ const btn=el?.closest(".settingsRow,.schoolPlanRow,.schoolPlanBox,.card")?.querySelector("button.actionSaved,button[data-original-label]");
+ if(btn){
+   btn.classList.remove("actionSaved");
+   btn.textContent=btn.dataset.originalLabel||"Zapisz";
+ }
+}
+
 let page="start"; const app=document.querySelector("#app"), nav=document.querySelector("#nav");
-function save(){localStorage.setItem("rw45",JSON.stringify(data))}
+function save(){localStorage.setItem("rw45",JSON.stringify(data));showSavedFeedback()}
 function money(v){return Number(v||0).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})+" zł"}
 function dueClass(c){return c.status==="bezplatne"?0:Math.max(0,c.price*(1-(c.discount||0)/100))}
 function childDue(ch){return ch.classes.reduce((s,c)=>s+dueClass(c),0)}
@@ -254,23 +296,23 @@ function start(){
 function quickSearch(q){let el=document.querySelector("#quickResults");q=q.toLowerCase().trim(); if(!q){el.innerHTML="";return} el.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)).map(c=>`<div class="card" onclick="openChild(${c.id})"><b class="name">${c.last} ${c.first}</b><div class="muted">${c.class} • ${c.school} • zajęcia: ${c.classes.length}</div></div>`).join("")||"Brak wyników"}
 function children(){
  app.innerHTML=`<div class="titleline"><div><div class="eyebrow">BAZA</div><h2 class="title">Dzieci</h2></div></div>
- <div class="search"><input id="cs" placeholder="Szukaj po nazwisku / imieniu..." oninput="filterChildren()"></div>
+ <div class="search"><input id="cs" placeholder="Szukaj po nazwisku / imieniu..." oninput="childrenViewState.q=this.value;filterChildren()"></div>
  <div class="childrenFilters card">
    <label>Szkoła</label>
-   <select id="schoolFilter" onchange="childrenSchoolChanged();if(this.value&&this.value!=='__ALL__')updateScheduleSelects('schoolFilter','dayFilter','timeFilter')">
+   <select id="schoolFilter" onchange="childrenViewState.school=this.value;childrenSchoolChanged();if(this.value&&this.value!=='__ALL__')updateScheduleSelects('schoolFilter','dayFilter','timeFilter')">
      <option value="">— wybierz szkołę —</option>
      <option value="__ALL__">Wszystkie szkoły</option>
      ${schools.map(s=>`<option>${s}</option>`).join("")}
    </select>
    <div id="advancedChildrenFilters" class="advancedChildrenFilters" style="display:none">
      <label>Rodzaj warsztatów</label>
-     <select id="workshopFilter" onchange="filterChildren()">
+     <select id="workshopFilter" onchange="childrenRememberFilters();filterChildren()">
        <option value="">Wszystkie warsztaty</option>
        ${workshops.map(w=>`<option>${w}</option>`).join("")}
      </select>
      <div class="grid2">
        <div><label>Dzień</label><select id="dayFilter" onchange="if(document.getElementById('schoolFilter')?.value&&document.getElementById('schoolFilter').value!=='__ALL__')updateTimeSelect('schoolFilter','dayFilter','timeFilter');filterChildren()"><option value="">Wszystkie dni</option>${days.map(d=>`<option>${d}</option>`).join("")}</select></div>
-       <div><label>Godzina</label><select id="timeFilter" onchange="filterChildren()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div>
+       <div><label>Godzina</label><select id="timeFilter" onchange="childrenRememberFilters();filterChildren()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div>
      </div>
 
      <label>Sortuj</label>
@@ -289,6 +331,14 @@ function children(){
  <div id="childrenCount" class="childrenCount"></div>
  <div id="childrenList"></div>`;
 }
+ setTimeout(()=>{
+   const ids=["schoolFilter","workshopFilter","dayFilter","timeFilter"];
+   const vals=[childrenViewState.school,childrenViewState.workshop,childrenViewState.day,childrenViewState.time];
+   ids.forEach((id,i)=>{const el=document.getElementById(id);if(el&&[...el.options].some(o=>o.value===vals[i]))el.value=vals[i]});
+   const q=document.getElementById("childSearch");if(q)q.value=childrenViewState.q||"";
+   if(childrenViewState.q||childrenViewState.school!=="__ALL__"||childrenViewState.workshop||childrenViewState.day||childrenViewState.time)filterChildren();
+ },0);
+
 function childrenSchoolChanged(){
  const school=document.querySelector("#schoolFilter")?.value||"";
  const adv=document.querySelector("#advancedChildrenFilters");
@@ -353,7 +403,15 @@ function getFilteredChildren(){
  });
  return sortChildrenList(filtered);;
 }
+function childrenRememberFilters(){
+ childrenViewState.q=document.getElementById("childSearch")?.value||childrenViewState.q||"";
+ childrenViewState.school=document.getElementById("schoolFilter")?.value||"__ALL__";
+ childrenViewState.workshop=document.getElementById("workshopFilter")?.value||"";
+ childrenViewState.day=document.getElementById("dayFilter")?.value||"";
+ childrenViewState.time=document.getElementById("timeFilter")?.value||"";
+}
 function filterChildren(){
+ childrenRememberFilters();
  const list=document.querySelector("#childrenList"),count=document.querySelector("#childrenCount");
  if(!list)return;
  const q=(document.querySelector("#cs")?.value||"").trim(),sf=document.querySelector("#schoolFilter")?.value||"";
@@ -1292,6 +1350,7 @@ function settingRowButton(el){
  return el?.closest(".settingsRow,.schoolPlanRow")?.querySelector(".miniSave")||null;
 }
 function markSettingDirty(el){
+ markButtonDirty(el);
  const btn=settingRowButton(el); if(!btn)return;
  btn.classList.remove("savedState");
  btn.textContent="Zapisz";
@@ -1974,5 +2033,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v78.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v80.json";a.click()}
 render();

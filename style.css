@@ -331,3 +331,33 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
   line-height:1.25;
   font-weight:800;
 }
+
+/* v7.9 — po edycji/usunięciu zachowujemy wyszukiwanie i filtry dzieci */
+
+/* v8.0 — globalne potwierdzenie zapisu */
+button.actionSaved{
+  background:#e4f7ef!important;
+  color:#16845c!important;
+  border-color:#bfe8d6!important;
+}
+.globalSavedToast{
+  position:fixed;
+  left:50%;
+  bottom:88px;
+  transform:translate(-50%,18px);
+  z-index:99999;
+  background:#e4f7ef;
+  color:#16845c;
+  border:1px solid #bfe8d6;
+  border-radius:999px;
+  padding:11px 18px;
+  font-weight:900;
+  opacity:0;
+  pointer-events:none;
+  transition:.18s ease;
+  box-shadow:0 8px 24px rgba(0,0,0,.12);
+}
+.globalSavedToast.show{
+  opacity:1;
+  transform:translate(-50%,0);
+}
