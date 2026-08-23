@@ -232,3 +232,5 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 
 /* v6.6 — uporządkowanie sekcji */
 .listsIntro{margin-bottom:16px}
+
+.attendanceStats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}.attendanceStats>div{background:#f5f8fa;border:1px solid #d9e0e5;border-radius:18px;padding:12px}.attendanceStats b{display:block;font-size:1.35rem;color:#0e527d}.attendanceStats span{display:block;color:#6f7782;font-size:.9rem;margin-top:3px}.attendanceDates{margin-top:12px;line-height:1.5}

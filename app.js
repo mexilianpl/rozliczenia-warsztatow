@@ -1,5 +1,5 @@
 
-const VERSION="6.1";
+const VERSION="6.7";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -353,6 +353,20 @@ function consentLabel(v){
  if(["nie","no","0","false","brak"].includes(x))return "Nie";
  return "";
 }
+function attendanceHistoryForChild(cid){
+ const out=[];
+ Object.entries(data.attendance||{}).forEach(([key,vals])=>{
+   const status=vals?.[cid]||vals?.[String(cid)]; if(!status)return;
+   const parts=key.split("|");
+   out.push({date:parts[0]||"",school:parts[1]||"",day:parts[2]||"",time:parts[3]||"",status});
+ });
+ return out.sort((a,b)=>a.date.localeCompare(b.date));
+}
+function attendanceSummary(cid){
+ const h=attendanceHistoryForChild(cid),present=h.filter(x=>x.status==="present").length,absent=h.filter(x=>x.status==="absent").length,total=present+absent;
+ return {h,present,absent,total,pct:total?Math.round(present*100/total):0};
+}
+function attendanceDatePL(d){if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))return d;const [y,m,day]=d.split("-");return `${day}.${m}.${y}`}
 function editChild(id){
  let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],parent:"",phone:"",email:"",pickupPlace:"",consents:{rules:"",personal:"",image:""},classes:[]};
  c.consents=c.consents||{rules:"",personal:"",image:""};
@@ -384,6 +398,7 @@ function editChild(id){
      <select id="fRulesConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.rules))}</select>
    </div>
  </div>
+ ${id?(()=>{const a=attendanceSummary(c.id);return `<div class="consentBox"><h3>Frekwencja</h3><div class="attendanceStats"><div><b>${a.total}</b><span>Zajęć</span></div><div><b>${a.present}</b><span>Obecności</span></div><div><b>${a.absent}</b><span>Nieobecności</span></div><div><b>${a.pct}%</b><span>Frekwencja</span></div></div>${a.h.filter(x=>x.status==="absent").length?`<div class="muted attendanceDates"><b>Daty nieobecności:</b> ${a.h.filter(x=>x.status==="absent").map(x=>attendanceDatePL(x.date)).join(", ")}</div>`:`<div class="muted attendanceDates">Brak zapisanych nieobecności.</div>`}</div>`})():""}
  <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
 }
 function saveChild(id,exists){
@@ -1052,6 +1067,7 @@ function listRows(type){
  const arr=listFilteredChildren(),month=currentMonthName();
  if(type==="children")return {title:"Lista dzieci",headers:["Dziecko","Klasa","Szkoła","Sala / odbiór"],rows:arr.map(c=>[`${c.last} ${c.first}`,c.class||"",c.school||"",c.pickupPlace||""])};
  if(type==="attendance")return {title:"Lista obecności",headers:["Lp.","Dziecko","Klasa","Sala / odbiór","Obecny","Nieobecny","Uwagi"],rows:arr.map((c,i)=>[i+1,`${c.last} ${c.first}`,c.class||"",c.pickupPlace||"","","",""])};
+ if(type==="attendanceReport")return {title:"Raport frekwencji",headers:["Lp.","Dziecko","Klasa","Zajęcia","Obecności","Nieobecności","Frekwencja","Daty nieobecności"],rows:arr.map((c,i)=>{const a=attendanceSummary(c.id);return [i+1,`${c.last} ${c.first}`,c.class||"",a.total,a.present,a.absent,a.total?`${a.pct}%`:"—",a.h.filter(x=>x.status==="absent").map(x=>attendanceDatePL(x.date)).join(", ")]})};
  if(type==="pickup")return {title:"Lista odbioru dzieci",headers:["Lp.","Sala / odbiór","Dziecko","Klasa"],rows:arr.map((c,i)=>[i+1,c.pickupPlace||"Nieustalone",`${c.last} ${c.first}`,c.class||""])};
  if(type==="contacts")return {title:"Lista kontaktowa",headers:["Dziecko","Rodzic / opiekun","Telefon","E-mail","Sala / odbiór"],rows:arr.map(c=>[`${c.last} ${c.first}`,c.parent||"",c.phone||"",c.email||"",c.pickupPlace||""])};
  if(type==="arrears"){
@@ -1079,7 +1095,7 @@ function lists(){
  <div class="card">
   <div class="grid2"><div><label>Szkoła</label><select id="lSchool" onchange="refreshListPreview()"><option value="__ALL__">Wszystkie szkoły</option>${schools.map(s=>`<option>${s}</option>`).join("")}</select></div>
   <div><label>Rodzaj listy</label><select id="lType" onchange="refreshListPreview()">
-   <option value="children">Lista dzieci</option><option value="attendance">Lista obecności</option><option value="pickup">Lista odbioru dzieci</option>
+   <option value="children">Lista dzieci</option><option value="attendance">Lista obecności — na zajęcia</option><option value="attendanceReport">Raport frekwencji</option><option value="pickup">Lista odbioru dzieci</option>
    <option value="contacts">Lista kontaktowa</option><option value="arrears">Lista zaległości</option><option value="consents">Lista zgód</option>
    <option value="free">Lista dzieci bezpłatnych</option><option value="workshops">Lista zapisów na warsztaty</option>
   </select></div></div>
