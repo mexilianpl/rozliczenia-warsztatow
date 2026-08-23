@@ -321,3 +321,13 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
  #setPickupRooms .settingsRow{grid-template-columns:1fr 1fr}
  #setPickupRooms .settingsRow input{grid-column:1/-1}
 }
+
+/* v7.8 — liczba osób z brakującą wpłatą */
+.missingPeopleCount{
+  display:block;
+  margin-top:10px;
+  color:#c43d4d;
+  font-size:14px;
+  line-height:1.25;
+  font-weight:800;
+}

@@ -1,5 +1,5 @@
 
-const VERSION="7.7";
+const VERSION="7.8";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -216,7 +216,18 @@ function currentMonthDashboard(){
  const extra=data.income.filter(i=>incomeBelongsToDashboardMonth(i,period))
    .reduce((s,i)=>s+Number(i.amount||0),0);
  const missing=Math.max(0,due-childPaid);
- return {period,due,childPaid,extra,total:childPaid+extra,missing,activeSchoolMonth};
+ let missingPeople=0;
+ if(activeSchoolMonth){
+   data.children.forEach(c=>{
+     if(typeof childActiveNow==="function" && !childActiveNow(c))return;
+     const dueChild=childDue(c);
+     if(dueChild<=0)return;
+     const paid=data.payments.filter(p=>Number(p.childId)===Number(c.id)&&paymentBelongsToDashboardMonth(p,period))
+       .reduce((s,p)=>s+Number(p.amount||0),0);
+     if(paid<dueChild)missingPeople++;
+   });
+ }
+ return {period,due,childPaid,extra,total:childPaid+extra,missing,missingPeople,activeSchoolMonth};
 }
 function start(){
  const dash=currentMonthDashboard();
@@ -227,7 +238,7 @@ function start(){
  <div class="summary dashboardSummary">
    <div class="stat">Należne w miesiącu<b>${money(dash.due)}</b></div>
    <div class="stat paidStat">Wpłaty dzieci<b>${money(dash.childPaid)}</b></div>
-   <div class="stat missingStat">Brakuje wpłat<b>${money(dash.missing)}</b></div>
+   <div class="stat missingStat">Brakuje wpłat<b>${money(dash.missing)}</b><span class="missingPeopleCount">${dash.missingPeople} ${dash.missingPeople===1?"osoba nie wpłaciła":"osób nie wpłaciło"}</span></div>
    <div class="stat">Dodatkowe przychody<b>${money(dash.extra)}</b></div>
    <div class="stat">Razem wpływy<b>${money(dash.total)}</b></div>
  </div>
@@ -1963,5 +1974,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v77.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v78.json";a.click()}
 render();
