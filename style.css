@@ -268,3 +268,25 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .inactiveChild{opacity:.72}.familyHint{margin:8px 0 14px;padding:10px 12px;border-radius:14px;background:#f2f7fb;color:#0c3f67}
 .checkLine{display:flex;gap:9px;align-items:flex-start;font-weight:700;margin:14px 0}.checkLine input{width:auto;margin-top:3px}
 .settingWideSave{margin-top:10px}.card textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:16px;padding:12px;font:inherit}
+
+/* v7.3 — interaktywne listy */
+.interactiveListCard{margin-top:16px}
+.interactiveListInfo{margin:-4px 0 12px}
+.interactiveListRow{display:grid;grid-template-columns:minmax(180px,1fr) auto minmax(280px,auto);gap:14px;align-items:center;padding:13px 0;border-bottom:1px solid var(--line)}
+.interactiveListRow:last-child{border-bottom:0}
+.interactiveMain{display:flex;flex-direction:column;gap:3px}.interactiveMain b{font-size:16px}.interactiveMain span{font-size:13px;color:#75808b}
+.interactiveDebt{display:flex;flex-direction:column;align-items:flex-end}.interactiveDebt span{font-size:12px;color:#75808b}.interactiveDebt b{color:#d24d57;font-size:17px}
+.interactiveActions{display:flex;gap:7px;justify-content:flex-end;flex-wrap:wrap}
+.interactiveHeader{display:flex;justify-content:space-between;gap:14px;align-items:end;margin-bottom:8px}.interactiveHeader h2{margin-bottom:4px}
+.quickAttendBtn{border:1px solid #bfe8d6;background:#f4fcf8;color:#16845c;border-radius:14px;padding:11px 14px;font-weight:900}
+.quickAttendBtn.absent{border-color:#f0c8cb;background:#fff7f7;color:#bd4c55}
+.quickAttendBtn.selectedPresent{background:#16845c!important;color:white!important;border-color:#16845c!important}
+.quickAttendBtn.selectedAbsent{background:#bd4c55!important;color:white!important;border-color:#bd4c55!important}
+.emptyInteractive{padding:22px;text-align:center;color:#75808b;background:#f8fafb;border-radius:16px}
+@media(max-width:760px){
+ .interactiveListRow{grid-template-columns:1fr}
+ .interactiveDebt{align-items:flex-start}
+ .interactiveActions{justify-content:flex-start}
+ .interactiveActions button{flex:1 1 auto}
+ .interactiveHeader{align-items:stretch;flex-direction:column}
+}

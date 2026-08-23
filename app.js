@@ -1,5 +1,5 @@
 
-const VERSION="7.2";
+const VERSION="7.3";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -1198,7 +1198,7 @@ function lists(){
   <div><label>Godzina</label><select id="lTime" onchange="refreshListPreview()"><option value="">Wszystkie godziny</option>${times.map(t=>`<option>${t}</option>`).join("")}</select></div></div>
   <div class="actions"><button class="dark" onclick="printSelectedList()">🖨 Drukuj</button><button class="primary" onclick="exportSelectedListExcel()">⬇ Excel</button></div>
  </div>
- <div id="listPreview"></div>`;
+ <div id="listPreview"></div><div id="listInteractiveHost"></div>`;
  refreshListPreview();
 }
 function refreshListPreview(){
@@ -1207,6 +1207,7 @@ function refreshListPreview(){
  ${d.rows.slice(0,30).map(r=>`<div class="listPreviewRow">${r.slice(0,4).map(x=>`<span>${x}</span>`).join("")}</div>`).join("")||'<div class="muted">Brak danych dla wybranych filtrów.</div>'}
  ${d.rows.length>30?`<div class="muted">Podgląd pierwszych 30 pozycji.</div>`:""}</div>`;
 }
+ const activeType=document.getElementById("lType")?.value||""; injectInteractiveList(activeType);
 function printSelectedList(){
  const d=listRows(document.querySelector("#lType").value);printSimpleStandalone(d.title,d.headers,d.rows);
 }
@@ -1828,6 +1829,62 @@ function settings(){
  </div>`);
 }
 
+
+/* v7.3 — interaktywne Listy */
+function listSelectedMonth(){
+ const m=document.getElementById("lMonth")?.value;
+ return months.includes(m)?m:(months.includes(currentMonthName())?currentMonthName():"Wrzesień");
+}
+function listAttendanceDate(){
+ return document.getElementById("lAttendanceDate")?.value||new Date().toISOString().slice(0,10);
+}
+function listAttendanceKey(c){
+ const school=document.getElementById("lSchool")?.value||"",day=document.getElementById("lDay")?.value||"",time=document.getElementById("lTime")?.value||"",workshop=document.getElementById("lWorkshop")?.value||"";
+ return attendanceKey(listAttendanceDate(),school,day,time,workshop,c.id);
+}
+function setQuickAttendance(cid,status,btn){
+ const c=data.children.find(x=>x.id==cid);if(!c)return;
+ const key=listAttendanceKey(c);
+ data.attendance[key]={childId:c.id,status,date:listAttendanceDate(),school:document.getElementById("lSchool")?.value||"",day:document.getElementById("lDay")?.value||"",time:document.getElementById("lTime")?.value||"",workshop:document.getElementById("lWorkshop")?.value||""};
+ logHistory(c.id,`${status==="present"?"Obecność":"Nieobecność"} — ${listAttendanceDate()}.`);
+ save();
+ const row=btn.closest(".interactiveListRow");
+ row?.querySelectorAll(".quickAttendBtn").forEach(b=>b.classList.remove("selectedPresent","selectedAbsent"));
+ btn.classList.add(status==="present"?"selectedPresent":"selectedAbsent");
+}
+function interactiveListPanel(type){
+ const arr=listFilteredChildren();
+ if(type==="arrears"){
+   const month=listSelectedMonth();
+   const debtors=arr.map(c=>({c,ps:paymentState(c,month)})).filter(x=>["unpaid","partial"].includes(x.ps.kind));
+   return `<div class="card interactiveListCard"><h2>Zaległości — szybkie działania</h2>
+    <div class="muted interactiveListInfo">${month} • ${debtors.length} ${debtors.length===1?"osoba":"osób"} z zaległością</div>
+    ${debtors.length?debtors.map(({c,ps})=>`<div class="interactiveListRow">
+      <div class="interactiveMain"><b>${c.last} ${c.first}</b><span>${c.school||""}${c.class?` • ${c.class}`:""} • tel. ${c.phone||"brak"}</span></div>
+      <div class="interactiveDebt"><span>Brakuje</span><b>${money(ps.missing)}</b></div>
+      <div class="interactiveActions"><button class="smsBtn" onclick="sendReminderSMS(${c.id},'${month}')">💬 Wyślij SMS</button><button class="soft" onclick="copyReminder(${c.id},'${month}')">Kopiuj tekst</button><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
+    </div>`).join(""):'<div class="emptyInteractive">Brak zaległości dla wybranych filtrów 🎉</div>'}
+   </div>`;
+ }
+ if(type==="attendance"){
+   const date=listAttendanceDate();
+   return `<div class="card interactiveListCard"><div class="interactiveHeader"><div><h2>Lista obecności — szybkie zaznaczanie</h2><div class="muted">Kliknij „Obecny” przy dziecku. Zapis następuje od razu.</div></div>
+    <div><label>Data zajęć</label><input id="lAttendanceDate" type="date" value="${date}" onchange="refreshListPreview()"></div></div>
+    ${arr.length?arr.map(c=>{
+      const rec=data.attendance[listAttendanceKey(c)],st=rec?.status||"";
+      return `<div class="interactiveListRow attendanceInteractiveRow">
+       <div class="interactiveMain"><b>${c.last} ${c.first}</b><span>${c.class||""}${c.pickupPlace?` • ${c.pickupPlace}`:""}</span></div>
+       <div class="interactiveActions attendanceButtons"><button class="quickAttendBtn ${st==="present"?"selectedPresent":""}" onclick="setQuickAttendance(${c.id},'present',this)">✓ Obecny</button><button class="quickAttendBtn absent ${st==="absent"?"selectedAbsent":""}" onclick="setQuickAttendance(${c.id},'absent',this)">Nieobecny</button></div>
+      </div>`}).join(""):'<div class="emptyInteractive">Brak dzieci dla wybranych filtrów.</div>'}
+   </div>`;
+ }
+ return "";
+}
+function injectInteractiveList(type){
+ const host=document.getElementById("listInteractiveHost");
+ if(host)host.innerHTML=interactiveListPanel(type);
+}
+
 /* Lista zaległości: dodaj telefon do eksportu/wydruku */
 const _listRowsV71=listRows;
 function listRows(type){
@@ -1840,5 +1897,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v72.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v73.json";a.click()}
 render();
