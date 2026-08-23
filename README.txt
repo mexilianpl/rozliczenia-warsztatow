@@ -1,11 +1,10 @@
-Rozliczenia Warsztatów v6.3
+Rozliczenia Warsztatów v6.4
 
-Zmiany nagłówka:
-- dodane okrągłe logo Centrum Kreatywności używane na stronie WWW,
-- logo po lewej stronie,
-- po prawej od logo: „Rozliczenia Warsztatów”,
-- pod nazwą: numer wersji,
-- usunięty widoczny przycisk „Kopia” z nagłówka,
-- funkcja wykonywania kopii nadal działa w zakładce Ustawienia.
+Zmiana w ręcznym dodawaniu wpłaty:
+- jeżeli przed kliknięciem „Dodaj wpłatę ręcznie” wpiszesz np. „Pasiut”, w formularzu pojawią się tylko dzieci pasujące do wpisanego tekstu,
+- działa również po fragmencie imienia i nazwiska,
+- jeżeli nie ma żadnego dopasowania, aplikacja pokaże czytelny komunikat,
+- po kliknięciu podpowiedzi konkretnego dziecka formularz pokazuje tylko to dziecko,
+- pusta wyszukiwarka nadal pozwala wybrać z całej listy.
 
-Zachowane wszystkie funkcje v6.2.
+Zachowane wszystkie funkcje v6.3.

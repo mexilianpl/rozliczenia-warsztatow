@@ -428,7 +428,7 @@ function openChild(id){page="children";render();setTimeout(()=>editChild(id),0)}
 function payments(){
  let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0),inc=data.income.reduce((s,p)=>s+Number(p.amount),0);
  app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Wpłaty</h2><div class="summary"><div class="stat">Należne<b>${money(due)}</b></div><div class="stat">Wpłaty dzieci<b>${money(paid)}</b></div><div class="stat">Dodatkowe przychody<b>${money(inc)}</b></div><div class="stat">Razem wpływy<b>${money(paid+inc)}</b></div></div>
- <div class="card"><h2>Dodaj wpłatę</h2><div class="search"><input id="paySearch" placeholder="Szukaj dziecka..." oninput="payHints(this.value)"></div><div id="payHints"></div><button class="primary" onclick="addPayment()">+ Dodaj wpłatę ręcznie</button></div>
+ <div class="card"><h2>Dodaj wpłatę</h2><div class="search"><input id="paySearch" placeholder="Szukaj dziecka..." oninput="payHints(this.value)"></div><div id="payHints"></div><button class="primary" onclick="addPayment(null,paySearch.value)">+ Dodaj wpłatę ręcznie</button></div>
  <div class="card"><h2>Import wpłat ze screena</h2><p class="muted">Dodaj zrzut ekranu z aplikacji bankowej. Aplikacja sprawdzi kwotę względem należności i ostrzeże także przed powtórnym dodaniem tego samego przelewu.</p><div class="drop" onclick="screenInput.click()">📷<h3>Dodaj zrzut ekranu</h3><div>PNG lub JPG</div></div><button class="dark" onclick="screenInput.click()">📷 Rozpoznaj wpłaty ze screena</button><div id="ocrStatus"></div></div>
  <div class="card"><h2>Lista wpłat</h2>${data.payments.map(p=>{
    const ch=data.children.find(c=>Number(c.id)===Number(p.childId));
@@ -436,7 +436,19 @@ function payments(){
    return `<div class="classrow"><b>${p.child}</b><div>${money(p.amount)} • ${p.month} • ${p.date||""}</div>${ps?`<div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div>`:""}<button class="danger" onclick="deletePayment(${p.id})">Usuń</button></div>`;
  }).join("")||'<div class="muted">Brak wpłat.</div>'}</div>`}
 function payHints(q){q=q.toLowerCase();payHints.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)&&q).map(c=>`<button class="soft" onclick="addPayment(${c.id})">${c.last} ${c.first}</button>`).join("")}
-function addPayment(cid){let ch=data.children.find(c=>c.id==cid);modal(`<h2>Dodaj wpłatę</h2><label>Dziecko</label><select id="pChild">${data.children.map(c=>`<option value="${c.id}" ${c.id==cid?"selected":""}>${c.last} ${c.first}</option>`).join("")}</select><div class="grid2"><div><label>Miesiąc</label><select id="pMonth">${opt(months,"Wrzesień")}</select></div><div><label>Kwota</label><input id="pAmount" type="number"></div></div><label>Data</label><input id="pDate" type="date"><label>Tytuł / uwagi</label><input id="pNote"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="savePayment()">Zapisz</button></div>`)}
+function addPayment(cid,query=""){
+ let q=String(query||"").trim().toLowerCase();
+ let matches=q?data.children.filter(c=>(c.last+" "+c.first+" "+c.first+" "+c.last).toLowerCase().includes(q)):data.children;
+ if(cid){
+   const selected=data.children.find(c=>c.id==cid);
+   if(selected)matches=[selected];
+ }
+ if(!matches.length){
+   confirmModal({title:"Nie znaleziono dziecka",message:`Brak dziecka pasującego do „${query}”. Zmień wpisane litery i spróbuj ponownie.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+   return;
+ }
+ modal(`<h2>Dodaj wpłatę</h2>${q?`<div class="payFilterInfo">Wyniki dla: <b>${query}</b> • ${matches.length}</div>`:""}<label>Dziecko</label><select id="pChild">${matches.map(c=>`<option value="${c.id}" ${c.id==cid?"selected":""}>${c.last} ${c.first}</option>`).join("")}</select><div class="grid2"><div><label>Miesiąc</label><select id="pMonth">${opt(months,"Wrzesień")}</select></div><div><label>Kwota</label><input id="pAmount" type="number"></div></div><label>Data</label><input id="pDate" type="date"><label>Tytuł / uwagi</label><input id="pNote"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="savePayment()">Zapisz</button></div>`)
+}
 async function savePayment(){
  let ch=data.children.find(c=>c.id==pChild.value), amount=+pAmount.value, month=pMonth.value;
  const candidate={date:pDate.value,amount,payer:"RĘCZNIE",title:pNote.value,childId:ch.id};

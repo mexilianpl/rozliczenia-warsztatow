@@ -206,3 +206,6 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
   .appHeaderText h1{font-size:21px}
   .appHeaderText .ver{font-size:12px;padding:5px 9px}
 }
+
+/* v6.4 — filtrowanie dzieci przy ręcznej wpłacie */
+.payFilterInfo{margin:0 0 12px;padding:9px 12px;border-radius:14px;background:#edf7fa;color:#0c3f67;font-size:14px}
