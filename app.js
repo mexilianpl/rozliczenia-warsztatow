@@ -1,5 +1,5 @@
 
-const VERSION="7.1";
+const VERSION="7.2";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -1547,5 +1547,298 @@ signupCsvInput.onchange=async e=>{
  }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
  finally{e.target.value=''}
 };
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v71.json";a.click()}
+
+/* ===== v7.2: statusy, daty, historia, nadpłaty, rodzina, limity, archiwum, SMS ===== */
+data.history=data.history||[];
+data.creditTransfers=data.creditTransfers||[];
+data.archives=data.archives||[];
+data.currentSchoolYear=data.currentSchoolYear||"2026/2027";
+data.settings.groupLimit=Number(data.settings.groupLimit||12);
+data.settings.reminderTemplate=data.settings.reminderTemplate||"Dzień dobry, przypominamy o płatności za zajęcia {warsztaty} za miesiąc {miesiac}. Do zapłaty pozostało {brakuje}. Pozdrawiamy, Rękodzieło z Pasją.";
+data.children.forEach(c=>{
+ if(!c.activityStatus)c.activityStatus="Aktywne";
+ if(c.startDate===undefined)c.startDate="";
+ if(c.endDate===undefined)c.endDate="";
+ if(c.payerGroup===undefined)c.payerGroup="";
+});
+
+function logHistory(childId,text){
+ data.history.push({id:Date.now()+Math.random(),childId:Number(childId),date:new Date().toISOString(),text});
+ if(data.history.length>5000)data.history=data.history.slice(-5000);
+}
+function childHistory(childId){return data.history.filter(h=>Number(h.childId)===Number(childId)).sort((a,b)=>b.date.localeCompare(a.date))}
+function childActiveNow(c){
+ if(c.activityStatus==="Zrezygnował"||c.activityStatus==="Wstrzymane")return false;
+ const today=new Date().toISOString().slice(0,10);
+ if(c.startDate&&today<c.startDate)return false;
+ if(c.endDate&&today>c.endDate)return false;
+ return true;
+}
+function childDue(ch){return childActiveNow(ch)?(ch.classes||[]).reduce((s,c)=>s+dueClass(c),0):0}
+
+function nextMonthName(month){
+ const i=months.indexOf(month);
+ return i>=0&&i<months.length-1?months[i+1]:"";
+}
+function childPaymentsForMonth(ch,month="Wrzesień"){
+ let total=data.payments.filter(p=>Number(p.childId)===Number(ch.id)&&p.month===month).reduce((s,p)=>s+Number(p.amount||0),0);
+ data.creditTransfers.forEach(t=>{
+   if(Number(t.childId)!==Number(ch.id))return;
+   if(t.fromMonth===month)total-=Number(t.amount||0);
+   if(t.toMonth===month)total+=Number(t.amount||0);
+ });
+ return total;
+}
+async function transferOverpayment(cid,month){
+ const ch=data.children.find(c=>c.id==cid); if(!ch)return;
+ const ps=paymentState(ch,month),to=nextMonthName(month);
+ if(ps.kind!=="overpaid"||ps.extra<=0)return;
+ if(!to){await confirmModal({title:"Brak kolejnego miesiąca",message:"Czerwiec jest ostatnim miesiącem roku zajęć. Nadpłatę zostaw jako saldo lub rozlicz ręcznie.",confirmText:"OK",cancelText:"Zamknij",danger:false});return}
+ const ok=await confirmModal({title:"Przenieść nadpłatę?",message:`Przenieść ${money(ps.extra)} z ${month} na ${to}?`,confirmText:"Przenieś",cancelText:"Anuluj",danger:false});
+ if(!ok)return;
+ data.creditTransfers.push({id:Date.now(),childId:ch.id,fromMonth:month,toMonth:to,amount:ps.extra,date:new Date().toISOString().slice(0,10)});
+ logHistory(ch.id,`Przeniesiono nadpłatę ${money(ps.extra)}: ${month} → ${to}.`);
+ save();render();
+}
+
+function reminderText(ch,month){
+ const ps=paymentState(ch,month);
+ const types=[...new Set((ch.classes||[]).map(x=>x.type))].join(", ");
+ return String(data.settings.reminderTemplate||"")
+  .replaceAll("{dziecko}",`${ch.first} ${ch.last}`)
+  .replaceAll("{miesiac}",month)
+  .replaceAll("{brakuje}",money(ps.missing))
+  .replaceAll("{warsztaty}",types||"warsztaty");
+}
+function sendReminderSMS(cid,month){
+ const ch=data.children.find(c=>c.id==cid);if(!ch)return;
+ const phone=String(ch.phone||"").replace(/[^\d+]/g,"");
+ if(!phone){confirmModal({title:"Brak numeru telefonu",message:"Uzupełnij numer telefonu rodzica/opiekuna w profilu dziecka.",confirmText:"OK",cancelText:"Zamknij",danger:false});return}
+ const body=encodeURIComponent(reminderText(ch,month));
+ window.location.href=`sms:${phone}?body=${body}`;
+}
+async function copyReminder(cid,month){
+ const ch=data.children.find(c=>c.id==cid);if(!ch)return;
+ const txt=reminderText(ch,month);
+ try{await navigator.clipboard.writeText(txt);showToast("Skopiowano przypomnienie")}catch(e){prompt("Skopiuj tekst:",txt)}
+}
+
+function familyChildren(ch){
+ const key=String(ch?.payerGroup||"").trim().toLowerCase();
+ if(!key)return [];
+ return data.children.filter(c=>String(c.payerGroup||"").trim().toLowerCase()===key);
+}
+function distributeFamilyPayment(ch,month,amount,date,note){
+ const fam=familyChildren(ch).filter(childActiveNow);
+ if(fam.length<2)return false;
+ let left=Number(amount||0),created=[];
+ fam.sort((a,b)=>(a.id===ch.id?-1:b.id===ch.id?1:0));
+ fam.forEach(c=>{
+   if(left<=0)return;
+   const ps=paymentState(c,month);
+   const need=Math.max(0,ps.missing);
+   if(need<=0)return;
+   const part=Math.min(left,need);
+   data.payments.push({id:Date.now()+created.length,childId:c.id,child:`${c.last} ${c.first}`,month,amount:part,date,note:`Rodzina: ${note||""}`});
+   created.push(`${c.first} ${c.last}: ${money(part)}`);left-=part;
+ });
+ if(left>0){
+   data.payments.push({id:Date.now()+100,childId:ch.id,child:`${ch.last} ${ch.first}`,month,amount:left,date,note:`Nadwyżka rodzinna: ${note||""}`});
+   created.push(`${ch.first} ${ch.last}: ${money(left)}`);
+ }
+ created.forEach(x=>logHistory(ch.id,`Rozdzielono wpłatę rodzinną — ${x}`));
+ return created;
+}
+
+function groupActiveCount(school,type,day,time,excludeCid=0){
+ let count=0;
+ data.children.forEach(c=>{
+   if(!childActiveNow(c)||Number(c.id)===Number(excludeCid))return;
+   if((c.classes||[]).some(cl=>!cl.waitlist&&cl.school===school&&cl.type===type&&cl.day===day&&cl.time===time))count++;
+ });
+ return count;
+}
+function enforceClassCapacity(ch,cl){
+ const limit=Number(data.settings.groupLimit||0);
+ if(!limit||cl.status==="bezplatne")return cl;
+ const count=groupActiveCount(cl.school,cl.type,cl.day,cl.time,ch.id);
+ cl.waitlist=count>=limit;
+ return cl;
+}
+
+function archiveSchoolYear(){
+ confirmModal({title:"Zamknąć rok szkolny?",message:`Utworzę archiwum ${data.currentSchoolYear}. Wpłaty, przychody i obecności bieżącego roku zostaną wyzerowane, a dzieci i zajęcia pozostaną w bazie.`,confirmText:"Archiwizuj",cancelText:"Anuluj",danger:false}).then(ok=>{
+  if(!ok)return;
+  data.archives.push({year:data.currentSchoolYear,createdAt:new Date().toISOString(),payments:structuredClone(data.payments),income:structuredClone(data.income),attendance:structuredClone(data.attendance),history:structuredClone(data.history),creditTransfers:structuredClone(data.creditTransfers)});
+  const parts=String(data.currentSchoolYear).match(/(\d{4}).*?(\d{4})/);
+  if(parts)data.currentSchoolYear=`${Number(parts[1])+1}/${Number(parts[2])+1}`;
+  data.payments=[];data.income=[];data.attendance={};data.creditTransfers=[];
+  save();settings();showToast("Rok zarchiwizowany");
+ });
+}
+
+/* Profil dziecka rozszerzony */
+function editChild(id){
+ let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],parent:"",phone:"",email:"",pickupPlace:"",activityStatus:"Aktywne",startDate:"",endDate:"",payerGroup:"",consents:{rules:"",personal:"",image:""},classes:[]};
+ c.consents=c.consents||{rules:"",personal:"",image:""};
+ const hist=id?childHistory(c.id).slice(0,12):[];
+ modal(`<h2>${id?"Edytuj profil dziecka":"Dodaj dziecko"}</h2>
+ <div class="grid2">
+  <div><label>Nazwisko</label><input id="fLast" value="${escapeAttr(c.last)}"></div>
+  <div><label>Imię</label><input id="fFirst" value="${escapeAttr(c.first)}"></div>
+  <div><label>Płeć</label><select id="fSex">${opt(["Dziewczynka","Chłopiec"],c.sex)}</select></div>
+  <div><label>Klasa</label><input id="fClass" value="${escapeAttr(c.class)}"></div>
+ </div>
+ <div class="grid2">
+  <div><label>Status dziecka</label><select id="fActivity">${opt(["Aktywne","Wstrzymane","Zrezygnował"],c.activityStatus||"Aktywne")}</select></div>
+  <div><label>Wspólny płatnik / rodzina</label><input id="fPayerGroup" value="${escapeAttr(c.payerGroup||"")}" placeholder="np. Rodzina Kolasa"></div>
+ </div>
+ <div class="grid2"><div><label>Od kiedy</label><input id="fStartDate" type="date" value="${c.startDate||""}"></div><div><label>Do kiedy / rezygnacja</label><input id="fEndDate" type="date" value="${c.endDate||""}"></div></div>
+ <label>Szkoła</label><select id="fSchool" onchange="updateScheduleSelects('fSchool','fDay','fTime')">${opt(schools,c.school)}</select>
+ <label>Rodzaj warsztatów</label><select id="fWorkshop">${opt(workshops,c.classes?.[0]?.type||workshops[0])}</select>
+ <div class="grid2">
+   <div><label>Dzień tygodnia</label><select id="fDay" onchange="updateTimeSelect('fSchool','fDay','fTime')">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).days,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).day)}</select></div>
+   <div><label>Godzina</label><select id="fTime">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).times,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).time)}</select></div>
+ </div>
+ <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],c.pickupPlace||"")}</select>
+ <label>Rodzic / opiekun</label><input id="fParent" value="${escapeAttr(c.parent||"")}">
+ <label>Telefon</label><input id="fPhone" value="${escapeAttr(c.phone||"")}">
+ <label>E-mail</label><input id="fEmail" value="${escapeAttr(c.email||"")}">
+ <div class="consentBox"><h3>Zgody</h3>
+  <div class="consentRow"><span>Zgoda na wizerunek</span><select id="fImageConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.image))}</select></div>
+  <div class="consentRow"><span>Dane osobowe</span><select id="fPersonalConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.personal))}</select></div>
+  <div class="consentRow"><span>Regulamin zajęć</span><select id="fRulesConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.rules))}</select></div>
+ </div>
+ ${id?(()=>{const a=attendanceSummary(c.id);return `<div class="consentBox"><h3>Frekwencja</h3><div class="attendanceStats"><div><b>${a.total}</b><span>Zajęć</span></div><div><b>${a.present}</b><span>Obecności</span></div><div><b>${a.absent}</b><span>Nieobecności</span></div><div><b>${a.pct}%</b><span>Frekwencja</span></div></div></div>`})():""}
+ ${id?`<div class="consentBox"><h3>Historia zmian</h3>${hist.length?hist.map(h=>`<div class="historyLine"><b>${new Date(h.date).toLocaleString("pl-PL")}</b><span>${escapeHtml(h.text)}</span></div>`).join(""):'<div class="muted">Brak historii zmian.</div>'}</div>`:""}
+ <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
+}
+function saveChild(id,exists){
+ const old=exists?data.children.find(c=>c.id==id):null;
+ let obj={id,last:fLast.value,first:fFirst.value,sex:fSex.value,class:fClass.value,school:fSchool.value,
+  club:fPickup.value==="Przychodzi sam/a"?"Nie":(fPickup.value?"Tak":(old?.club||"")),pickupPlace:fPickup.value,parent:fParent.value,phone:fPhone.value,email:fEmail.value,
+  activityStatus:fActivity.value,startDate:fStartDate.value,endDate:fEndDate.value,payerGroup:fPayerGroup.value.trim(),
+  consents:{rules:fRulesConsent.value,personal:fPersonalConsent.value,image:fImageConsent.value},
+  classes:old?.classes||[],notes:old?.notes||"",sourceEntryId:old?.sourceEntryId||"",sourceCreatedAt:old?.sourceCreatedAt||""};
+ const selectedType=fWorkshop.value;
+ if(selectedType){
+   const prev=obj.classes?.[0];
+   const cl=prev?{...prev}:{id:Date.now(),price:defaultWorkshopPrice(selectedType),discount:0,status:"brak"};
+   cl.school=fSchool.value;cl.type=selectedType;cl.day=fDay.value;cl.time=fTime.value;
+   if(!cl.price)cl.price=defaultWorkshopPrice(selectedType);
+   enforceClassCapacity(obj,cl);
+   if(obj.classes.length)obj.classes[0]=cl;else obj.classes=[cl];
+ }
+ if(old){
+   const changes=[];
+   [["activityStatus","status"],["school","szkołę"],["pickupPlace","salę / odbiór"],["phone","telefon"],["payerGroup","wspólnego płatnika"],["startDate","datę rozpoczęcia"],["endDate","datę zakończenia"]].forEach(([k,label])=>{if(String(old[k]||"")!==String(obj[k]||""))changes.push(`Zmieniono ${label}: „${old[k]||"brak"}” → „${obj[k]||"brak"}”.`)});
+   if(JSON.stringify(old.consents||{})!==JSON.stringify(obj.consents||{}))changes.push("Zmieniono zgody.");
+   changes.forEach(t=>logHistory(id,t));
+ }else logHistory(id,"Dodano dziecko do bazy.");
+ if(exists)data.children[data.children.findIndex(c=>c.id==id)]=obj;else data.children.push(obj);
+ save();closeModal();render();
+ if(obj.classes?.[0]?.waitlist)confirmModal({title:"Grupa jest pełna",message:`Limit grupy to ${data.settings.groupLimit}. Dziecko zostało oznaczone jako lista rezerwowa.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+}
+
+function childCard(c){
+ const month=currentMonthName(),ps=paymentState(c,months.includes(month)?month:"Wrzesień"),active=childActiveNow(c);
+ return `<div class="card ${active?"":"inactiveChild"}"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div>
+ <div class="muted">${c.class} • ${c.school} • ${c.sex}${c.pickupPlace?` • ${c.pickupPlace}`:""} • ${c.activityStatus||"Aktywne"}</div>
+ <div class="due">Należne ${months.includes(month)?month:"Wrzesień"}: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div>
+ <div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
+ ${["unpaid","partial"].includes(ps.kind)?`<div class="actions reminderActions"><button class="smsBtn" onclick="sendReminderSMS(${c.id},'${months.includes(month)?month:"Wrzesień"}')">💬 Wyślij SMS</button><button class="soft" onclick="copyReminder(${c.id},'${months.includes(month)?month:"Wrzesień"}')">Kopiuj przypomnienie</button></div>`:""}
+ ${ps.kind==="overpaid"?`<div class="actions"><button class="overpayBtn" onclick="transferOverpayment(${c.id},'${months.includes(month)?month:"Wrzesień"}')">Przenieś nadpłatę ${money(ps.extra)}</button></div>`:""}
+ ${(c.classes||[]).map(cl=>`<div class="classrow"><h3>${cl.type}${cl.waitlist?' <span class="waitBadge">LISTA REZERWOWA</span>':''}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}</div><div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
+ <div class="actions"><button class="primary" onclick="editClass(${c.id})">+ Dodaj zajęcia</button></div></div>`
+}
+
+/* zapis zajęć z limitem i historią */
+function saveClass(cid,id,exists){
+ let ch=data.children.find(c=>c.id==cid),old=exists?ch.classes.find(x=>x.id==id):null;
+ let cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value,waitlist:old?.waitlist||false};
+ enforceClassCapacity(ch,cl);
+ if(exists)ch.classes[ch.classes.findIndex(x=>x.id==id)]=cl;else ch.classes.push(cl);
+ logHistory(cid,`${exists?"Zmieniono":"Dodano"} zajęcia: ${cl.type}, ${cl.school}, ${cl.day} ${cl.time}${cl.waitlist?" — lista rezerwowa":""}.`);
+ save();closeModal();render();
+ if(cl.waitlist)confirmModal({title:"Lista rezerwowa",message:`Grupa osiągnęła limit ${data.settings.groupLimit} osób. Dziecko zapisano na listę rezerwową.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+}
+
+/* ręczna wpłata z obsługą rodziny */
+function addPayment(cid,query=""){
+ let q=String(query||"").trim().toLowerCase(),matches=q?data.children.filter(c=>(c.last+" "+c.first+" "+c.first+" "+c.last).toLowerCase().includes(q)):data.children;
+ if(cid){const selected=data.children.find(c=>c.id==cid);if(selected)matches=[selected]}
+ if(!matches.length){confirmModal({title:"Nie znaleziono dziecka",message:`Brak dziecka pasującego do „${query}”.`,confirmText:"OK",cancelText:"Zamknij",danger:false});return}
+ modal(`<h2>Dodaj wpłatę</h2>${q?`<div class="payFilterInfo">Wyniki dla: <b>${query}</b> • ${matches.length}</div>`:""}
+ <label>Dziecko</label><select id="pChild" onchange="refreshFamilyPayHint()">${matches.map(c=>`<option value="${c.id}" ${c.id==cid?"selected":""}>${c.last} ${c.first}</option>`).join("")}</select>
+ <div id="familyPayHint"></div>
+ <div class="grid2"><div><label>Miesiąc</label><select id="pMonth" onchange="refreshFamilyPayHint()">${opt(months,"Wrzesień")}</select></div><div><label>Kwota</label><input id="pAmount" type="number"></div></div>
+ <label>Data</label><input id="pDate" type="date"><label>Tytuł / uwagi</label><input id="pNote">
+ <label class="checkLine"><input id="pSplitFamily" type="checkbox"> Rozdziel wpłatę automatycznie na dzieci tego samego płatnika / rodziny</label>
+ <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="savePayment()">Zapisz</button></div>`);
+ refreshFamilyPayHint();
+}
+function refreshFamilyPayHint(){
+ const ch=data.children.find(c=>c.id==document.getElementById("pChild")?.value),el=document.getElementById("familyPayHint");if(!el||!ch)return;
+ const fam=familyChildren(ch);
+ el.innerHTML=fam.length>1?`<div class="familyHint">Wspólny płatnik: <b>${escapeHtml(ch.payerGroup)}</b> • dzieci: ${fam.map(x=>`${x.first} ${x.last}`).join(", ")}</div>`:"";
+}
+async function savePayment(){
+ let ch=data.children.find(c=>c.id==pChild.value),amount=+pAmount.value,month=pMonth.value;
+ if(!ch||amount<=0)return;
+ if(document.getElementById("pSplitFamily")?.checked && familyChildren(ch).length>1){
+   const created=distributeFamilyPayment(ch,month,amount,pDate.value,pNote.value);
+   if(created){save();closeModal();render();await confirmModal({title:"Wpłata rozdzielona",message:created.join(" • "),confirmText:"OK",cancelText:"Zamknij",danger:false});return}
+ }
+ const candidate={date:pDate.value,amount,payer:"RĘCZNIE",title:pNote.value,childId:ch.id},dup=findDuplicatePayment(candidate);
+ if(dup){await confirmModal({title:"Ta wpłata już istnieje",message:`${ch.last} ${ch.first} • ${money(amount)}. Nie zapisuję ponownie.`,confirmText:"OK",cancelText:"Zamknij",danger:false});return}
+ data.payments.push({id:Date.now(),childId:ch.id,child:ch.last+" "+ch.first,month,amount,date:pDate.value,note:pNote.value,sourceFingerprint:paymentFingerprint(candidate)});
+ logHistory(ch.id,`Dodano wpłatę ${money(amount)} za ${month}.`);
+ save();closeModal();render();
+ const ps=paymentState(ch,month);
+ if(ps.kind==="partial")await confirmModal({title:"Wpłata częściowa",message:`Brakuje ${money(ps.missing)}.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+ else if(ps.kind==="overpaid")await confirmModal({title:"Nadpłata",message:`Nadpłata: ${money(ps.extra)}. Możesz ją przenieść na kolejny miesiąc z profilu dziecka.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+}
+
+/* Grupy: nie pokazuj rezerwowych i nieaktywnych */
+function selectedGroupRows(){
+ const s=gSchool.value,w=document.getElementById("gWorkshop")?.value||"",d=gDay.value,t=gTime.value,arr=[];
+ data.children.forEach(c=>{if(!childActiveNow(c))return;(c.classes||[]).forEach(cl=>{if(!cl.waitlist&&cl.school==s&&(!w||cl.type==w)&&cl.day==d&&cl.time==t)arr.push({c,cl})})});
+ const seen=new Set();return arr.filter(x=>{if(seen.has(x.c.id))return false;seen.add(x.c.id);return true}).sort((a,b)=>pickupSortValue(a.c)-pickupSortValue(b.c)||(a.c.last+" "+a.c.first).localeCompare(b.c.last+" "+b.c.first,"pl"));
+}
+
+/* Ustawienia rozszerzone */
+const _settingsV71=settings;
+function settings(){
+ _settingsV71();
+ const cards=document.querySelectorAll("#app .card"); if(!cards.length)return;
+ const last=cards[cards.length-1];
+ last.insertAdjacentHTML("beforebegin",`
+ <div class="card"><h2>Organizacja grup</h2>
+  <label>Domyślny limit miejsc w grupie</label><input id="setGroupLimit" type="number" min="1" value="${Number(data.settings.groupLimit||12)}">
+  <button class="primary settingWideSave" onclick="data.settings.groupLimit=+setGroupLimit.value||12;save();showToast('Zapisano limit')">Zapisz limit</button>
+ </div>
+ <div class="card"><h2>Przypomnienia SMS</h2><p class="muted">Dostępne pola: {dziecko}, {miesiac}, {brakuje}, {warsztaty}</p>
+  <textarea id="setReminderTemplate" rows="5">${escapeHtml(data.settings.reminderTemplate||"")}</textarea>
+  <button class="primary settingWideSave" onclick="data.settings.reminderTemplate=setReminderTemplate.value;save();showToast('Zapisano tekst SMS')">Zapisz tekst SMS</button>
+ </div>
+ <div class="card"><h2>Rok szkolny i archiwum</h2>
+  <label>Bieżący rok szkolny</label><input id="setSchoolYear" value="${escapeAttr(data.currentSchoolYear)}">
+  <div class="actions"><button class="primary" onclick="data.currentSchoolYear=setSchoolYear.value;save();showToast('Zapisano rok')">Zapisz rok</button><button class="danger" onclick="archiveSchoolYear()">Archiwizuj i rozpocznij nowy rok</button></div>
+  <div class="muted">Archiwa: ${data.archives.length?data.archives.map(a=>a.year).join(", "):"brak"}</div>
+ </div>`);
+}
+
+/* Lista zaległości: dodaj telefon do eksportu/wydruku */
+const _listRowsV71=listRows;
+function listRows(type){
+ const result=_listRowsV71(type);
+ if(type==="arrears"){
+   const month=currentMonthName(),arr=listFilteredChildren();
+   result.headers=["Dziecko","Telefon","Szkoła","Należne","Wpłacono","Brakuje","Status"];
+   result.rows=arr.map(c=>{const ps=paymentState(c,months.includes(month)?month:"Wrzesień");return ["unpaid","partial"].includes(ps.kind)?[`${c.last} ${c.first}`,c.phone||"",c.school||"",money(ps.due),money(ps.paid),money(ps.missing),ps.label]:null}).filter(Boolean);
+ }
+ return result;
+}
+
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v72.json";a.click()}
 render();
