@@ -1,5 +1,5 @@
 
-const VERSION="7.0";
+const VERSION="7.1";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -1231,18 +1231,38 @@ function showToast(text){
  t.textContent=text;t.classList.add("show");clearTimeout(window.__toastTimer);window.__toastTimer=setTimeout(()=>t.classList.remove("show"),1300);
 }
 
+
+function settingRowButton(el){
+ return el?.closest(".settingsRow,.schoolPlanRow")?.querySelector(".miniSave")||null;
+}
+function markSettingDirty(el){
+ const btn=settingRowButton(el); if(!btn)return;
+ btn.classList.remove("savedState");
+ btn.textContent="Zapisz";
+ btn.dataset.saved="0";
+}
+function markSettingSaved(btn){
+ if(!btn)return;
+ btn.classList.add("savedState");
+ btn.textContent="✓ Zapisano";
+ btn.dataset.saved="1";
+}
+function saveSettingButton(btn){
+ saveSettings(true);
+ markSettingSaved(btn);
+}
 function settings(){
  app.innerHTML=`<div class="eyebrow">KONFIGURACJA</div><h2 class="title">Ustawienia</h2>
- <div class="card"><h2>Warsztaty i ceny</h2><div id="setWorkshops">${data.settings.workshops.map((w,i)=>`<div class="settingsRow"><input value="${escapeAttr(w.name)}" oninput="data.settings.workshops[${i}].name=this.value"><input type="number" step="0.01" value="${Number(w.price||0)}" oninput="data.settings.workshops[${i}].price=+this.value"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeWorkshopSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addWorkshopSetting()">+ Dodaj warsztaty</button></div>
- <div class="card"><h2>Godziny zajęć</h2><div id="setTimes">${data.settings.times.map((t,i)=>`<div class="settingsRow"><input type="time" value="${t}" oninput="data.settings.times[${i}]=this.value"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeTimeSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addTimeSetting()">+ Dodaj godzinę</button></div>
- <div class="card"><h2>Szkoły</h2><div id="setSchools">${data.settings.schools.map((s,i)=>`<div class="settingsRow"><input value="${escapeAttr(s)}" oninput="data.settings.schools[${i}]=this.value"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeSchoolSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addSchoolSetting()">+ Dodaj szkołę</button></div>
- <div class="card"><h2>Dni zajęć</h2><div id="setDays">${data.settings.days.map((d,i)=>`<div class="settingsRow"><input value="${escapeAttr(d)}" oninput="data.settings.days[${i}]=this.value"><button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button><button class="danger" onclick="removeDaySetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addDaySetting()">+ Dodaj dzień</button></div>
+ <div class="card"><h2>Warsztaty i ceny</h2><div id="setWorkshops">${data.settings.workshops.map((w,i)=>`<div class="settingsRow"><input value="${escapeAttr(w.name)}" oninput="data.settings.workshops[${i}].name=this.value;markSettingDirty(this)"><input type="number" step="0.01" value="${Number(w.price||0)}" oninput="data.settings.workshops[${i}].price=+this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeWorkshopSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addWorkshopSetting()">+ Dodaj warsztaty</button></div>
+ <div class="card"><h2>Godziny zajęć</h2><div id="setTimes">${data.settings.times.map((t,i)=>`<div class="settingsRow"><input type="time" value="${t}" oninput="data.settings.times[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeTimeSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addTimeSetting()">+ Dodaj godzinę</button></div>
+ <div class="card"><h2>Szkoły</h2><div id="setSchools">${data.settings.schools.map((s,i)=>`<div class="settingsRow"><input value="${escapeAttr(s)}" oninput="data.settings.schools[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeSchoolSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addSchoolSetting()">+ Dodaj szkołę</button></div>
+ <div class="card"><h2>Dni zajęć</h2><div id="setDays">${data.settings.days.map((d,i)=>`<div class="settingsRow"><input value="${escapeAttr(d)}" oninput="data.settings.days[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeDaySetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addDaySetting()">+ Dodaj dzień</button></div>
  <div class="card"><h2>Plan szkół — dni i godziny</h2><p class="muted">Przypisz każdej szkole dni tygodnia i godziny zajęć. Możesz dodać kilka terminów do jednej szkoły.</p>
  ${data.settings.schools.map(s=>`<div class="schoolPlanBox"><div class="schoolPlanTitle">${s}</div>
  ${(ensureSchoolSchedule(s)).map((row,i)=>`<div class="schoolPlanRow">
    <select onchange="updateSchoolSchedule('${s.replace(/'/g,"\\'")}',${i},'day',this.value)">${opt(days,row.day)}</select>
    <select onchange="updateSchoolSchedule('${s.replace(/'/g,"\\'")}',${i},'time',this.value)">${opt(times,row.time)}</select>
-   <button class="primary miniSave" onclick="saveSettings(true)">✓ Zapisz</button>
+   <button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button>
    <button class="danger" onclick="removeSchoolSchedule('${s.replace(/'/g,"\\'")}',${i})">Usuń</button>
  </div>`).join("")||'<div class="muted schoolPlanEmpty">Brak przypisanych terminów.</div>'}
  <button class="soft" onclick="addSchoolSchedule('${s.replace(/'/g,"\\'")}')">+ Dodaj dzień i godzinę</button></div>`).join("")}
@@ -1527,5 +1547,5 @@ signupCsvInput.onchange=async e=>{
  }catch(err){modal(`<h2>Błąd importu CSV</h2><p>${escapeHtml(err.message||err)}</p><button class="soft" onclick="closeModal()">Zamknij</button>`)}
  finally{e.target.value=''}
 };
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v70.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v71.json";a.click()}
 render();

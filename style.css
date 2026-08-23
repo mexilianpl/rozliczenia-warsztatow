@@ -247,3 +247,14 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 
 /* v7.0 — spójna kolejność wyboru */
 .schoolPlanBox + .schoolPlanBox{margin-top:14px}
+
+/* v7.1 — widoczny stan zapisu */
+.miniSave{
+  transition:background .18s ease,color .18s ease,border-color .18s ease,transform .12s ease;
+}
+.miniSave.savedState{
+  background:#e4f7ef!important;
+  color:#16845c!important;
+  border:1px solid #bfe8d6!important;
+}
+.miniSave.savedState:active{transform:scale(.98)}
