@@ -1,5 +1,5 @@
 
-const VERSION="7.6";
+const VERSION="7.7";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -21,6 +21,7 @@ data.settings.schools=data.settings.schools||[...schools];
 data.settings.workshops=data.settings.workshops||workshops.map((name,i)=>({name,price:[155,165,155][i]||155}));
 data.settings.days=data.settings.days||[...days];
 data.settings.times=data.settings.times||[...times];
+data.settings.pickupRooms=data.settings.pickupRooms||["Sala 1","Sala 2","Sala 3","Sala 4","Sala 5"];
 
 data.settings.schoolSchedules=data.settings.schoolSchedules||{};
 function ensureSchoolSchedule(school){
@@ -80,6 +81,7 @@ function syncSettingsArrays(){
  workshops.splice(0,workshops.length,...data.settings.workshops.map(x=>x.name));
  days.splice(0,days.length,...data.settings.days);
  times.splice(0,times.length,...data.settings.times);
+ pickupPlaces.splice(0,pickupPlaces.length,...data.settings.pickupRooms,"Przychodzi sam/a");
 }
 syncSettingsArrays();
 
@@ -439,7 +441,7 @@ function editChild(id){
    <div><label>Dzień tygodnia</label><select id="fDay" onchange="updateTimeSelect('fSchool','fDay','fTime')">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).days,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).day)}</select></div>
    <div><label>Godzina</label><select id="fTime">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).times,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).time)}</select></div>
  </div>
- <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],c.pickupPlace||"")}</select>
+ <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["",...pickupPlaces],c.pickupPlace||"")}</select>
  <div class="muted" style="margin-top:8px">Wybranie sali oznacza, że dziecko jest odbierane ze świetlicy. „Przychodzi sam/a” oznacza brak odbioru ze świetlicy.</div>
  <label>Rodzic / opiekun</label><input id="fParent" value="${c.parent||""}">
  <label>Telefon</label><input id="fPhone" value="${c.phone||""}">
@@ -1300,6 +1302,11 @@ function settingsBase(){
  <div class="card"><h2>Godziny zajęć</h2><div id="setTimes">${data.settings.times.map((t,i)=>`<div class="settingsRow"><input type="time" value="${t}" oninput="data.settings.times[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeTimeSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addTimeSetting()">+ Dodaj godzinę</button></div>
  <div class="card"><h2>Szkoły</h2><div id="setSchools">${data.settings.schools.map((s,i)=>`<div class="settingsRow"><input value="${escapeAttr(s)}" oninput="data.settings.schools[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeSchoolSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addSchoolSetting()">+ Dodaj szkołę</button></div>
  <div class="card"><h2>Dni zajęć</h2><div id="setDays">${data.settings.days.map((d,i)=>`<div class="settingsRow"><input value="${escapeAttr(d)}" oninput="data.settings.days[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeDaySetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addDaySetting()">+ Dodaj dzień</button></div>
+ <div class="card"><h2>Sale / miejsce odbioru dzieci</h2>
+ <p class="muted">Tutaj możesz zmieniać numery/nazwy sal oraz dodawać i usuwać sale. Opcja „Przychodzi sam/a” pozostaje zawsze dostępna.</p>
+ <div id="setPickupRooms">${data.settings.pickupRooms.map((r,i)=>`<div class="settingsRow"><input value="${escapeAttr(r)}" oninput="data.settings.pickupRooms[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removePickupRoomSetting(${i})">Usuń</button></div>`).join("")}</div>
+ <button class="soft" onclick="addPickupRoomSetting()">+ Dodaj salę</button>
+ </div>
  <div class="card"><h2>Plan szkół — tygodniowy grafik</h2>
  <p class="muted">Zaznacz dni, w których szkoła ma zajęcia. Dla zaznaczonego dnia wybierz jedną lub kilka godzin.</p>
  ${data.settings.schools.map(s=>`<div class="schoolPlanBox">
@@ -1323,6 +1330,7 @@ function saveSettings(quiet=false){
  data.settings.schools=data.settings.schools.filter(x=>String(x||"").trim()).map(x=>String(x).trim());
  data.settings.times=data.settings.times.filter(Boolean).sort();
  data.settings.days=data.settings.days.filter(x=>String(x||"").trim()).map(x=>String(x).trim());
+ data.settings.pickupRooms=data.settings.pickupRooms.filter(x=>String(x||"").trim()).map(x=>String(x).trim());
 
  Object.keys(data.settings.schoolSchedules||{}).forEach(s=>{data.settings.schoolSchedules[s]=(data.settings.schoolSchedules[s]||[]).filter(x=>x.day&&x.time)});
  syncSettingsArrays();save();
@@ -1335,6 +1343,16 @@ function removeTimeSetting(i){data.settings.times.splice(i,1);settings()}
 function addSchoolSetting(){data.settings.schools.push("Nowa szkoła");settings()}
 function removeSchoolSetting(i){data.settings.schools.splice(i,1);settings()}
 function addDaySetting(){data.settings.days.push("Nowy dzień");settings()}
+function addPickupRoomSetting(){data.settings.pickupRooms.push("Nowa sala");settings()}
+function removePickupRoomSetting(i){
+ const room=data.settings.pickupRooms[i];
+ const used=data.children.some(c=>c.pickupPlace===room);
+ if(used){
+   confirmModal({title:"Sala jest używana",message:`Sala „${room}” jest przypisana do co najmniej jednego dziecka. Najpierw zmień salę w profilach dzieci.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
+   return;
+ }
+ data.settings.pickupRooms.splice(i,1);syncSettingsArrays();save();settings();
+}
 function removeDaySetting(i){data.settings.days.splice(i,1);settings()}
 
 function signups(){
@@ -1431,7 +1449,7 @@ function showSignupReview(items,fileName){
   <div class="grid2"><div><label>Nazwisko</label><input id="suLast${i}" value="${escapeAttr(r.last)}"></div><div><label>Imię</label><input id="suFirst${i}" value="${escapeAttr(r.first)}"></div></div>
   <div class="grid2"><div><label>Płeć</label><select id="suSex${i}">${opt(['Dziewczynka','Chłopiec'],r.sex)}</select></div><div><label>Klasa</label><input id="suClass${i}" value="${escapeAttr(r.className)}"></div></div>
   <label>Szkoła</label><select id="suSchool${i}" onchange="updateAllSignupSchedules(${i})">${signupSchoolOptions(r.school)}</select>
-  <label>Sala / sposób odbioru</label><select id="suPickup${i}">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],"")}</select>
+  <label>Sala / sposób odbioru</label><select id="suPickup${i}">${opt(["",...pickupPlaces],"")}</select>
   ${[0,1].map(k=>`<div class="signupWorkshop"><div class="grid2"><div><label>${k===0?'Rodzaj zajęć':'Drugie zajęcia'}</label><select id="suType${i}_${k}"><option value="">— brak —</option>${signupWorkshopOptions(r.types[k]||'')}</select></div><div><label>Dzień preferowany</label><select id="suDay${i}_${k}" onchange="updateSignupTimes(${i},${k})"><option value="">— wybierz później —</option>${dependentSchedule(r.school,r.days[k]||r.days[0]||days[0],times[0]).days.map(d=>`<option ${d===(r.days[k]||r.days[0])?"selected":""}>${d}</option>`).join("")}</select></div></div><label>Godzina</label><select id="suTime${i}_${k}"><option value="">— ustal później —</option>${dependentSchedule(r.school,r.days[k]||r.days[0]||days[0],times[0]).times.map(t=>`<option>${t}</option>`).join('')}</select></div>`).join('')}
   <label>Rodzic / opiekun</label><input id="suParent${i}" value="${escapeAttr(r.parent)}"><label>Telefon</label><input id="suPhone${i}" value="${escapeAttr(r.phone)}"><label>E-mail</label><input id="suEmail${i}" value="${escapeAttr(r.email)}"><label>Uwagi</label><textarea id="suNotes${i}">${escapeHtml(r.notes)}</textarea>
   <div class="consentLine">Regulamin: <b>${escapeHtml(r.rules||'brak')}</b> • Dane osobowe: <b>${escapeHtml(r.personal||'brak')}</b> • Wizerunek: <b>${escapeHtml(r.imageConsent||'brak')}</b></div>
@@ -1750,7 +1768,7 @@ function editChild(id){
    <div><label>Dzień tygodnia</label><select id="fDay" onchange="updateTimeSelect('fSchool','fDay','fTime')">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).days,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).day)}</select></div>
    <div><label>Godzina</label><select id="fTime">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).times,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).time)}</select></div>
  </div>
- <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["","Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"],c.pickupPlace||"")}</select>
+ <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["",...pickupPlaces],c.pickupPlace||"")}</select>
  <label>Rodzic / opiekun</label><input id="fParent" value="${escapeAttr(c.parent||"")}">
  <label>Telefon</label><input id="fPhone" value="${escapeAttr(c.phone||"")}">
  <label>E-mail</label><input id="fEmail" value="${escapeAttr(c.email||"")}">
@@ -1945,5 +1963,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v76.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v77.json";a.click()}
 render();

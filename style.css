@@ -314,3 +314,10 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .schoolScheduleSave{margin-top:14px;width:100%}
 .schoolScheduleSave.savedState{background:#e4f7ef!important;color:#16845c!important;border:1px solid #bfe8d6!important}
 @media(max-width:650px){.schoolWeekRow{grid-template-columns:1fr}.timeChip span{padding:8px 10px;font-size:13px}}
+
+/* v7.7 — konfigurowalne sale odbioru */
+#setPickupRooms .settingsRow{grid-template-columns:1fr auto auto}
+@media(max-width:600px){
+ #setPickupRooms .settingsRow{grid-template-columns:1fr 1fr}
+ #setPickupRooms .settingsRow input{grid-column:1/-1}
+}
