@@ -298,3 +298,19 @@ nav button{min-width:84px;flex:1;background:white;color:#6d7580;border-radius:0;
 .consentUnknown{color:#7b8490;font-weight:600}
 .consentPreviewRow span{overflow-wrap:anywhere}
 .listPreviewRow span{min-width:0;overflow-wrap:anywhere}
+
+/* v7.6 — tygodniowy grafik szkół */
+.schoolWeekRow{display:grid;grid-template-columns:170px 1fr;gap:14px;align-items:start;padding:12px 0;border-bottom:1px solid var(--line)}
+.schoolWeekRow:last-of-type{border-bottom:0}
+.schoolDayToggle{display:flex;align-items:center;gap:10px;font-weight:900;color:var(--blue);margin:0}
+.schoolDayToggle input{width:auto;transform:scale(1.2)}
+.schoolTimeChoices{display:flex;flex-wrap:wrap;gap:8px}
+.timeChip{margin:0;cursor:pointer}
+.timeChip input{position:absolute;opacity:0;pointer-events:none}
+.timeChip span{display:inline-block;padding:9px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--blue);font-weight:800}
+.timeChip input:checked + span{background:#e4f7ef;border-color:#bfe8d6;color:#16845c}
+.timeChip input:disabled + span{opacity:.35;cursor:not-allowed}
+.disabledTimes{opacity:.55}
+.schoolScheduleSave{margin-top:14px;width:100%}
+.schoolScheduleSave.savedState{background:#e4f7ef!important;color:#16845c!important;border:1px solid #bfe8d6!important}
+@media(max-width:650px){.schoolWeekRow{grid-template-columns:1fr}.timeChip span{padding:8px 10px;font-size:13px}}

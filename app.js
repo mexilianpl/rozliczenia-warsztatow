@@ -1,5 +1,5 @@
 
-const VERSION="7.5";
+const VERSION="7.6";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -40,6 +40,34 @@ function updateSchoolSchedule(school,index,field,value){
  const arr=ensureSchoolSchedule(school);
  if(arr[index])arr[index][field]=value;
 }
+
+function schoolDayEnabled(school,day){
+ return ensureSchoolSchedule(school).some(x=>x.day===day);
+}
+function schoolDayTimes(school,day){
+ return [...new Set(ensureSchoolSchedule(school).filter(x=>x.day===day).map(x=>x.time).filter(Boolean))].sort();
+}
+function toggleSchoolDay(school,day,enabled){
+ let arr=ensureSchoolSchedule(school);
+ if(enabled){
+   if(!arr.some(x=>x.day===day))arr.push({day:day,time:times[0]||"15:00"});
+ }else{
+   data.settings.schoolSchedules[school]=arr.filter(x=>x.day!==day);
+ }
+ settings();
+}
+function toggleSchoolDayTime(school,day,time,enabled){
+ let arr=ensureSchoolSchedule(school);
+ const exists=arr.some(x=>x.day===day&&x.time===time);
+ if(enabled&&!exists)arr.push({day:day,time:time});
+ if(!enabled&&exists)data.settings.schoolSchedules[school]=arr.filter(x=>!(x.day===day&&x.time===time));
+}
+function saveSchoolScheduleButton(btn){
+ saveSettings(true);
+ btn.classList.add("savedState");
+ btn.textContent="✓ Zapisano";
+}
+
 function schoolScheduleDays(school){
  return [...new Set(ensureSchoolSchedule(school).map(x=>x.day).filter(Boolean))];
 }
@@ -1272,16 +1300,23 @@ function settingsBase(){
  <div class="card"><h2>Godziny zajęć</h2><div id="setTimes">${data.settings.times.map((t,i)=>`<div class="settingsRow"><input type="time" value="${t}" oninput="data.settings.times[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeTimeSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addTimeSetting()">+ Dodaj godzinę</button></div>
  <div class="card"><h2>Szkoły</h2><div id="setSchools">${data.settings.schools.map((s,i)=>`<div class="settingsRow"><input value="${escapeAttr(s)}" oninput="data.settings.schools[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeSchoolSetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addSchoolSetting()">+ Dodaj szkołę</button></div>
  <div class="card"><h2>Dni zajęć</h2><div id="setDays">${data.settings.days.map((d,i)=>`<div class="settingsRow"><input value="${escapeAttr(d)}" oninput="data.settings.days[${i}]=this.value;markSettingDirty(this)"><button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button><button class="danger" onclick="removeDaySetting(${i})">Usuń</button></div>`).join("")}</div><button class="soft" onclick="addDaySetting()">+ Dodaj dzień</button></div>
- <div class="card"><h2>Plan szkół — dni i godziny</h2><p class="muted">Przypisz każdej szkole dni tygodnia i godziny zajęć. Możesz dodać kilka terminów do jednej szkoły.</p>
- ${data.settings.schools.map(s=>`<div class="schoolPlanBox"><div class="schoolPlanTitle">${s}</div>
- ${(ensureSchoolSchedule(s)).map((row,i)=>`<div class="schoolPlanRow">
-   <select onchange="updateSchoolSchedule('${s.replace(/'/g,"\\'")}',${i},'day',this.value)">${opt(days,row.day)}</select>
-   <select onchange="updateSchoolSchedule('${s.replace(/'/g,"\\'")}',${i},'time',this.value)">${opt(times,row.time)}</select>
-   <button class="primary miniSave" onclick="saveSettingButton(this)">Zapisz</button>
-   <button class="danger" onclick="removeSchoolSchedule('${s.replace(/'/g,"\\'")}',${i})">Usuń</button>
- </div>`).join("")||'<div class="muted schoolPlanEmpty">Brak przypisanych terminów.</div>'}
- <button class="soft" onclick="addSchoolSchedule('${s.replace(/'/g,"\\'")}')">+ Dodaj dzień i godzinę</button></div>`).join("")}
- </div><div class="card"><h2>Dane programu</h2><p class="muted">Wersja ${VERSION}. Zmiany ustawień wpływają na listy wyboru w całej aplikacji.</p><div class="actions"><button class="primary" onclick="saveSettings()">✓ Zapisz ustawienia</button><button class="dark" onclick="backupBtn.click()">Kopia danych</button></div></div>`;
+ <div class="card"><h2>Plan szkół — tygodniowy grafik</h2>
+ <p class="muted">Zaznacz dni, w których szkoła ma zajęcia. Dla zaznaczonego dnia wybierz jedną lub kilka godzin.</p>
+ ${data.settings.schools.map(s=>`<div class="schoolPlanBox">
+   <div class="schoolPlanTitle">${s}</div>
+   ${days.map(day=>`<div class="schoolWeekRow">
+     <label class="schoolDayToggle">
+       <input type="checkbox" ${schoolDayEnabled(s,day)?"checked":""} onchange="toggleSchoolDay('${s.replace(/'/g,"\\'")}','${day.replace(/'/g,"\\'")}',this.checked)">
+       <span>${day}</span>
+     </label>
+     <div class="schoolTimeChoices ${schoolDayEnabled(s,day)?"":"disabledTimes"}">
+       ${times.map(t=>`<label class="timeChip"><input type="checkbox" ${schoolDayTimes(s,day).includes(t)?"checked":""} ${schoolDayEnabled(s,day)?"":"disabled"} onchange="toggleSchoolDayTime('${s.replace(/'/g,"\\'")}','${day.replace(/'/g,"\\'")}','${t}',this.checked)"><span>${t}</span></label>`).join("")}
+     </div>
+   </div>`).join("")}
+   <button class="primary schoolScheduleSave" onclick="saveSchoolScheduleButton(this)">Zapisz grafik szkoły</button>
+ </div>`).join("")}
+ </div>
+ <div class="card"><h2>Dane programu</h2><p class="muted">Wersja ${VERSION}. Zmiany ustawień wpływają na listy wyboru w całej aplikacji.</p><div class="actions"><button class="primary" onclick="saveSettings()">✓ Zapisz ustawienia</button><button class="dark" onclick="backupBtn.click()">Kopia danych</button></div></div>`;
 }
 function saveSettings(quiet=false){
  data.settings.workshops=data.settings.workshops.filter(x=>String(x.name||"").trim()).map(x=>({name:String(x.name).trim(),price:Number(x.price||0)}));
@@ -1910,5 +1945,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v75.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v76.json";a.click()}
 render();
