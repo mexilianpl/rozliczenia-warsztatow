@@ -1,5 +1,5 @@
 
-const VERSION="8.5";
+const VERSION="8.6";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -190,6 +190,13 @@ function paymentAmountForMonthYear(ch,monthName,year){
    return !Number.isNaN(d.getTime())&&d.getFullYear()===Number(year);
  }).reduce((s,p)=>s+Number(p.amount||0),0);
 }
+
+function financeMonthRelation(month,year){
+ const mi=monthIndexPL(month),now=new Date();
+ const target=new Date(year,mi,1,12),cur=new Date(now.getFullYear(),now.getMonth(),1,12);
+ return target>cur?"future":target<cur?"past":"current";
+}
+
 function childFinanceRows(ch){
  return months.map(month=>{
    const year=schoolYearMonthYear(month);
@@ -201,7 +208,7 @@ function childFinanceRows(ch){
      .map(v=>new Date(String(v).slice(0,10)+"T12:00:00")).filter(d=>!Number.isNaN(d.getTime()));
    const firstStart=starts.length?new Date(Math.min(...starts.map(d=>d.getTime()))):null;
    const before=firstStart&&monthEnd<firstStart;
-   const kind=before?"before":due<=0?"free":paid<=0?"unpaid":paid<due?"partial":paid>due?"overpaid":"paid";
+   const relation=financeMonthRelation(month,year); const kind=before?"before":relation==="future"?"future":due<=0?"free":paid<=0?"unpaid":paid<due?"partial":paid>due?"overpaid":"paid";
    return {month,year,due,paid,missing,extra,kind};
  });
 }
@@ -381,25 +388,51 @@ function quickAttendanceForChild(cid){
 }
 
 function start(){
- const dash=currentMonthDashboard();
+ const dash=currentMonthDashboard(),payStats=dashboardPaidStats();
  const next=nextClassDayInfo(),groupsToday=classesGroupedForDay(next.items);
  const dayText=next.delta===0?"Dzisiejsze zajęcia":next.delta===1?"Jutrzejsze zajęcia":next.delta!==null?`Najbliższe zajęcia za ${next.delta} dni`:"Najbliższe zajęcia";
  app.innerHTML=`<div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Podsumowanie miesiąca</h2>
  <div class="currentPeriodLabel">${dash.period.month} ${dash.period.year}</div>
  <div class="summary dashboardSummary">
-   <div class="stat">Należne w miesiącu<b>${money(dash.due)}</b></div>
-   <div class="stat paidStat">Wpłaty dzieci<b>${money(dash.childPaid)}</b></div>
-   <div class="stat missingStat">Brakuje wpłat<b>${money(dash.missing)}</b><span class="missingPeopleCount">${dash.missingPeople} ${dash.missingPeople===1?"osoba nie wpłaciła":"osób nie wpłaciło"}</span></div>
-   <div class="stat partialStat">Niepełne wpłaty<b>${dash.partialPeople}</b><span>dzieci z wpłatą częściową</span></div>
-   <div class="stat">Dodatkowe przychody<b>${money(dash.extra)}</b></div>
-   <div class="stat">Razem wpływy<b>${money(dash.total)}</b></div>
+   <button class="stat dashboardTile" onclick="page='reports';render()"><span>Należne w miesiącu</span><b>${money(dash.due)}</b><small>${payStats.dueCount} dzieci z należnością</small></button>
+   <button class="stat paidStat dashboardTile" onclick="page='payments';render()"><span>Wpłaty dzieci</span><b>${money(dash.childPaid)}</b><small>${payStats.paidCount}/${payStats.dueCount} opłaconych</small></button>
+   <button class="stat missingStat dashboardTile" onclick="openDashboardArrears('all')"><span>Brakuje wpłat</span><b>${money(dash.missing)}</b><small>${dash.missingPeople} ${dash.missingPeople===1?"osoba z zaległością":"osób z zaległością"}</small></button>
+   <button class="stat partialStat dashboardTile" onclick="openDashboardArrears('partial')"><span>Niepełne wpłaty</span><b>${dash.partialPeople}</b><small>${payStats.partialCount} częściowych • ${payStats.unpaidCount} bez wpłaty</small></button>
+   <button class="stat dashboardTile" onclick="page='income';render()"><span>Dodatkowe przychody</span><b>${money(dash.extra)}</b><small>otwórz przychody</small></button>
+   <button class="stat dashboardTile" onclick="page='reports';render()"><span>Razem wpływy</span><b>${money(dash.total)}</b><small>zobacz raport</small></button>
  </div>
  ${!dash.activeSchoolMonth?`<div class="notice dashboardNotice">Aktualny miesiąc (${dash.period.month}) jest poza standardowym okresem zajęć Wrzesień–Czerwiec, dlatego należność miesięczna wynosi 0,00 zł.</div>`:""}
  <div class="schoolStatsGrid">
- ${(data.settings?.schools||schools).map(s=>{const x=dash.schoolStats[s]||{total:0,girls:0,boys:0};return `<button class="schoolStatCard" onclick="openChildrenForSchool('${s.replace(/'/g,"\\'")}')"><b>${s}</b><strong>${x.total} aktywnych dzieci</strong><span>👧 ${x.girls} dziewczynek • 👦 ${x.boys} chłopców</span></button>`}).join("")}
+ ${(data.settings?.schools||schools).map(s=>{const x=dash.schoolStats[s]||{total:0,girls:0,boys:0};return `<button class="schoolStatCard" onclick="openChildrenForSchool('${s.replace(/'/g,"\\'")}')"><b>${s}</b><strong>${x.total} aktywnych dzieci</strong><span>👧 ${x.girls} dziewczynek • 👦 ${x.boys} chłopców</span><small>Dotknij, aby otworzyć dzieci tej szkoły</small></button>`}).join("")}
  </div>
  <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>{const a=groupAttendanceState(g),isToday=next.delta===0;return `<div class="nextClassActionCard"><div><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span>${isToday?`<small class="${a.done?"attendanceDone":"attendancePending"}">${a.done?"✓ Obecność sprawdzona":`Obecność: ${a.count}/${a.total}`}</small>`:""}</div><button class="${a.done?"doneAttendanceBtn":"primary"}" onclick="${isToday?`openAttendanceForGroup('${g.school}','${g.type}','${g.day}','${g.time}')`:`goToGroup('${g.school}','${g.day}','${g.time}','${g.type}')`}">${isToday?(a.done?"✓ Sprawdzone":"Sprawdź obecność"):"Otwórz grupę"}</button></div>`}).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>`;
 }
+
+function dashboardPaidStats(){
+ const period=currentDashboardPeriod();
+ let dueCount=0,paidCount=0,partialCount=0,unpaidCount=0;
+ if(!months.includes(period.month))return {dueCount,paidCount,partialCount,unpaidCount};
+ data.children.forEach(c=>{
+   if(typeof childActiveNow==="function"&&!childActiveNow(c))return;
+   const due=childDueForMonth(c,period.month,period.year);
+   if(due<=0)return;
+   dueCount++;
+   const paid=data.payments.filter(p=>Number(p.childId)===Number(c.id)&&paymentBelongsToDashboardMonth(p,period)).reduce((s,p)=>s+Number(p.amount||0),0);
+   if(paid>=due)paidCount++;
+   else if(paid>0)partialCount++;
+   else unpaidCount++;
+ });
+ return {dueCount,paidCount,partialCount,unpaidCount};
+}
+function openDashboardArrears(mode="all"){
+ window.dashboardArrearsMode=mode;
+ page="lists";render();
+ setTimeout(()=>{
+   const t=document.getElementById("lType");
+   if(t){t.value="arrears";refreshListPreview()}
+ },0);
+}
+
 function openChildrenForSchool(school){
  childrenViewState={q:"",school:school,workshop:"",day:"",time:"",focusChildId:0};
  page="children";render();
@@ -2012,7 +2045,7 @@ function editChild(id){
   ${id?`<section class="childProfileSection" data-section="payments">
    <h3>Rozliczenia — ${data.currentSchoolYear}</h3>
    <div class="profilePaymentQuick"><button class="primary" onclick="closeModal();addPayment(${c.id},'${escapeAttr(c.last)}')">+ Dodaj wpłatę</button>${c.phone?`<button class="smsBtn" onclick="sendReminderSMS(${c.id},'${months.includes(currentMonthName())?currentMonthName():"Wrzesień"}')">💬 SMS</button>`:""}</div>
-   <div class="financeTable"><div class="financeHead"><span>Miesiąc</span><span>Należne</span><span>Wpłacono</span><span>Status</span></div>${finance.map(r=>`<div class="financeRow"><span><b>${r.month}</b><small>${r.year}</small></span><span>${money(r.due)}</span><span>${money(r.paid)}</span><span class="${paymentStatusClass(r.kind)}">${r.kind==="paid"?"✓ Opłacone":r.kind==="partial"?`Brakuje ${money(r.missing)}`:r.kind==="unpaid"&&r.due>0?`Brakuje ${money(r.due)}`:r.kind==="overpaid"?`Nadpłata ${money(r.extra)}`:r.kind==="before"?"Przed zapisem":"—"}</span></div>`).join("")}</div>
+   <div class="financeTable"><div class="financeHead"><span>Miesiąc</span><span>Należne</span><span>Wpłacono</span><span>Status</span></div>${finance.map(r=>`<div class="financeRow"><span><b>${r.month}</b><small>${r.year}</small></span><span>${money(r.due)}</span><span>${money(r.paid)}</span><span class="${paymentStatusClass(r.kind)}">${r.kind==="paid"?"✓ Opłacone":r.kind==="partial"?`Brakuje ${money(r.missing)}`:r.kind==="unpaid"&&r.due>0?`Brakuje ${money(r.due)}`:r.kind==="overpaid"?`Nadpłata ${money(r.extra)}`:r.kind==="before"?"Przed zapisem":r.kind==="future"?`Do zapłaty ${money(r.due)}`:"—"}</span></div>`).join("")}</div>
   </section>
   <section class="childProfileSection" data-section="attendance">
    <h3>Frekwencja</h3>
@@ -2176,7 +2209,8 @@ function interactiveListPanel(type){
  const arr=listFilteredChildren();
  if(type==="arrears"){
    const month=listSelectedMonth();
-   const debtors=arr.map(c=>({c,ps:paymentState(c,month)})).filter(x=>["unpaid","partial"].includes(x.ps.kind));
+   let debtors=arr.map(c=>({c,ps:paymentState(c,month)})).filter(x=>["unpaid","partial"].includes(x.ps.kind));
+   if(window.dashboardArrearsMode==="partial")debtors=debtors.filter(x=>x.ps.kind==="partial");
    return `<div class="card interactiveListCard"><h2>Zaległości — szybkie działania</h2>
     <div class="muted interactiveListInfo">${month} • ${debtors.length} ${debtors.length===1?"osoba":"osób"} z zaległością</div>
     ${debtors.length?debtors.map(({c,ps})=>`<div class="interactiveListRow">
@@ -2216,5 +2250,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v85.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v86.json";a.click()}
 render();

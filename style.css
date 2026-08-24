@@ -437,3 +437,11 @@ button.actionSaved{
  .childQuickActions{grid-template-columns:repeat(4,1fr);gap:5px}
  .childQuickActions button{font-size:11px;padding:9px 3px}
 }
+
+/* v8.6 — prawdziwy dashboard */
+.dashboardTile{width:100%;text-align:left;border:1px solid var(--line);cursor:pointer}
+.dashboardTile span{display:block}
+.dashboardTile small{display:block;margin-top:8px;font-size:12px;line-height:1.25;color:#6f7984;font-weight:800}
+.dashboardTile:active{transform:scale(.985)}
+.schoolStatCard small{font-size:11px;color:#89929c;margin-top:4px}
+.financeRow .future{color:#89929c!important;font-weight:800}
