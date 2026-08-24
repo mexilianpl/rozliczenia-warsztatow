@@ -1,5 +1,5 @@
 
-const VERSION="8.3";
+const VERSION="8.4";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -196,7 +196,12 @@ function childFinanceRows(ch){
    const due=childDueForMonth(ch,month,year);
    const paid=paymentAmountForMonthYear(ch,month,year);
    const missing=Math.max(0,due-paid),extra=Math.max(0,paid-due);
-   const kind=due<=0?"free":paid<=0?"unpaid":paid<due?"partial":paid>due?"overpaid":"paid";
+   const mi=monthIndexPL(month), monthEnd=new Date(year,mi+1,0,12);
+   const starts=(ch.classes||[]).map(cl=>cl.startDate||ch.startDate||"").filter(Boolean)
+     .map(v=>new Date(String(v).slice(0,10)+"T12:00:00")).filter(d=>!Number.isNaN(d.getTime()));
+   const firstStart=starts.length?new Date(Math.min(...starts.map(d=>d.getTime()))):null;
+   const before=firstStart&&monthEnd<firstStart;
+   const kind=before?"before":due<=0?"free":paid<=0?"unpaid":paid<due?"partial":paid>due?"overpaid":"paid";
    return {month,year,due,paid,missing,extra,kind};
  });
 }
@@ -1944,7 +1949,7 @@ function editChild(id){
   <div class="consentRow"><span>Regulamin zajęć</span><select id="fRulesConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.rules))}</select></div>
  </div>
  ${id?(()=>{const a=attendanceSummary(c.id);return `<div class="consentBox"><h3>Frekwencja</h3><div class="attendanceStats"><div><b>${a.total}</b><span>Zajęć</span></div><div><b>${a.present}</b><span>Obecności</span></div><div><b>${a.absent}</b><span>Nieobecności</span></div><div><b>${a.pct}%</b><span>Frekwencja</span></div></div></div>`})():""}
- ${id?(()=>{const rows=childFinanceRows(c);return `<div class="consentBox financeHistory"><h3>Rozliczenia — ${data.currentSchoolYear}</h3><div class="financeTable"><div class="financeHead"><span>Miesiąc</span><span>Należne</span><span>Wpłacono</span><span>Status</span></div>${rows.map(r=>`<div class="financeRow"><span><b>${r.month}</b><small>${r.year}</small></span><span>${money(r.due)}</span><span>${money(r.paid)}</span><span class="${paymentStatusClass(r.kind)}">${r.kind==="paid"?"✓ Opłacone":r.kind==="partial"?`Brakuje ${money(r.missing)}`:r.kind==="unpaid"&&r.due>0?`Brakuje ${money(r.due)}`:r.kind==="overpaid"?`Nadpłata ${money(r.extra)}`:"—"}</span></div>`).join("")}</div></div>`})():""}
+ ${id?(()=>{const rows=childFinanceRows(c);return `<div class="consentBox financeHistory"><h3>Rozliczenia — ${data.currentSchoolYear}</h3><div class="financeTable"><div class="financeHead"><span>Miesiąc</span><span>Należne</span><span>Wpłacono</span><span>Status</span></div>${rows.map(r=>`<div class="financeRow"><span><b>${r.month}</b><small>${r.year}</small></span><span>${money(r.due)}</span><span>${money(r.paid)}</span><span class="${paymentStatusClass(r.kind)}">${r.kind==="paid"?"✓ Opłacone":r.kind==="partial"?`Brakuje ${money(r.missing)}`:r.kind==="unpaid"&&r.due>0?`Brakuje ${money(r.due)}`:r.kind==="overpaid"?`Nadpłata ${money(r.extra)}`:r.kind==="before"?"Przed zapisem":"—"}</span></div>`).join("")}</div></div>`})():""}
  ${id?`<div class="consentBox"><h3>Historia zmian</h3>${hist.length?hist.map(h=>`<div class="historyLine"><b>${new Date(h.date).toLocaleString("pl-PL")}</b><span>${escapeHtml(h.text)}</span></div>`).join(""):'<div class="muted">Brak historii zmian.</div>'}</div>`:""}
  <div class="actions">${id?`<button class="${c.activityStatus==="Aktywne"?"warnBtn":"resumeBtn"}" onclick="${c.activityStatus==="Aktywne"?`pauseChild(${c.id})`:`resumeChild(${c.id})`}">${c.activityStatus==="Aktywne"?"Wstrzymaj uczestnictwo":"Wznów uczestnictwo"}</button>`:""}<button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
 }
@@ -1990,7 +1995,7 @@ function childCard(c){
 /* zapis zajęć z limitem i historią */
 function saveClass(cid,id,exists){
  let ch=data.children.find(c=>c.id==cid),old=exists?ch.classes.find(x=>x.id==id):null;
- let cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value,waitlist:old?.waitlist||false,startDate:clStartDate?.value||"",endDate:clEndDate?.value||"",firstMonthOverride:(clFirstMonthOverride?.value===""?"":Number(clFirstMonthOverride.value))};
+ let cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value,waitlist:old?.waitlist||false,startDate:clStartDate?.value||(old?.startDate||ch.startDate||new Date().toISOString().slice(0,10)),endDate:clEndDate?.value||"",firstMonthOverride:(clFirstMonthOverride?.value===""?"":Number(clFirstMonthOverride.value))};
  enforceClassCapacity(ch,cl);
  if(exists)ch.classes[ch.classes.findIndex(x=>x.id==id)]=cl;else ch.classes.push(cl);
  logHistory(cid,`${exists?"Zmieniono":"Dodano"} zajęcia: ${cl.type}, ${cl.school}, ${cl.day} ${cl.time}${cl.waitlist?" — lista rezerwowa":""}.`);
@@ -2130,5 +2135,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v83.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v84.json";a.click()}
 render();

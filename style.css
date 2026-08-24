@@ -391,3 +391,6 @@ button.actionSaved{
  .financeHead,.financeRow{grid-template-columns:1.05fr .85fr .85fr 1.25fr;padding:9px 7px;gap:5px;font-size:11px}
  .financeHead{font-size:10px}
 }
+
+/* v8.4 — miesiące sprzed zapisu nie są zaległością */
+.financeRow .before{color:#8b949e;font-weight:800}
