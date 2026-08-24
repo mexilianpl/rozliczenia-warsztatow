@@ -363,3 +363,15 @@ button.actionSaved{
 }
 
 /* v8.1 — stabilne zachowanie wyników wyszukiwania po edycji zajęć */
+
+/* v8.2 */
+.partialStat{background:#fff7e8;border-color:#f0d7a3;color:#ad6c00}
+.partialStat b,.partialStat span{color:#ad6c00!important}
+.partialStat span{display:block;margin-top:8px;font-size:14px;font-weight:800}
+.schoolStatsGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}
+.schoolStatCard{text-align:left;background:#fff;border:1px solid var(--line);border-radius:24px;padding:20px;display:flex;flex-direction:column;gap:8px;color:var(--blue)}
+.schoolStatCard b{font-size:18px}.schoolStatCard strong{font-size:28px}.schoolStatCard span{color:#6f7984;font-weight:700}
+.warnBtn{background:#fff1db;color:#a96600;border:0;border-radius:16px;padding:12px 16px;font-weight:900}
+.resumeBtn{background:#e4f7ef;color:#16845c;border:0;border-radius:16px;padding:12px 16px;font-weight:900}
+.attendanceModalDate{font-weight:800;color:#6f7984;margin:6px 0 16px;text-transform:capitalize}
+@media(max-width:650px){.schoolStatsGrid{grid-template-columns:1fr 1fr;gap:12px}.schoolStatCard{padding:16px}.schoolStatCard strong{font-size:22px}.schoolStatCard span{font-size:13px}}

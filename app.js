@@ -1,5 +1,5 @@
 
-const VERSION="8.1";
+const VERSION="8.2";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -138,7 +138,7 @@ function childPaymentsForMonth(ch,month="Wrzesień"){
     .reduce((s,p)=>s+Number(p.amount||0),0);
 }
 function paymentState(ch,month="Wrzesień"){
-  const due=childDue(ch), paid=childPaymentsForMonth(ch,month);
+  const due=childDueForMonth(ch,month,new Date().getFullYear()), paid=childPaymentsForMonth(ch,month);
   if(due<=0)return {kind:"free",due,paid,missing:0,extra:Math.max(0,paid),label:"BEZPŁATNE"};
   if(paid<=0)return {kind:"unpaid",due,paid,missing:due,extra:0,label:"BRAK WPŁATY"};
   if(paid<due)return {kind:"partial",due,paid,missing:due-paid,extra:0,label:`CZĘŚCIOWO WPŁACONO • BRAKUJE ${money(due-paid)}`};
@@ -174,6 +174,43 @@ function renderNav(){nav.innerHTML=tabs.map(t=>`<button class="${page==t[0]?"act
 function go(p){page=p;render()}
 function render(){renderNav(); ({start,children,payments,income,signups,groups,reports,lists,settings}[page]||start)()}
 
+
+
+function monthIndexPL(name){
+ const names=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+ return names.indexOf(name);
+}
+function datesForWeekdayInMonth(year,monthIndex,dayName){
+ const wanted=dayIndex(dayName),out=[];
+ if(wanted===99)return out;
+ const d=new Date(year,monthIndex,1,12);
+ while(d.getMonth()===monthIndex){
+   if(d.getDay()===wanted)out.push(new Date(d));
+   d.setDate(d.getDate()+1);
+ }
+ return out;
+}
+function classDueForMonth(ch,cl,monthName,year){
+ if(cl.status==="bezplatne")return 0;
+ if(typeof childActiveNow==="function"&&!childActiveNow(ch))return 0;
+ const mi=monthIndexPL(monthName);
+ if(mi<0)return dueClass(cl);
+ const full=dueClass(cl),startRaw=cl.startDate||ch.startDate||"",endRaw=cl.endDate||ch.endDate||"";
+ const start=startRaw?new Date(startRaw+"T12:00:00"):null,end=endRaw?new Date(endRaw+"T12:00:00"):null;
+ const first=new Date(year,mi,1,12),last=new Date(year,mi+1,0,12);
+ if(start&&start>last)return 0;
+ if(end&&end<first)return 0;
+ if(start&&start.getFullYear()===year&&start.getMonth()===mi){
+   const all=datesForWeekdayInMonth(year,mi,cl.day);
+   if(!all.length)return full;
+   const left=all.filter(d=>d>=start&&(!end||d<=end)).length;
+   return left>0?full*(left/all.length):0;
+ }
+ return full;
+}
+function childDueForMonth(ch,monthName,year){
+ return (ch.classes||[]).reduce((s,cl)=>s+classDueForMonth(ch,cl,monthName,year),0);
+}
 
 function currentMonthName(){
  const names=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
@@ -252,28 +289,33 @@ function incomeBelongsToDashboardMonth(i,period){
 function currentMonthDashboard(){
  const period=currentDashboardPeriod();
  const activeSchoolMonth=months.includes(period.month);
- const due=activeSchoolMonth?data.children.reduce((s,c)=>s+childDue(c),0):0;
- const childPaid=data.payments.filter(p=>paymentBelongsToDashboardMonth(p,period))
-   .reduce((s,p)=>s+Number(p.amount||0),0);
- const extra=data.income.filter(i=>incomeBelongsToDashboardMonth(i,period))
-   .reduce((s,i)=>s+Number(i.amount||0),0);
+ const due=activeSchoolMonth?data.children.reduce((s,c)=>s+childDueForMonth(c,period.month,period.year),0):0;
+ const childPaid=data.payments.filter(p=>paymentBelongsToDashboardMonth(p,period)).reduce((s,p)=>s+Number(p.amount||0),0);
+ const extra=data.income.filter(i=>incomeBelongsToDashboardMonth(i,period)).reduce((s,i)=>s+Number(i.amount||0),0);
  const missing=Math.max(0,due-childPaid);
- let missingPeople=0;
+ let missingPeople=0,partialPeople=0;
  if(activeSchoolMonth){
    data.children.forEach(c=>{
-     if(typeof childActiveNow==="function" && !childActiveNow(c))return;
-     const dueChild=childDue(c);
-     if(dueChild<=0)return;
-     const paid=data.payments.filter(p=>Number(p.childId)===Number(c.id)&&paymentBelongsToDashboardMonth(p,period))
-       .reduce((s,p)=>s+Number(p.amount||0),0);
-     if(paid<dueChild)missingPeople++;
+     if(typeof childActiveNow==="function"&&!childActiveNow(c))return;
+     const d=childDueForMonth(c,period.month,period.year); if(d<=0)return;
+     const p=data.payments.filter(x=>Number(x.childId)===Number(c.id)&&paymentBelongsToDashboardMonth(x,period)).reduce((s,x)=>s+Number(x.amount||0),0);
+     if(p<d)missingPeople++;
+     if(p>0&&p<d)partialPeople++;
    });
  }
- return {period,due,childPaid,extra,total:childPaid+extra,missing,missingPeople,activeSchoolMonth};
+ const schoolStats={};
+ (data.settings?.schools||schools).forEach(s=>schoolStats[s]={total:0,girls:0,boys:0});
+ data.children.forEach(c=>{
+   if(typeof childActiveNow==="function"&&!childActiveNow(c))return;
+   const s=c.school||c.classes?.[0]?.school||"";
+   schoolStats[s]=schoolStats[s]||{total:0,girls:0,boys:0}; schoolStats[s].total++;
+   if(c.sex==="Dziewczynka")schoolStats[s].girls++; else if(c.sex==="Chłopiec")schoolStats[s].boys++;
+ });
+ return {period,due,childPaid,extra,total:childPaid+extra,missing,missingPeople,partialPeople,schoolStats,activeSchoolMonth};
 }
 function start(){
  const dash=currentMonthDashboard();
- const tasks=taskCounts(), next=nextClassDayInfo(), groupsToday=classesGroupedForDay(next.items);
+ const next=nextClassDayInfo(),groupsToday=classesGroupedForDay(next.items);
  const dayText=next.delta===0?"Dzisiejsze zajęcia":next.delta===1?"Jutrzejsze zajęcia":next.delta!==null?`Najbliższe zajęcia za ${next.delta} dni`:"Najbliższe zajęcia";
  app.innerHTML=`<div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Podsumowanie miesiąca</h2>
  <div class="currentPeriodLabel">${dash.period.month} ${dash.period.year}</div>
@@ -281,17 +323,19 @@ function start(){
    <div class="stat">Należne w miesiącu<b>${money(dash.due)}</b></div>
    <div class="stat paidStat">Wpłaty dzieci<b>${money(dash.childPaid)}</b></div>
    <div class="stat missingStat">Brakuje wpłat<b>${money(dash.missing)}</b><span class="missingPeopleCount">${dash.missingPeople} ${dash.missingPeople===1?"osoba nie wpłaciła":"osób nie wpłaciło"}</span></div>
+   <div class="stat partialStat">Niepełne wpłaty<b>${dash.partialPeople}</b><span>dzieci z wpłatą częściową</span></div>
    <div class="stat">Dodatkowe przychody<b>${money(dash.extra)}</b></div>
    <div class="stat">Razem wpływy<b>${money(dash.total)}</b></div>
  </div>
  ${!dash.activeSchoolMonth?`<div class="notice dashboardNotice">Aktualny miesiąc (${dash.period.month}) jest poza standardowym okresem zajęć Wrzesień–Czerwiec, dlatego należność miesięczna wynosi 0,00 zł.</div>`:""}
- <div class="card"><h2>Do zrobienia</h2><div class="todoGrid">
-   <div class="todoItem dangerLite"><b>${tasks.unpaid}</b><span>brakujących wpłat</span></div>
-   <div class="todoItem warnLite"><b>${tasks.partial}</b><span>częściowych wpłat</span></div>
-   <div class="todoItem infoLite"><b>${tasks.noConsent}</b><span>braków danych o zgodzie na wizerunek</span></div>
- </div></div>
- <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>`<button class="nextClassCard" onclick="goToGroup('${g.school}','${g.day}','${g.time}','${g.type}')"><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span></button>`).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>
- <div class="card"><h2>Szybkie wyszukiwanie dziecka</h2><div class="search"><input id="quick" placeholder="Nazwisko lub imię..." oninput="quickSearch(this.value)"></div><div id="quickResults"></div></div>`;
+ <div class="schoolStatsGrid">
+ ${(data.settings?.schools||schools).map(s=>{const x=dash.schoolStats[s]||{total:0,girls:0,boys:0};return `<button class="schoolStatCard" onclick="openChildrenForSchool('${s.replace(/'/g,"\\'")}')"><b>${s}</b><strong>${x.total} aktywnych dzieci</strong><span>👧 ${x.girls} dziewczynek • 👦 ${x.boys} chłopców</span></button>`}).join("")}
+ </div>
+ <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>`<button class="nextClassCard" onclick="goToGroup('${g.school}','${g.day}','${g.time}','${g.type}')"><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span></button>`).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>`;
+}
+function openChildrenForSchool(school){
+ childrenViewState={q:"",school:school,workshop:"",day:"",time:"",focusChildId:0};
+ page="children";render();
 }
 function quickSearch(q){let el=document.querySelector("#quickResults");q=q.toLowerCase().trim(); if(!q){el.innerHTML="";return} el.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)).map(c=>`<div class="card" onclick="openChild(${c.id})"><b class="name">${c.last} ${c.first}</b><div class="muted">${c.class} • ${c.school} • zajęcia: ${c.classes.length}</div></div>`).join("")||"Brak wyników"}
 function children(){
@@ -978,7 +1022,7 @@ function attendanceKey(){return `${new Date().toISOString().slice(0,10)}|${gScho
 function showAttendance(){
  const arr=selectedGroupRows();if(!arr.length)return;
  const key=attendanceKey(),saved=data.attendance[key]||{};
- modal(`<h2>Obecność — ${gSchool.value}</h2><div class="muted">${gDay.value} ${gTime.value}</div>
+ modal(`<h2>Obecność — ${gSchool.value}</h2><div class="muted">${gDay.value} ${gTime.value}</div><div class="attendanceModalDate">${new Intl.DateTimeFormat("pl-PL",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date())}</div>
  ${arr.map(({c})=>`<div class="attendanceRow"><div><b>${c.last} ${c.first}</b><small>${c.class||""} • ${c.pickupPlace||""}</small></div>
  <div class="attendanceBtns"><button class="${saved[c.id]==="present"?"attActive presentBtn":"soft"}" onclick="setAttendance('${key}',${c.id},'present',this)">Obecny</button>
  <button class="${saved[c.id]==="absent"?"attActive absentBtn":"soft"}" onclick="setAttendance('${key}',${c.id},'absent',this)">Nieobecny</button></div></div>`).join("")}
@@ -1718,6 +1762,16 @@ function logHistory(childId,text){
  data.history.push({id:Date.now()+Math.random(),childId:Number(childId),date:new Date().toISOString(),text});
  if(data.history.length>5000)data.history=data.history.slice(-5000);
 }
+function pauseChild(cid){
+ const c=data.children.find(x=>x.id==cid);if(!c)return;
+ c.activityStatus="Wstrzymane";c.endDate=new Date().toISOString().slice(0,10);
+ logHistory(c.id,"Wstrzymano uczestnictwo.");save();closeModal();page="children";render();
+}
+function resumeChild(cid){
+ const c=data.children.find(x=>x.id==cid);if(!c)return;
+ c.activityStatus="Aktywne";c.startDate=new Date().toISOString().slice(0,10);c.endDate="";
+ logHistory(c.id,"Wznowiono uczestnictwo.");save();closeModal();page="children";render();
+}
 function childHistory(childId){return data.history.filter(h=>Number(h.childId)===Number(childId)).sort((a,b)=>b.date.localeCompare(a.date))}
 function childActiveNow(c){
  if(c.activityStatus==="Zrezygnował"||c.activityStatus==="Wstrzymane")return false;
@@ -1863,7 +1917,7 @@ function editChild(id){
  </div>
  ${id?(()=>{const a=attendanceSummary(c.id);return `<div class="consentBox"><h3>Frekwencja</h3><div class="attendanceStats"><div><b>${a.total}</b><span>Zajęć</span></div><div><b>${a.present}</b><span>Obecności</span></div><div><b>${a.absent}</b><span>Nieobecności</span></div><div><b>${a.pct}%</b><span>Frekwencja</span></div></div></div>`})():""}
  ${id?`<div class="consentBox"><h3>Historia zmian</h3>${hist.length?hist.map(h=>`<div class="historyLine"><b>${new Date(h.date).toLocaleString("pl-PL")}</b><span>${escapeHtml(h.text)}</span></div>`).join(""):'<div class="muted">Brak historii zmian.</div>'}</div>`:""}
- <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
+ <div class="actions">${id?`<button class="${c.activityStatus==="Aktywne"?"warnBtn":"resumeBtn"}" onclick="${c.activityStatus==="Aktywne"?`pauseChild(${c.id})`:`resumeChild(${c.id})`}">${c.activityStatus==="Aktywne"?"Wstrzymaj uczestnictwo":"Wznów uczestnictwo"}</button>`:""}<button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
 }
 function saveChild(id,exists){
  const old=exists?data.children.find(c=>c.id==id):null;
@@ -2047,5 +2101,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v81.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v82.json";a.click()}
 render();
