@@ -394,3 +394,46 @@ button.actionSaved{
 
 /* v8.4 — miesiące sprzed zapisu nie są zaległością */
 .financeRow .before{color:#8b949e;font-weight:800}
+
+/* v8.5 — szybka obsługa, profil w zakładkach, szybkie akcje */
+.nextClassActionCard{
+  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;
+  border:1px solid var(--line);border-radius:20px;padding:15px;margin:10px 0;background:#f8fbfd;
+}
+.nextClassActionCard>div{display:flex;flex-direction:column;gap:4px}
+.nextClassActionCard b{color:var(--blue);font-size:16px}
+.nextClassActionCard span{color:#707a85;font-weight:700}
+.nextClassActionCard small{font-weight:900;margin-top:4px}
+.attendanceDone{color:#16845c}.attendancePending{color:#ad6c00}
+.doneAttendanceBtn{background:#e4f7ef;color:#16845c;border:1px solid #bfe8d6;border-radius:15px;padding:11px 13px;font-weight:900}
+
+.childProfileHeader{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:10px}
+.childProfileHeader h2{margin:0}
+.profileStatus{padding:7px 10px;border-radius:999px;font-size:12px;font-weight:900;white-space:nowrap}
+.profileStatus.active{background:#e4f7ef;color:#16845c}.profileStatus.inactive{background:#fff1db;color:#9a6500}
+.childProfileTabs{display:flex;gap:7px;overflow-x:auto;padding:5px 0 12px;position:sticky;top:-1px;background:#fff;z-index:3}
+.childProfileTab{border:1px solid var(--line);background:#f5f8fa;color:#5d6874;border-radius:999px;padding:9px 13px;font-weight:800;white-space:nowrap}
+.childProfileTab.active{background:#0d5b87;color:white;border-color:#0d5b87}
+.childProfileBody{max-height:62vh;overflow:auto;padding:2px}
+.childProfileSection{display:none}.childProfileSection.active{display:block}
+.childProfileSection h3{color:var(--blue);font-size:19px;margin:12px 0}
+.profileFooter{position:sticky;bottom:-1px;background:#fff;padding-top:12px;margin-top:8px;border-top:1px solid var(--line)}
+.profileClassList{margin:12px 0}
+.profileClassItem{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:16px;margin:8px 0}
+.profileClassItem>div{display:flex;flex-direction:column;gap:3px}.profileClassItem span,.profileClassItem small{color:#707a85}
+.compactBtn{padding:9px 12px!important}.fullBtn{width:100%}
+.profilePaymentQuick{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 14px}
+.profileAttendanceHistory{margin-top:14px;border-top:1px solid var(--line)}
+.profileAttendanceHistory>div{display:flex;justify-content:space-between;gap:12px;padding:10px 2px;border-bottom:1px solid var(--line)}
+.profileAttendanceHistory span{color:#707a85}
+
+.childQuickActions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:12px 0}
+.childQuickActions button{border:1px solid var(--line);background:#f4f8fa;color:var(--blue);border-radius:14px;padding:10px 6px;font-size:12px;font-weight:900}
+.profileBtn{min-width:82px}
+.compactClassRow{padding:10px 0!important}.compactClassRow h3{font-size:16px;margin-bottom:2px}
+@media(max-width:650px){
+ .nextClassActionCard{grid-template-columns:1fr}.nextClassActionCard button{width:100%}
+ .childProfileBody{max-height:66vh}
+ .childQuickActions{grid-template-columns:repeat(4,1fr);gap:5px}
+ .childQuickActions button{font-size:11px;padding:9px 3px}
+}

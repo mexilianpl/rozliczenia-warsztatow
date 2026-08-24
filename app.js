@@ -1,5 +1,5 @@
 
-const VERSION="8.4";
+const VERSION="8.5";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -343,6 +343,43 @@ function currentMonthDashboard(){
  });
  return {period,due,childPaid,extra,total:childPaid+extra,missing,missingPeople,partialPeople,schoolStats,activeSchoolMonth};
 }
+
+function todayDayName(){
+ return ["Niedziela","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota"][new Date().getDay()];
+}
+function todayClassForChild(c){
+ const day=todayDayName();
+ return (c.classes||[]).find(cl=>cl.day===day&&!cl.waitlist&&cl.status!=="bezplatne")||
+        (c.classes||[]).find(cl=>cl.day===day&&!cl.waitlist);
+}
+function groupAttendanceState(g){
+ const key=`${new Date().toISOString().slice(0,10)}|${g.school}|${g.day}|${g.time}`;
+ const saved=data.attendance[key]||{};
+ const ids=(g.children||[]).map(c=>String(c.id));
+ const done=ids.length>0&&ids.every(id=>saved[id]==="present"||saved[id]==="absent");
+ return {key,done,count:ids.filter(id=>saved[id]==="present"||saved[id]==="absent").length,total:ids.length};
+}
+function openAttendanceForGroup(school,type,day,time){
+ page="groups";render();
+ setTimeout(()=>{
+   const s=document.getElementById("gSchool"),w=document.getElementById("gWorkshop"),d=document.getElementById("gDay"),t=document.getElementById("gTime");
+   if(s)s.value=school;
+   updateScheduleSelects("gSchool","gDay","gTime");
+   if(w)w.value=type||"";
+   if(d&&[...d.options].some(o=>o.value===day))d.value=day;
+   updateTimeSelect("gSchool","gDay","gTime");
+   if(t&&[...t.options].some(o=>o.value===time))t.value=time;
+   groupList();
+   showAttendance();
+ },0);
+}
+function quickAttendanceForChild(cid){
+ const c=data.children.find(x=>Number(x.id)===Number(cid));if(!c)return;
+ const cl=todayClassForChild(c);
+ if(!cl){showToast("Dziś dziecko nie ma zajęć");return}
+ openAttendanceForGroup(cl.school,cl.type,cl.day,cl.time);
+}
+
 function start(){
  const dash=currentMonthDashboard();
  const next=nextClassDayInfo(),groupsToday=classesGroupedForDay(next.items);
@@ -361,7 +398,7 @@ function start(){
  <div class="schoolStatsGrid">
  ${(data.settings?.schools||schools).map(s=>{const x=dash.schoolStats[s]||{total:0,girls:0,boys:0};return `<button class="schoolStatCard" onclick="openChildrenForSchool('${s.replace(/'/g,"\\'")}')"><b>${s}</b><strong>${x.total} aktywnych dzieci</strong><span>👧 ${x.girls} dziewczynek • 👦 ${x.boys} chłopców</span></button>`}).join("")}
  </div>
- <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>`<button class="nextClassCard" onclick="goToGroup('${g.school}','${g.day}','${g.time}','${g.type}')"><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span></button>`).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>`;
+ <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>{const a=groupAttendanceState(g),isToday=next.delta===0;return `<div class="nextClassActionCard"><div><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span>${isToday?`<small class="${a.done?"attendanceDone":"attendancePending"}">${a.done?"✓ Obecność sprawdzona":`Obecność: ${a.count}/${a.total}`}</small>`:""}</div><button class="${a.done?"doneAttendanceBtn":"primary"}" onclick="${isToday?`openAttendanceForGroup('${g.school}','${g.type}','${g.day}','${g.time}')`:`goToGroup('${g.school}','${g.day}','${g.time}','${g.type}')`}">${isToday?(a.done?"✓ Sprawdzone":"Sprawdź obecność"):"Otwórz grupę"}</button></div>`}).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>`;
 }
 function openChildrenForSchool(school){
  childrenViewState={q:"",school:school,workshop:"",day:"",time:"",focusChildId:0};
@@ -1917,41 +1954,82 @@ function archiveSchoolYear(){
 }
 
 /* Profil dziecka rozszerzony */
+
+function switchChildProfileTab(name,btn){
+ const box=document.querySelector("#modal .modalbox");if(!box)return;
+ box.querySelectorAll(".childProfileSection").forEach(x=>x.classList.toggle("active",x.dataset.section===name));
+ box.querySelectorAll(".childProfileTab").forEach(x=>x.classList.remove("active"));
+ btn?.classList.add("active");
+ const content=box.querySelector(".childProfileBody");
+ if(content)content.scrollTop=0;
+}
+
 function editChild(id){
  let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],parent:"",phone:"",email:"",pickupPlace:"",activityStatus:"Aktywne",startDate:"",endDate:"",payerGroup:"",consents:{rules:"",personal:"",image:""},classes:[]};
  c.consents=c.consents||{rules:"",personal:"",image:""};
- const hist=id?childHistory(c.id).slice(0,12):[];
- modal(`<h2>${id?"Edytuj profil dziecka":"Dodaj dziecko"}</h2>
- <div class="grid2">
-  <div><label>Nazwisko</label><input id="fLast" value="${escapeAttr(c.last)}"></div>
-  <div><label>Imię</label><input id="fFirst" value="${escapeAttr(c.first)}"></div>
-  <div><label>Płeć</label><select id="fSex">${opt(["Dziewczynka","Chłopiec"],c.sex)}</select></div>
-  <div><label>Klasa</label><input id="fClass" value="${escapeAttr(c.class)}"></div>
+ const hist=id?childHistory(c.id).slice(0,30):[];
+ const att=id?attendanceSummary(c.id):{total:0,present:0,absent:0,pct:0,h:[]};
+ const finance=id?childFinanceRows(c):[];
+ modal(`<div class="childProfileHeader"><div><h2>${id?`${c.first} ${c.last}`:"Dodaj dziecko"}</h2>${id?`<div class="muted">${c.class||"bez klasy"} • ${c.school||""} • ${c.activityStatus||"Aktywne"}</div>`:""}</div>${id?`<span class="profileStatus ${c.activityStatus==="Aktywne"?"active":"inactive"}">${c.activityStatus||"Aktywne"}</span>`:""}</div>
+ <div class="childProfileTabs">
+  <button class="childProfileTab active" onclick="switchChildProfileTab('data',this)">Dane</button>
+  <button class="childProfileTab" onclick="switchChildProfileTab('classes',this)">Zajęcia</button>
+  ${id?`<button class="childProfileTab" onclick="switchChildProfileTab('payments',this)">Płatności</button><button class="childProfileTab" onclick="switchChildProfileTab('attendance',this)">Frekwencja</button>`:""}
+  <button class="childProfileTab" onclick="switchChildProfileTab('consents',this)">Zgody</button>
+  ${id?`<button class="childProfileTab" onclick="switchChildProfileTab('history',this)">Historia</button>`:""}
  </div>
- <div class="grid2">
-  <div><label>Status dziecka</label><select id="fActivity">${opt(["Aktywne","Wstrzymane","Zrezygnował"],c.activityStatus||"Aktywne")}</select></div>
-  <div><label>Wspólny płatnik / rodzina</label><input id="fPayerGroup" value="${escapeAttr(c.payerGroup||"")}" placeholder="np. Rodzina Kolasa"></div>
+ <div class="childProfileBody">
+  <section class="childProfileSection active" data-section="data">
+   <h3>Dane dziecka</h3>
+   <div class="grid2">
+    <div><label>Nazwisko</label><input id="fLast" value="${escapeAttr(c.last)}"></div>
+    <div><label>Imię</label><input id="fFirst" value="${escapeAttr(c.first)}"></div>
+    <div><label>Płeć</label><select id="fSex">${opt(["Dziewczynka","Chłopiec"],c.sex)}</select></div>
+    <div><label>Klasa</label><input id="fClass" value="${escapeAttr(c.class)}"></div>
+   </div>
+   <div class="grid2">
+    <div><label>Status dziecka</label><select id="fActivity">${opt(["Aktywne","Wstrzymane","Zrezygnował"],c.activityStatus||"Aktywne")}</select></div>
+    <div><label>Wspólny płatnik / rodzina</label><input id="fPayerGroup" value="${escapeAttr(c.payerGroup||"")}" placeholder="np. Rodzina Kolasa"></div>
+   </div>
+   <div class="grid2"><div><label>Od kiedy</label><input id="fStartDate" type="date" value="${c.startDate||""}"></div><div><label>Do kiedy / przerwa</label><input id="fEndDate" type="date" value="${c.endDate||""}"></div></div>
+   <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["",...pickupPlaces],c.pickupPlace||"")}</select>
+   <h3>Rodzic / opiekun</h3>
+   <label>Imię i nazwisko</label><input id="fParent" value="${escapeAttr(c.parent||"")}">
+   <div class="grid2"><div><label>Telefon</label><input id="fPhone" value="${escapeAttr(c.phone||"")}"></div><div><label>E-mail</label><input id="fEmail" value="${escapeAttr(c.email||"")}"></div></div>
+  </section>
+
+  <section class="childProfileSection" data-section="classes">
+   <h3>Zajęcia</h3>
+   <label>Szkoła</label><select id="fSchool" onchange="updateScheduleSelects('fSchool','fDay','fTime')">${opt(schools,c.school)}</select>
+   <label>Główne warsztaty</label><select id="fWorkshop">${opt(workshops,c.classes?.[0]?.type||workshops[0])}</select>
+   <div class="grid2">
+    <div><label>Dzień tygodnia</label><select id="fDay" onchange="updateTimeSelect('fSchool','fDay','fTime')">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).days,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).day)}</select></div>
+    <div><label>Godzina</label><select id="fTime">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).times,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).time)}</select></div>
+   </div>
+   ${id?`<div class="profileClassList">${(c.classes||[]).map(cl=>`<div class="profileClassItem"><div><b>${cl.type}</b><span>${cl.school} • ${cl.day} ${cl.time}</span><small>${money(dueClass(cl))}${cl.startDate?` • od ${new Date(cl.startDate+"T12:00:00").toLocaleDateString("pl-PL")}`:""}</small></div><button class="soft compactBtn" onclick="closeModal();editClass(${c.id},${cl.id})">Edytuj</button></div>`).join("")||'<div class="muted">Brak zajęć.</div>'}</div><button class="primary fullBtn" onclick="closeModal();editClass(${c.id})">+ Dodaj kolejne zajęcia</button>`:""}
+  </section>
+
+  ${id?`<section class="childProfileSection" data-section="payments">
+   <h3>Rozliczenia — ${data.currentSchoolYear}</h3>
+   <div class="profilePaymentQuick"><button class="primary" onclick="closeModal();addPayment(${c.id},'${escapeAttr(c.last)}')">+ Dodaj wpłatę</button>${c.phone?`<button class="smsBtn" onclick="sendReminderSMS(${c.id},'${months.includes(currentMonthName())?currentMonthName():"Wrzesień"}')">💬 SMS</button>`:""}</div>
+   <div class="financeTable"><div class="financeHead"><span>Miesiąc</span><span>Należne</span><span>Wpłacono</span><span>Status</span></div>${finance.map(r=>`<div class="financeRow"><span><b>${r.month}</b><small>${r.year}</small></span><span>${money(r.due)}</span><span>${money(r.paid)}</span><span class="${paymentStatusClass(r.kind)}">${r.kind==="paid"?"✓ Opłacone":r.kind==="partial"?`Brakuje ${money(r.missing)}`:r.kind==="unpaid"&&r.due>0?`Brakuje ${money(r.due)}`:r.kind==="overpaid"?`Nadpłata ${money(r.extra)}`:r.kind==="before"?"Przed zapisem":"—"}</span></div>`).join("")}</div>
+  </section>
+  <section class="childProfileSection" data-section="attendance">
+   <h3>Frekwencja</h3>
+   <div class="attendanceStats"><div><b>${att.total}</b><span>Zajęć</span></div><div><b>${att.present}</b><span>Obecności</span></div><div><b>${att.absent}</b><span>Nieobecności</span></div><div><b>${att.pct}%</b><span>Frekwencja</span></div></div>
+   ${att.h.length?`<div class="profileAttendanceHistory">${[...att.h].reverse().slice(0,20).map(x=>`<div><b>${attendanceDatePL(x.date)}</b><span>${x.status==="present"?"✓ Obecny":"Nieobecny"} • ${x.school||""} ${x.time||""}</span></div>`).join("")}</div>`:'<div class="muted">Brak zapisanej frekwencji.</div>'}
+  </section>`:""}
+
+  <section class="childProfileSection" data-section="consents">
+   <h3>Zgody</h3>
+   <div class="consentRow"><span>Zgoda na wizerunek</span><select id="fImageConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.image))}</select></div>
+   <div class="consentRow"><span>Dane osobowe</span><select id="fPersonalConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.personal))}</select></div>
+   <div class="consentRow"><span>Regulamin zajęć</span><select id="fRulesConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.rules))}</select></div>
+  </section>
+
+  ${id?`<section class="childProfileSection" data-section="history"><h3>Historia zmian</h3>${hist.length?hist.map(h=>`<div class="historyLine"><b>${new Date(h.date).toLocaleString("pl-PL")}</b><span>${escapeHtml(h.text)}</span></div>`).join(""):'<div class="muted">Brak historii zmian.</div>'}</section>`:""}
  </div>
- <div class="grid2"><div><label>Od kiedy</label><input id="fStartDate" type="date" value="${c.startDate||""}"></div><div><label>Do kiedy / rezygnacja</label><input id="fEndDate" type="date" value="${c.endDate||""}"></div></div>
- <label>Szkoła</label><select id="fSchool" onchange="updateScheduleSelects('fSchool','fDay','fTime')">${opt(schools,c.school)}</select>
- <label>Rodzaj warsztatów</label><select id="fWorkshop">${opt(workshops,c.classes?.[0]?.type||workshops[0])}</select>
- <div class="grid2">
-   <div><label>Dzień tygodnia</label><select id="fDay" onchange="updateTimeSelect('fSchool','fDay','fTime')">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).days,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).day)}</select></div>
-   <div><label>Godzina</label><select id="fTime">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).times,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).time)}</select></div>
- </div>
- <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["",...pickupPlaces],c.pickupPlace||"")}</select>
- <label>Rodzic / opiekun</label><input id="fParent" value="${escapeAttr(c.parent||"")}">
- <label>Telefon</label><input id="fPhone" value="${escapeAttr(c.phone||"")}">
- <label>E-mail</label><input id="fEmail" value="${escapeAttr(c.email||"")}">
- <div class="consentBox"><h3>Zgody</h3>
-  <div class="consentRow"><span>Zgoda na wizerunek</span><select id="fImageConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.image))}</select></div>
-  <div class="consentRow"><span>Dane osobowe</span><select id="fPersonalConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.personal))}</select></div>
-  <div class="consentRow"><span>Regulamin zajęć</span><select id="fRulesConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.rules))}</select></div>
- </div>
- ${id?(()=>{const a=attendanceSummary(c.id);return `<div class="consentBox"><h3>Frekwencja</h3><div class="attendanceStats"><div><b>${a.total}</b><span>Zajęć</span></div><div><b>${a.present}</b><span>Obecności</span></div><div><b>${a.absent}</b><span>Nieobecności</span></div><div><b>${a.pct}%</b><span>Frekwencja</span></div></div></div>`})():""}
- ${id?(()=>{const rows=childFinanceRows(c);return `<div class="consentBox financeHistory"><h3>Rozliczenia — ${data.currentSchoolYear}</h3><div class="financeTable"><div class="financeHead"><span>Miesiąc</span><span>Należne</span><span>Wpłacono</span><span>Status</span></div>${rows.map(r=>`<div class="financeRow"><span><b>${r.month}</b><small>${r.year}</small></span><span>${money(r.due)}</span><span>${money(r.paid)}</span><span class="${paymentStatusClass(r.kind)}">${r.kind==="paid"?"✓ Opłacone":r.kind==="partial"?`Brakuje ${money(r.missing)}`:r.kind==="unpaid"&&r.due>0?`Brakuje ${money(r.due)}`:r.kind==="overpaid"?`Nadpłata ${money(r.extra)}`:r.kind==="before"?"Przed zapisem":"—"}</span></div>`).join("")}</div></div>`})():""}
- ${id?`<div class="consentBox"><h3>Historia zmian</h3>${hist.length?hist.map(h=>`<div class="historyLine"><b>${new Date(h.date).toLocaleString("pl-PL")}</b><span>${escapeHtml(h.text)}</span></div>`).join(""):'<div class="muted">Brak historii zmian.</div>'}</div>`:""}
- <div class="actions">${id?`<button class="${c.activityStatus==="Aktywne"?"warnBtn":"resumeBtn"}" onclick="${c.activityStatus==="Aktywne"?`pauseChild(${c.id})`:`resumeChild(${c.id})`}">${c.activityStatus==="Aktywne"?"Wstrzymaj uczestnictwo":"Wznów uczestnictwo"}</button>`:""}<button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
+ <div class="profileFooter actions">${id?`<button class="${c.activityStatus==="Aktywne"?"warnBtn":"resumeBtn"}" onclick="${c.activityStatus==="Aktywne"?`pauseChild(${c.id})`:`resumeChild(${c.id})`}">${c.activityStatus==="Aktywne"?"Wstrzymaj":"Wznów"}</button>`:""}<button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
 }
 function saveChild(id,exists){
  const old=exists?data.children.find(c=>c.id==id):null;
@@ -1981,17 +2059,20 @@ function saveChild(id,exists){
 }
 
 function childCard(c){
- const month=currentMonthName(),ps=paymentState(c,months.includes(month)?month:"Wrzesień"),active=childActiveNow(c);
- return `<div class="card ${active?"":"inactiveChild"}"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div>
+ const month=currentMonthName(),billMonth=months.includes(month)?month:"Wrzesień",ps=paymentState(c,billMonth),active=childActiveNow(c),todayCl=todayClassForChild(c);
+ return `<div class="card childCardModern ${active?"":"inactiveChild"}"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div>
  <div class="muted">${c.class} • ${c.school} • ${c.sex}${c.pickupPlace?` • ${c.pickupPlace}`:""} • ${c.activityStatus||"Aktywne"}</div>
- <div class="due">Należne ${months.includes(month)?month:"Wrzesień"}: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div>
- <div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
- ${["unpaid","partial"].includes(ps.kind)?`<div class="actions reminderActions"><button class="smsBtn" onclick="sendReminderSMS(${c.id},'${months.includes(month)?month:"Wrzesień"}')">💬 Wyślij SMS</button><button class="soft" onclick="copyReminder(${c.id},'${months.includes(month)?month:"Wrzesień"}')">Kopiuj przypomnienie</button></div>`:""}
- ${ps.kind==="overpaid"?`<div class="actions"><button class="overpayBtn" onclick="transferOverpayment(${c.id},'${months.includes(month)?month:"Wrzesień"}')">Przenieś nadpłatę ${money(ps.extra)}</button></div>`:""}
- ${(c.classes||[]).map(cl=>`<div class="classrow"><h3>${cl.type}${cl.waitlist?' <span class="waitBadge">LISTA REZERWOWA</span>':''}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}${cl.startDate?` • od ${new Date(cl.startDate+"T12:00:00").toLocaleDateString("pl-PL")}`:""}</div>${cl.firstMonthOverride!==""&&cl.firstMonthOverride!==undefined?`<div class="firstMonthBadge">Pierwszy miesiąc: ${money(cl.firstMonthOverride)} — korekta ręczna</div>`:""}<div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
- <div class="actions"><button class="primary" onclick="editClass(${c.id})">+ Dodaj zajęcia</button></div></div>`
+ <div class="due">Należne ${billMonth}: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div>
+ <div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft profileBtn" onclick="editChild(${c.id})">Profil</button></div>
+ <div class="childQuickActions">
+   <button onclick="addPayment(${c.id},'${escapeAttr(c.last)}')">＋ Wpłata</button>
+   ${c.phone?`<button onclick="sendReminderSMS(${c.id},'${billMonth}')">💬 SMS</button>`:""}
+   <button onclick="${todayCl?`quickAttendanceForChild(${c.id})`:`showToast('Dziś brak zajęć')`}">✓ Obecność</button>
+   <button onclick="${c.classes?.length?`editClass(${c.id},${c.classes[0].id})`:`editClass(${c.id})`}">✎ Zajęcia</button>
+ </div>
+ ${(c.classes||[]).map(cl=>`<div class="classrow compactClassRow"><h3>${cl.type}${cl.waitlist?' <span class="waitBadge">LISTA REZERWOWA</span>':''}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div></div>`).join("")}
+ </div>`
 }
-
 /* zapis zajęć z limitem i historią */
 function saveClass(cid,id,exists){
  let ch=data.children.find(c=>c.id==cid),old=exists?ch.classes.find(x=>x.id==id):null;
@@ -2135,5 +2216,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v84.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v85.json";a.click()}
 render();
