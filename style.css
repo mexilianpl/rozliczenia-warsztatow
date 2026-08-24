@@ -445,3 +445,27 @@ button.actionSaved{
 .dashboardTile:active{transform:scale(.985)}
 .schoolStatCard small{font-size:11px;color:#89929c;margin-top:4px}
 .financeRow .future{color:#89929c!important;font-weight:800}
+
+/* v8.7 — rozliczenia: przyszłość neutralna */
+.financeRow .future,
+.paymentBadgeText.future,
+.future{
+  color:#8b949e!important;
+  font-weight:800;
+}
+.financeRow .before,
+.paymentBadgeText.before,
+.before{
+  color:#8b949e!important;
+  font-weight:800;
+}
+.financeRow .paid,
+.paymentBadgeText.paid{
+  color:#16845c!important;
+}
+.financeRow .partial,
+.financeRow .unpaid,
+.paymentBadgeText.partial,
+.paymentBadgeText.unpaid{
+  color:#c43d4d!important;
+}

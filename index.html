@@ -3,15 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Rozliczenia Warsztatów v8.6</title>
-<link rel="stylesheet" href="style.css?v=86">
+<title>Rozliczenia Warsztatów v8.7</title>
+<link rel="stylesheet" href="style.css?v=87">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0d5b87">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Rozliczenia">
+  <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 <header class="top appHeader">
   <img class="appLogo" src="logo-centrum-kreatywnosci.png" alt="Centrum Kreatywności">
   <div class="appHeaderText">
     <h1>Rozliczenia Warsztatów</h1>
-    <span class="ver">Wersja 8.6 • 24.08.2026</span>
+    <span class="ver">Wersja 8.7 • 24.08.2026</span>
   </div>
 </header>
 <button id="backupBtn" class="hiddenBackupBtn" type="button" aria-hidden="true" tabindex="-1">Kopia</button>
@@ -21,5 +28,12 @@
 <input id="signupCsvInput" type="file" accept=".csv,text/csv" hidden>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=86"></script>
+<script src="app.js?v=87"></script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  });
+}
+</script>
 </body></html>

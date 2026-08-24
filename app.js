@@ -1,5 +1,5 @@
 
-const VERSION="8.6";
+const VERSION="8.7";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -145,8 +145,15 @@ function paymentState(ch,month="Wrzesień"){
   if(paid>due)return {kind:"overpaid",due,paid,missing:0,extra:paid-due,label:`NADPŁATA ${money(paid-due)}`};
   return {kind:"paid",due,paid,missing:0,extra:0,label:"WPŁACONO"};
 }
+function isActualDebtKind(kind){return kind==="unpaid"||kind==="partial"}
 function paymentStatusClass(kind){
-  return kind==="paid"?"paid":kind==="partial"?"partial":kind==="overpaid"?"overpaid":kind==="free"?"free":"unpaid";
+  if(kind==="paid")return "paid";
+  if(kind==="partial")return "partial";
+  if(kind==="overpaid")return "overpaid";
+  if(kind==="free")return "free";
+  if(kind==="future")return "future";
+  if(kind==="before")return "before";
+  return "unpaid";
 }
 function paymentFingerprint({date="",amount=0,payer="",title="",childId=""}){
   const clean=s=>normPerson(String(s||"")).replace(/\s+/g," ");
@@ -2250,5 +2257,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v86.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v87.json";a.click()}
 render();
