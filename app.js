@@ -1,5 +1,5 @@
 
-const VERSION="8.2";
+const VERSION="8.3";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -176,6 +176,30 @@ function render(){renderNav(); ({start,children,payments,income,signups,groups,r
 
 
 
+
+function schoolYearMonthYear(monthName){
+ const m=String(data.currentSchoolYear||"").match(/(\d{4}).*?(\d{4})/);
+ const a=m?Number(m[1]):new Date().getFullYear(),b=m?Number(m[2]):a+1;
+ return ["Wrzesień","Październik","Listopad","Grudzień"].includes(monthName)?a:b;
+}
+function paymentAmountForMonthYear(ch,monthName,year){
+ return data.payments.filter(p=>{
+   if(Number(p.childId)!==Number(ch.id)||p.month!==monthName)return false;
+   if(!p.date)return true;
+   const d=new Date(p.date+"T12:00:00");
+   return !Number.isNaN(d.getTime())&&d.getFullYear()===Number(year);
+ }).reduce((s,p)=>s+Number(p.amount||0),0);
+}
+function childFinanceRows(ch){
+ return months.map(month=>{
+   const year=schoolYearMonthYear(month);
+   const due=childDueForMonth(ch,month,year);
+   const paid=paymentAmountForMonthYear(ch,month,year);
+   const missing=Math.max(0,due-paid),extra=Math.max(0,paid-due);
+   const kind=due<=0?"free":paid<=0?"unpaid":paid<due?"partial":paid>due?"overpaid":"paid";
+   return {month,year,due,paid,missing,extra,kind};
+ });
+}
 function monthIndexPL(name){
  const names=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
  return names.indexOf(name);
@@ -201,6 +225,7 @@ function classDueForMonth(ch,cl,monthName,year){
  if(start&&start>last)return 0;
  if(end&&end<first)return 0;
  if(start&&start.getFullYear()===year&&start.getMonth()===mi){
+   if(cl.firstMonthOverride!==undefined && cl.firstMonthOverride!==null && cl.firstMonthOverride!=="")return Math.max(0,Number(cl.firstMonthOverride)||0);
    const all=datesForWeekdayInMonth(year,mi,cl.day);
    if(!all.length)return full;
    const left=all.filter(d=>d>=start&&(!end||d<=end)).length;
@@ -526,7 +551,7 @@ function childCard(c){
    Wizerunek: ${consentLabel(c.consents?.image)||"brak danych"}
  </div>
  <div class="due">Należne Wrzesień: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div><div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
- ${c.classes.map(cl=>`<div class="classrow"><h3>${cl.type}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}</div><div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
+ ${c.classes.map(cl=>`<div class="classrow"><h3>${cl.type}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}${cl.startDate?` • od ${new Date(cl.startDate+"T12:00:00").toLocaleDateString("pl-PL")}`:""}</div>${cl.firstMonthOverride!==""&&cl.firstMonthOverride!==undefined?`<div class="firstMonthBadge">Pierwszy miesiąc: ${money(cl.firstMonthOverride)} — korekta ręczna</div>`:""}<div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
  <div class="actions"><button class="primary" onclick="editClass(${c.id})">+ Dodaj zajęcia</button></div></div>`}
 function modal(html){document.body.insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modalbox">${html}</div></div>`)}
 function closeModal(){document.querySelector("#modal")?.remove()}
@@ -684,6 +709,9 @@ function editClass(cid,clid){let ch=data.children.find(c=>c.id==cid),cl=ch.class
  modal(`<h2>${clid?"Edytuj":"Dodaj"} zajęcia</h2><label>Rodzaj zajęć</label><select id="clType" onchange="if(!this.dataset.edited){clPrice.value=defaultWorkshopPrice(this.value)}">${opt(workshops,cl.type)}</select><label>Szkoła</label><select id="clSchool" onchange="refreshClassScheduleFields()">${opt(schools,cl.school)}</select>
  <div class="grid2"><div><label>Dzień</label><select id="clDay" onchange="refreshClassTimesForDay()">${opt(classScheduleOptions(cl.school,cl.day,cl.time).days,classScheduleOptions(cl.school,cl.day,cl.time).day)}</select></div><div><label>Godzina</label><select id="clTime">${opt(classScheduleOptions(cl.school,cl.day,cl.time).times,classScheduleOptions(cl.school,cl.day,cl.time).time)}</select></div></div>
  <div class="grid2"><div><label>Cena regularna</label><input id="clPrice" type="number" value="${cl.price}" oninput="clType.dataset.edited=1"></div><div><label>Rabat %</label><select id="clDisc">${opt([0,10,20,30,50,100],cl.discount)}</select></div></div>
+ <div class="grid2"><div><label>Data rozpoczęcia tych zajęć</label><input id="clStartDate" type="date" value="${cl.startDate||ch.startDate||""}"></div><div><label>Data zakończenia / przerwy</label><input id="clEndDate" type="date" value="${cl.endDate||""}"></div></div>
+ <label>Kwota pierwszego miesiąca — korekta ręczna (opcjonalnie)</label><input id="clFirstMonthOverride" type="number" min="0" step="0.01" value="${cl.firstMonthOverride??""}" placeholder="Puste = system wyliczy automatycznie">
+ <div class="muted firstMonthHint">Jeżeli pole zostawisz puste, pierwszy miesiąc zostanie policzony proporcjonalnie do liczby zajęć pozostałych od daty rozpoczęcia. Od następnego miesiąca obowiązuje pełna stawka.</div>
  <label>Status</label><select id="clStatus"><option value="brak" ${cl.status=="brak"?"selected":""}>Brak wpłaty</option><option value="oplacone" ${cl.status=="oplacone"?"selected":""}>Wpłacono</option><option value="bezplatne" ${cl.status=="bezplatne"?"selected":""}>Bezpłatne</option></select>
  <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveClass(${cid},${cl.id},${clid?1:0})">Zapisz</button></div>`) }
 function saveClass(cid,id,exists){let ch=data.children.find(c=>c.id==cid),cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value};if(exists)ch.classes[ch.classes.findIndex(x=>x.id==id)]=cl;else ch.classes.push(cl);save();closeModal();render()}
@@ -1916,6 +1944,7 @@ function editChild(id){
   <div class="consentRow"><span>Regulamin zajęć</span><select id="fRulesConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.rules))}</select></div>
  </div>
  ${id?(()=>{const a=attendanceSummary(c.id);return `<div class="consentBox"><h3>Frekwencja</h3><div class="attendanceStats"><div><b>${a.total}</b><span>Zajęć</span></div><div><b>${a.present}</b><span>Obecności</span></div><div><b>${a.absent}</b><span>Nieobecności</span></div><div><b>${a.pct}%</b><span>Frekwencja</span></div></div></div>`})():""}
+ ${id?(()=>{const rows=childFinanceRows(c);return `<div class="consentBox financeHistory"><h3>Rozliczenia — ${data.currentSchoolYear}</h3><div class="financeTable"><div class="financeHead"><span>Miesiąc</span><span>Należne</span><span>Wpłacono</span><span>Status</span></div>${rows.map(r=>`<div class="financeRow"><span><b>${r.month}</b><small>${r.year}</small></span><span>${money(r.due)}</span><span>${money(r.paid)}</span><span class="${paymentStatusClass(r.kind)}">${r.kind==="paid"?"✓ Opłacone":r.kind==="partial"?`Brakuje ${money(r.missing)}`:r.kind==="unpaid"&&r.due>0?`Brakuje ${money(r.due)}`:r.kind==="overpaid"?`Nadpłata ${money(r.extra)}`:"—"}</span></div>`).join("")}</div></div>`})():""}
  ${id?`<div class="consentBox"><h3>Historia zmian</h3>${hist.length?hist.map(h=>`<div class="historyLine"><b>${new Date(h.date).toLocaleString("pl-PL")}</b><span>${escapeHtml(h.text)}</span></div>`).join(""):'<div class="muted">Brak historii zmian.</div>'}</div>`:""}
  <div class="actions">${id?`<button class="${c.activityStatus==="Aktywne"?"warnBtn":"resumeBtn"}" onclick="${c.activityStatus==="Aktywne"?`pauseChild(${c.id})`:`resumeChild(${c.id})`}">${c.activityStatus==="Aktywne"?"Wstrzymaj uczestnictwo":"Wznów uczestnictwo"}</button>`:""}<button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
 }
@@ -1954,14 +1983,14 @@ function childCard(c){
  <div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
  ${["unpaid","partial"].includes(ps.kind)?`<div class="actions reminderActions"><button class="smsBtn" onclick="sendReminderSMS(${c.id},'${months.includes(month)?month:"Wrzesień"}')">💬 Wyślij SMS</button><button class="soft" onclick="copyReminder(${c.id},'${months.includes(month)?month:"Wrzesień"}')">Kopiuj przypomnienie</button></div>`:""}
  ${ps.kind==="overpaid"?`<div class="actions"><button class="overpayBtn" onclick="transferOverpayment(${c.id},'${months.includes(month)?month:"Wrzesień"}')">Przenieś nadpłatę ${money(ps.extra)}</button></div>`:""}
- ${(c.classes||[]).map(cl=>`<div class="classrow"><h3>${cl.type}${cl.waitlist?' <span class="waitBadge">LISTA REZERWOWA</span>':''}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}</div><div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
+ ${(c.classes||[]).map(cl=>`<div class="classrow"><h3>${cl.type}${cl.waitlist?' <span class="waitBadge">LISTA REZERWOWA</span>':''}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}${cl.startDate?` • od ${new Date(cl.startDate+"T12:00:00").toLocaleDateString("pl-PL")}`:""}</div>${cl.firstMonthOverride!==""&&cl.firstMonthOverride!==undefined?`<div class="firstMonthBadge">Pierwszy miesiąc: ${money(cl.firstMonthOverride)} — korekta ręczna</div>`:""}<div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
  <div class="actions"><button class="primary" onclick="editClass(${c.id})">+ Dodaj zajęcia</button></div></div>`
 }
 
 /* zapis zajęć z limitem i historią */
 function saveClass(cid,id,exists){
  let ch=data.children.find(c=>c.id==cid),old=exists?ch.classes.find(x=>x.id==id):null;
- let cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value,waitlist:old?.waitlist||false};
+ let cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value,waitlist:old?.waitlist||false,startDate:clStartDate?.value||"",endDate:clEndDate?.value||"",firstMonthOverride:(clFirstMonthOverride?.value===""?"":Number(clFirstMonthOverride.value))};
  enforceClassCapacity(ch,cl);
  if(exists)ch.classes[ch.classes.findIndex(x=>x.id==id)]=cl;else ch.classes.push(cl);
  logHistory(cid,`${exists?"Zmieniono":"Dodano"} zajęcia: ${cl.type}, ${cl.school}, ${cl.day} ${cl.time}${cl.waitlist?" — lista rezerwowa":""}.`);
@@ -2101,5 +2130,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v82.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v83.json";a.click()}
 render();

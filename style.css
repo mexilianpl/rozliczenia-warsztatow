@@ -375,3 +375,19 @@ button.actionSaved{
 .resumeBtn{background:#e4f7ef;color:#16845c;border:0;border-radius:16px;padding:12px 16px;font-weight:900}
 .attendanceModalDate{font-weight:800;color:#6f7984;margin:6px 0 16px;text-transform:capitalize}
 @media(max-width:650px){.schoolStatsGrid{grid-template-columns:1fr 1fr;gap:12px}.schoolStatCard{padding:16px}.schoolStatCard strong{font-size:22px}.schoolStatCard span{font-size:13px}}
+
+/* v8.3 — historia rozliczeń i inteligentny pierwszy miesiąc */
+.firstMonthHint{margin:-4px 0 14px;line-height:1.4}
+.firstMonthBadge{display:inline-block;margin-top:7px;padding:6px 10px;border-radius:999px;background:#fff7e8;color:#9a6500;font-weight:800;font-size:12px}
+.financeTable{margin-top:10px;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.financeHead,.financeRow{display:grid;grid-template-columns:1.15fr .9fr .9fr 1.25fr;gap:8px;align-items:center;padding:10px 12px}
+.financeHead{background:#f5f7fa;font-size:12px;font-weight:900;color:#66717d}
+.financeRow{border-top:1px solid var(--line);font-size:13px}
+.financeRow small{display:block;color:#89929c;margin-top:2px}
+.financeRow .paid{color:#16845c;font-weight:900}
+.financeRow .partial,.financeRow .unpaid{color:#c43d4d;font-weight:900}
+.financeRow .overpaid{color:#7b55c7;font-weight:900}
+@media(max-width:650px){
+ .financeHead,.financeRow{grid-template-columns:1.05fr .85fr .85fr 1.25fr;padding:9px 7px;gap:5px;font-size:11px}
+ .financeHead{font-size:10px}
+}
