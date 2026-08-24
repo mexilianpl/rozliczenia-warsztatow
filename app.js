@@ -1,5 +1,5 @@
 
-const VERSION="8.7";
+const VERSION="8.8";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -394,11 +394,48 @@ function quickAttendanceForChild(cid){
  openAttendanceForGroup(cl.school,cl.type,cl.day,cl.time);
 }
 
+
+function attentionSummary(){
+ const period=currentDashboardPeriod();
+ let unpaid=[],partial=[],missingPhone=[];
+ data.children.forEach(c=>{
+   if(typeof childActiveNow==="function"&&!childActiveNow(c))return;
+   if(!String(c.phone||"").trim())missingPhone.push(c);
+   if(!months.includes(period.month))return;
+   const due=childDueForMonth(c,period.month,period.year);
+   if(due<=0)return;
+   const paid=data.payments.filter(p=>Number(p.childId)===Number(c.id)&&paymentBelongsToDashboardMonth(p,period))
+     .reduce((s,p)=>s+Number(p.amount||0),0);
+   if(paid<=0)unpaid.push({c,due,paid,missing:due});
+   else if(paid<due)partial.push({c,due,paid,missing:due-paid});
+ });
+ return {unpaid,partial,missingPhone,total:unpaid.length+partial.length+missingPhone.length,period};
+}
+function openAttentionPanel(){
+ const a=attentionSummary();
+ modal(`<div class="attentionHeader"><div><h2>🔔 Wymaga uwagi</h2><div class="muted">${a.period.month} ${a.period.year}</div></div><span class="attentionTotal">${a.total}</span></div>
+ <div class="attentionList">
+  <button class="attentionItem dangerAttention" onclick="closeModal();openDashboardArrears('all')"><span><b>Brak wpłaty</b><small>${a.unpaid.length} ${a.unpaid.length===1?"dziecko":"dzieci"}</small></span><strong>${a.unpaid.length}</strong></button>
+  <button class="attentionItem warningAttention" onclick="closeModal();openDashboardArrears('partial')"><span><b>Niepełne wpłaty</b><small>${a.partial.length} ${a.partial.length===1?"dziecko":"dzieci"}</small></span><strong>${a.partial.length}</strong></button>
+  <button class="attentionItem infoAttention" onclick="showMissingPhoneList()"><span><b>Brak telefonu</b><small>${a.missingPhone.length} ${a.missingPhone.length===1?"profil":"profile"}</small></span><strong>${a.missingPhone.length}</strong></button>
+ </div>
+ ${a.total===0?'<div class="attentionEmpty">✓ Nic nie wymaga uwagi.</div>':""}
+ <div class="actions"><button class="soft" onclick="closeModal()">Zamknij</button></div>`);
+}
+function showMissingPhoneList(){
+ const a=attentionSummary(),rows=a.missingPhone;
+ const box=document.querySelector("#modal .modalbox");if(!box)return;
+ box.innerHTML=`<h2>Brak telefonu</h2><div class="muted">Profile bez numeru kontaktowego: ${rows.length}</div>
+ ${rows.map(c=>`<div class="attentionChildRow"><div><b>${c.last} ${c.first}</b><span>${c.school||""} • ${c.class||""}</span></div><button class="soft" onclick="closeModal();editChild(${c.id})">Profil</button></div>`).join("")||'<div class="attentionEmpty">✓ Wszystkie aktywne dzieci mają numer telefonu.</div>'}
+ <div class="actions"><button class="soft" onclick="closeModal();openAttentionPanel()">← Wróć</button><button class="soft" onclick="closeModal()">Zamknij</button></div>`;
+}
+
 function start(){
  const dash=currentMonthDashboard(),payStats=dashboardPaidStats();
  const next=nextClassDayInfo(),groupsToday=classesGroupedForDay(next.items);
  const dayText=next.delta===0?"Dzisiejsze zajęcia":next.delta===1?"Jutrzejsze zajęcia":next.delta!==null?`Najbliższe zajęcia za ${next.delta} dni`:"Najbliższe zajęcia";
- app.innerHTML=`<div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Podsumowanie miesiąca</h2>
+ const attention=attentionSummary();
+ app.innerHTML=`<div class="dashboardTop"><div><div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Podsumowanie miesiąca</h2></div><button class="attentionBell ${attention.total?"hasAttention":""}" onclick="openAttentionPanel()" aria-label="Powiadomienia wymagające uwagi">🔔${attention.total?`<span>${attention.total}</span>`:""}</button></div>
  <div class="currentPeriodLabel">${dash.period.month} ${dash.period.year}</div>
  <div class="summary dashboardSummary">
    <button class="stat dashboardTile" onclick="page='reports';render()"><span>Należne w miesiącu</span><b>${money(dash.due)}</b><small>${payStats.dueCount} dzieci z należnością</small></button>
@@ -2257,5 +2294,5 @@ function listRows(type){
  return result;
 }
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v87.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v88.json";a.click()}
 render();
