@@ -1,9 +1,10 @@
-const CACHE_NAME = "rozliczenia-ui-v9.9";
+const CACHE_NAME = "rozliczenia-ui-v10.0";
 const STATIC_FILES = [
  "./","./index.html","./style.css?v=88","./v89.css?v=89","./v90.css?v=90",
  "./app.js?v=88","./attendance-fix.js?v=1","./v89.js?v=89",
  "./payments.js?v=98","./dashboard.js?v=98","./v94.js?v=94","./v96.js?v=96",
- "./v99.js?v=99","./manifest.webmanifest","./icon-192.png","./icon-512.png"
+ "./v99.js?v=99","./v100.js?v=100",
+ "./manifest.webmanifest","./icon-192.png","./icon-512.png"
 ];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC_FILES)));self.skipWaiting()});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));self.clients.claim()});
