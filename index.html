@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Rozliczenia Warsztatów v9.1</title>
+<title>Rozliczenia Warsztatów v9.0</title>
 <link rel="stylesheet" href="style.css?v=88">
 <link rel="stylesheet" href="v89.css?v=89">
-<link rel="stylesheet" href="v91.css?v=91">
+<link rel="stylesheet" href="v90.css?v=90">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#0d5b87">
 <meta name="mobile-web-app-capable" content="yes">
@@ -20,20 +20,25 @@
   <img class="appLogo" src="logo-centrum-kreatywnosci.png" alt="Centrum Kreatywności">
   <div class="appHeaderText">
     <h1>Rozliczenia Warsztatów</h1>
-    <span class="ver">Wersja 9.1 • 25.08.2026</span>
+    <span class="ver">Wersja 9.0 • 25.08.2026</span>
   </div>
 </header>
+
 <button id="backupBtn" class="hiddenBackupBtn" type="button" aria-hidden="true" tabindex="-1">Kopia</button>
 <main id="app"></main>
 <nav id="nav"></nav>
+
 <input id="screenInput" type="file" accept="image/*" hidden>
 <input id="signupCsvInput" type="file" accept=".csv,text/csv" hidden>
+
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
 <script src="app.js?v=88"></script>
 <script src="attendance-fix.js?v=1"></script>
 <script src="v89.js?v=89"></script>
-<script src="v91.js?v=91"></script>
+<script src="v90.js?v=90"></script>
+
 <script>
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
