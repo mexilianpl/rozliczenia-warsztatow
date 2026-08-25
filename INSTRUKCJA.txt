@@ -1,0 +1,17 @@
+WERSJA 8.9 — 25.08.2026
+
+Wgraj do głównego katalogu repozytorium wszystkie pliki z tej paczki:
+- index.html — PODMIEŃ
+- service-worker.js — PODMIEŃ
+- attendance-fix.js — PODMIEŃ
+- v89.js — DODAJ
+- v89.css — DODAJ
+
+Nie usuwaj app.js ani style.css.
+
+Zmiany 8.9:
+1. Szybka wpłata ze strony Start.
+2. Przycisk „Wszyscy obecni”.
+3. Wyróżnienie aktualnej / zaraz rozpoczynającej się grupy na Start.
+4. Zapamiętywanie filtrów Grupy: szkoła, warsztaty, dzień, godzina.
+5. Nagłówek pozostaje w tym samym miejscu: „Wersja 8.9 • 25.08.2026”.
