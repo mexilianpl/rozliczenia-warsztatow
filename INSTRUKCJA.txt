@@ -1,23 +1,22 @@
-WERSJA 9.0 — 25.08.2026
+ROZLICZENIA WARSZTATÓW — WERSJA 9.1
+Data: 25.08.2026
 
 PODMIEŃ:
 - index.html
 - service-worker.js
 
 DODAJ:
-- v90.js
-- v90.css
+- v91.js
+- v91.css
 
-ZOSTAW BEZ ZMIAN:
+NIE USUWAJ:
 - app.js
 - style.css
 - v89.js
 - v89.css
 - attendance-fix.js
 
-Zmiany:
-- usunięto przycisk Szybka wpłata ze Start,
-- szybka wpłata jest w karcie Wpłaty,
-- wyszukiwarka zawęża dzieci na żywo po pierwszych literach nazwiska/imienia,
-- kliknięcie dziecka otwiera szybki formularz z automatycznie podpowiedzianą brakującą kwotą,
-- nagłówek: Wersja 9.0 • 25.08.2026.
+Jeżeli masz v90.js i v90.css, mogą zostać w repozytorium — wersja 9.1 ich nie ładuje.
+
+Działanie:
+Wpłaty -> wpisz pierwsze litery nazwiska lub imienia -> wybierz dziecko -> aplikacja pokaże Należne / Wpłacono / Brakuje i podpowie kwotę.
