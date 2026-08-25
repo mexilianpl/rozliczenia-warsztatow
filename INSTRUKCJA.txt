@@ -1,17 +1,23 @@
-WERSJA 8.9 — 25.08.2026
+WERSJA 9.0 — 25.08.2026
 
-Wgraj do głównego katalogu repozytorium wszystkie pliki z tej paczki:
-- index.html — PODMIEŃ
-- service-worker.js — PODMIEŃ
-- attendance-fix.js — PODMIEŃ
-- v89.js — DODAJ
-- v89.css — DODAJ
+PODMIEŃ:
+- index.html
+- service-worker.js
 
-Nie usuwaj app.js ani style.css.
+DODAJ:
+- v90.js
+- v90.css
 
-Zmiany 8.9:
-1. Szybka wpłata ze strony Start.
-2. Przycisk „Wszyscy obecni”.
-3. Wyróżnienie aktualnej / zaraz rozpoczynającej się grupy na Start.
-4. Zapamiętywanie filtrów Grupy: szkoła, warsztaty, dzień, godzina.
-5. Nagłówek pozostaje w tym samym miejscu: „Wersja 8.9 • 25.08.2026”.
+ZOSTAW BEZ ZMIAN:
+- app.js
+- style.css
+- v89.js
+- v89.css
+- attendance-fix.js
+
+Zmiany:
+- usunięto przycisk Szybka wpłata ze Start,
+- szybka wpłata jest w karcie Wpłaty,
+- wyszukiwarka zawęża dzieci na żywo po pierwszych literach nazwiska/imienia,
+- kliknięcie dziecka otwiera szybki formularz z automatycznie podpowiedzianą brakującą kwotą,
+- nagłówek: Wersja 9.0 • 25.08.2026.

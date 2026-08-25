@@ -1,0 +1,21 @@
+/* ===== Wersja 9.0 — szybka wpłata w zakładce Wpłaty ===== */
+#quickPaymentStart89{display:none!important}
+.paymentSearch90{position:relative}
+.paymentSearchResults90{display:grid;gap:8px;margin-top:10px}
+.paymentSearchResults90:empty{display:none}
+.paymentSearchResult90{width:100%;display:flex;align-items:center;justify-content:space-between;gap:12px;text-align:left;background:#f8fbfd;border:1px solid var(--line);border-radius:18px;padding:14px 16px;color:var(--blue)}
+.paymentSearchResult90:hover{background:#eef8fb}
+.paymentSearchResult90 .paymentChildMain90{min-width:0}
+.paymentSearchResult90 b,.paymentSearchResult90 span{display:block}
+.paymentSearchResult90 b{font-size:17px}
+.paymentSearchResult90 span{margin-top:4px;color:#6e7883;font-size:13px;font-weight:700}
+.paymentSearchResult90 strong{flex:0 0 auto;font-size:19px}
+.paymentSearchInfo90{margin:10px 2px 0;color:#707985;font-size:13px;line-height:1.45}
+.paymentSearchEmpty90{padding:12px 14px;border-radius:15px;background:#fff6f7;color:var(--red);font-weight:800}
+.paymentSearchSelected90{margin-top:12px;padding:12px 14px;border-radius:16px;background:#edf9f7;color:#11745d;font-weight:800}
+.quickPaymentBox90 .quickPaymentSummary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.quickPaymentBox90 .quickPaymentSummary>div{padding:12px;background:#f7fafc;border:1px solid var(--line);border-radius:16px;min-width:0}
+.quickPaymentBox90 .quickPaymentSummary span{display:block;color:#707985;font-size:12px;font-weight:800}
+.quickPaymentBox90 .quickPaymentSummary b{display:block;margin-top:4px;color:var(--blue);overflow-wrap:anywhere}
+.quickPaymentBox90 .quickPaymentMissing b{color:var(--red)}
+@media(max-width:520px){.paymentSearchResult90{padding:14px}.quickPaymentBox90 .quickPaymentSummary{grid-template-columns:1fr 1fr}.quickPaymentBox90 .quickPaymentSummary>div:last-child{grid-column:1/-1}}
