@@ -1,18 +1,63 @@
-const CACHE_NAME = "rozliczenia-ui-v10.6";
+const CACHE_NAME = "rozliczenia-ui-v10.7";
 const STATIC_FILES = [
- "./","./index.html","./style.css?v=88","./v89.css?v=89","./v90.css?v=90",
- "./app.js?v=88","./attendance-fix.js?v=1","./v89.js?v=89",
- "./payments.js?v=102","./dashboard.js?v=101","./v94.js?v=94","./v96.js?v=96",
- "./v99.js?v=99","./v100.js?v=100","./v103.js?v=103","./v104.js?v=104","./v105.js?v=105","./v106.js?v=106",
- "./manifest.webmanifest","./icon-192.png","./icon-512.png"
+ "./",
+ "./index.html",
+ "./style.css?v=88",
+ "./v89.css?v=89",
+ "./v90.css?v=90",
+ "./app.js?v=88",
+ "./attendance-fix.js?v=1",
+ "./v89.js?v=89",
+ "./payments.js?v=102",
+ "./dashboard.js?v=101",
+ "./v94.js?v=94",
+ "./children.js?v=107",
+ "./income.js?v=107",
+ "./v96.js?v=96",
+ "./manifest.webmanifest",
+ "./icon-192.png",
+ "./icon-512.png"
 ];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC_FILES)));self.skipWaiting()});
-self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))));self.clients.claim()});
+
+self.addEventListener("install",e=>{
+  e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC_FILES)));
+  self.skipWaiting();
+});
+
+self.addEventListener("activate",e=>{
+  e.waitUntil(
+    caches.keys().then(keys=>
+      Promise.all(keys.filter(k=>k!==CACHE_NAME).map(k=>caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
 self.addEventListener("fetch",e=>{
- if(e.request.method!=="GET")return;
- const u=new URL(e.request.url);if(u.origin!==self.location.origin)return;
- if(e.request.mode==="navigate"){
-  e.respondWith(fetch(e.request).then(r=>{const x=r.clone();caches.open(CACHE_NAME).then(c=>c.put("./index.html",x));return r}).catch(()=>caches.match("./index.html")));return;
- }
- e.respondWith(caches.match(e.request).then(c=>c||fetch(e.request).then(r=>{const x=r.clone();caches.open(CACHE_NAME).then(k=>k.put(e.request,x));return r})));
+  if(e.request.method!=="GET")return;
+  const u=new URL(e.request.url);
+  if(u.origin!==self.location.origin)return;
+
+  if(e.request.mode==="navigate"){
+    e.respondWith(
+      fetch(e.request)
+        .then(r=>{
+          const x=r.clone();
+          caches.open(CACHE_NAME).then(c=>c.put("./index.html",x));
+          return r;
+        })
+        .catch(()=>caches.match("./index.html"))
+    );
+    return;
+  }
+
+  e.respondWith(
+    caches.match(e.request).then(cached=>
+      cached || fetch(e.request).then(r=>{
+        const x=r.clone();
+        caches.open(CACHE_NAME).then(c=>c.put(e.request,x));
+        return r;
+      })
+    )
+  );
 });
