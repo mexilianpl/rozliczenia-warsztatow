@@ -1,8 +1,8 @@
-const CACHE_NAME = "rozliczenia-ui-v9.4";
+const CACHE_NAME = "rozliczenia-ui-v9.5";
 const STATIC_FILES = [
  "./","./index.html","./style.css?v=88","./v89.css?v=89","./v90.css?v=90",
  "./app.js?v=88","./attendance-fix.js?v=1","./v89.js?v=89","./v90.js?v=90",
- "./v92.js?v=92","./v93.js?v=93","./v94.js?v=94",
+ "./v92.js?v=92","./v93.js?v=93","./v94.js?v=94","./v95.js?v=95",
  "./manifest.webmanifest","./icon-192.png","./icon-512.png"
 ];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE_NAME).then(c=>c.addAll(STATIC_FILES)));self.skipWaiting()});
