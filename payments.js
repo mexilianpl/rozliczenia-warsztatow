@@ -1,4 +1,4 @@
-/* payments.js — Rozliczenia Warsztatów v9.8 */
+/* payments.js — Rozliczenia Warsztatów v10.2 */
 (function(){
 "use strict";
 
@@ -78,10 +78,152 @@ function replacePaymentCard98(){
 
 function removeStartQuickPay98(){document.getElementById("quickPaymentStart89")?.remove()}
 
+/* =========================
+   EDYCJA ISTNIEJĄCEJ WPŁATY
+   ========================= */
+
+window.editPayment102=function(paymentId){
+  const p=(data.payments||[]).find(x=>Number(x.id)===Number(paymentId));
+  if(!p){
+    if(typeof showToast==="function")showToast("Nie znaleziono wpłaty");
+    return;
+  }
+
+  const children=(data.children||[]).slice().sort((a,b)=>
+    `${a.last} ${a.first}`.localeCompare(`${b.last} ${b.first}`,"pl")
+  );
+
+  const selectedChild=(data.children||[]).find(c=>Number(c.id)===Number(p.childId));
+
+  modal(`<h2>Edytuj wpłatę</h2>
+    <div class="muted editPaymentInfo102">
+      Zmiany od razu przeliczą rozliczenie dziecka oraz podsumowanie wpływów.
+    </div>
+
+    <label>Dziecko</label>
+    <select id="epChild102">
+      ${children.map(c=>`<option value="${c.id}" ${Number(c.id)===Number(p.childId)?"selected":""}>${escPay(c.last)} ${escPay(c.first)} • ${escPay(c.school||"")}</option>`).join("")}
+    </select>
+
+    <label>Miesiąc rozliczeniowy</label>
+    <select id="epMonth102">
+      ${(months||[]).map(m=>`<option ${String(m)===String(p.month)?"selected":""}>${escPay(m)}</option>`).join("")}
+    </select>
+
+    <label>Kwota</label>
+    <input id="epAmount102" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(p.amount||0).toFixed(2)}">
+
+    <label>Data wpływu</label>
+    <input id="epDate102" type="date" value="${escPay(p.date||"")}">
+
+    <label>Tytuł / uwagi</label>
+    <input id="epNote102" value="${escPay(p.note||"")}">
+
+    <div class="paymentEditHint102">
+      <b>Miesiąc rozliczeniowy</b> określa, za który miesiąc płaci dziecko.
+      <b>Data wpływu</b> określa, w którym miesiącu kwota trafia do „Razem wpływy”.
+    </div>
+
+    <div class="actions">
+      <button class="soft" onclick="closeModal()">Anuluj</button>
+      <button class="primary" onclick="saveEditedPayment102(${Number(p.id)})">Zapisz zmiany</button>
+    </div>`);
+};
+
+window.saveEditedPayment102=function(paymentId){
+  const p=(data.payments||[]).find(x=>Number(x.id)===Number(paymentId));
+  if(!p)return;
+
+  const childId=Number(document.getElementById("epChild102")?.value||0);
+  const month=document.getElementById("epMonth102")?.value||"";
+  const amount=Number(String(document.getElementById("epAmount102")?.value||"0").replace(",","."));
+  const date=document.getElementById("epDate102")?.value||"";
+  const note=document.getElementById("epNote102")?.value.trim()||"";
+  const ch=(data.children||[]).find(c=>Number(c.id)===childId);
+
+  if(!ch){
+    if(typeof showToast==="function")showToast("Wybierz dziecko");
+    return;
+  }
+  if(!(amount>0)){
+    if(typeof showToast==="function")showToast("Kwota musi być większa od 0");
+    return;
+  }
+  if(!month){
+    if(typeof showToast==="function")showToast("Wybierz miesiąc");
+    return;
+  }
+  if(!date){
+    if(typeof showToast==="function")showToast("Podaj datę wpływu");
+    return;
+  }
+
+  const before={
+    childId:p.childId,
+    child:p.child,
+    month:p.month,
+    amount:Number(p.amount||0),
+    date:p.date||"",
+    note:p.note||""
+  };
+
+  p.childId=ch.id;
+  p.child=`${ch.last} ${ch.first}`;
+  p.month=month;
+  p.amount=amount;
+  p.date=date;
+  p.note=note;
+
+  if(typeof logHistory==="function"){
+    const desc=`Edytowano wpłatę: ${money(before.amount)} / ${before.month} / ${before.date||"brak daty"} → ${money(amount)} / ${month} / ${date}.`;
+    try{ logHistory(ch.id,desc); }catch(e){}
+    if(Number(before.childId)!==Number(ch.id)){
+      try{ logHistory(before.childId,`Wpłata została przeniesiona do: ${ch.last} ${ch.first}.`); }catch(e){}
+    }
+  }
+
+  save();
+  closeModal();
+  page="payments";
+  render();
+
+  if(typeof showToast==="function")showToast("Wpłata zaktualizowana");
+};
+
+/* Dodajemy przycisk Edytuj do każdej istniejącej pozycji bez ruszania app.js. */
+function addEditButtons102(){
+  if(typeof page==="undefined" || page!=="payments" || !app)return;
+
+  const listCard=[...app.querySelectorAll(".card")].find(card=>
+    normPay(card.querySelector("h2")?.textContent||"")==="lista wplat"
+  );
+  if(!listCard)return;
+
+  const rows=[...listCard.querySelectorAll(".classrow")];
+  const payments=data.payments||[];
+
+  rows.forEach((row,index)=>{
+    if(row.querySelector(".editPaymentBtn102"))return;
+    const p=payments[index];
+    if(!p)return;
+
+    const del=[...row.querySelectorAll("button")].find(b=>normPay(b.textContent)==="usun");
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="soft editPaymentBtn102";
+    btn.textContent="Edytuj";
+    btn.onclick=()=>editPayment102(p.id);
+
+    if(del) row.insertBefore(btn,del);
+    else row.appendChild(btn);
+  });
+}
+
 const payObserver=new MutationObserver(()=>{
   removeStartQuickPay98();
   replacePaymentCard98();
   enhanceOCRReview98();
+  addEditButtons102();
 });
 payObserver.observe(app,{childList:true,subtree:true});
 
@@ -180,6 +322,10 @@ style.textContent=`
 .ocrBulkBar98 b,.ocrBulkBar98 span{display:block}.ocrBulkBar98 b{color:#126f5d;font-size:16px}.ocrBulkBar98 span{margin-top:4px;color:#64727d;font-size:13px;font-weight:700}
 .ocrConfidence98{margin:7px 0 10px;padding:7px 10px;border-radius:12px;font-size:13px;font-weight:900}
 .ocrConfidence98.certain{background:#e7f8f1;color:#11745d}.ocrConfidence98.review{background:#fff6df;color:#9a6800}
+.editPaymentBtn102{margin-right:8px}
+.editPaymentInfo102{margin-bottom:14px}
+.paymentEditHint102{margin:14px 0;padding:12px 14px;border-radius:16px;background:#eef8fb;color:#526573;font-size:13px;line-height:1.5}
+.paymentEditHint102 b{color:var(--blue)}
 @media(max-width:620px){.ocrBulkBar98{align-items:stretch;flex-direction:column}.ocrBulkBar98 button{width:100%}}
 `;
 document.head.appendChild(style);
@@ -188,8 +334,9 @@ setTimeout(()=>{
   removeStartQuickPay98();
   replacePaymentCard98();
   enhanceOCRReview98();
+  addEditButtons102();
 },0);
 
 window.RWModules=window.RWModules||{};
-window.RWModules.payments={version:"9.8",ocrCertainThreshold:OCR_CERTAIN_THRESHOLD};
+window.RWModules.payments={version:"10.2",ocrCertainThreshold:OCR_CERTAIN_THRESHOLD,paymentEditing:true};
 })();
