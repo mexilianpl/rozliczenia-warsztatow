@@ -1,35 +1,17 @@
-ROZLICZENIA WARSZTATÓW — WERSJA 9.0
-25.08.2026
+WERSJA 8.9 — 25.08.2026
 
-TA WERSJA JEST ZBUDOWANA NA DZIAŁAJĄCEJ WERSJI 8.9.
+Wgraj do głównego katalogu repozytorium wszystkie pliki z tej paczki:
+- index.html — PODMIEŃ
+- service-worker.js — PODMIEŃ
+- attendance-fix.js — PODMIEŃ
+- v89.js — DODAJ
+- v89.css — DODAJ
 
-Co zostało zmienione:
-- usunięto przycisk „Szybka wpłata” ze strony Start,
-- NIE PRZEPISANO mechanizmu szybkiej wpłaty,
-- zakładka Wpłaty korzysta bezpośrednio z istniejącej funkcji openQuickPayment89() z wersji 8.9,
-- w miejscu starego „Dodaj wpłatę” jest wyszukiwarka dziecka,
-- wpisujesz np. „Ko” i pojawiają się pasujące dzieci,
-- po wybraniu dziecka otwiera się DOKŁADNIE formularz Szybka wpłata z 8.9.
+Nie usuwaj app.js ani style.css.
 
-Wgraj do głównego katalogu repozytorium:
-
-PODMIEŃ:
-- index.html
-- service-worker.js
-
-DODAJ / PODMIEŃ:
-- v90.js
-- v90.css
-
-MUSZĄ POZOSTAĆ:
-- app.js
-- style.css
-- attendance-fix.js
-- v89.js
-- v89.css
-
-Jeśli masz stare v91.js lub v91.css, mogą zostać w repozytorium.
-Ten index.html ich nie uruchamia.
-
-Nagłówek:
-Wersja 9.0 • 25.08.2026
+Zmiany 8.9:
+1. Szybka wpłata ze strony Start.
+2. Przycisk „Wszyscy obecni”.
+3. Wyróżnienie aktualnej / zaraz rozpoczynającej się grupy na Start.
+4. Zapamiętywanie filtrów Grupy: szkoła, warsztaty, dzień, godzina.
+5. Nagłówek pozostaje w tym samym miejscu: „Wersja 8.9 • 25.08.2026”.
