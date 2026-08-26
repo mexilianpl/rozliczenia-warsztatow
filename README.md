@@ -1,36 +1,20 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.8 — 26.08.2026**
+Aktualna wersja: **11.9 — 26.08.2026**
 
-## Porządki 11.8
+## Porządki 11.9
 
-Usunięto martwe, starsze definicje funkcji, które były później
-nadpisywane nowszymi wersjami.
+Wspólne kodowanie tekstu HTML zostało sprowadzone do `escapeHtml()` z `core.js`.
+Usunięto lokalne duplikaty z modułów dashboard, income, attendance i payments.
 
-Usunięte duplikaty:
-- `childCard`
-- `editChild`
-- `saveChild`
-- `saveClass`
-- `addPayment`
+Nazwy wrapperów `original...` zostały ujednolicone do `previous...`, żeby
+było jasne, że moduł rozszerza wcześniejszą funkcję zamiast przechowywać
+drugą wersję funkcjonalności.
 
-Z `core.js` usunięto również funkcje domenowe, które były dublowane:
-- `childDue` — pozostaje w `children.js`
-- `childPaymentsForMonth` — pozostaje w `payments.js`
+`normalizeChildText` zmieniono na `normalizeChildSearchText`, aby nazwa
+jednoznacznie opisywała zastosowanie.
 
-## Ustawienia szybkiej wpłaty
-
-Dwa stare aliasy zapisu zostały sprowadzone do jednego klucza:
-
-`rw_quick_payment_prefs`
-
-Stary klucz `rw89_quickpay` jest obsługiwany wyłącznie przez jednorazową
-migrację. Dane są najpierw kopiowane do nowego klucza, a dopiero potem
-stary klucz jest usuwany.
-
-## Synchronizacja
-
-Mechanizm offline-first i oczekujące rewizje pozostają bez zmian.
+Nie zmieniono interfejsu, danych, płatności, obecności ani synchronizacji.
 
 ## Po wdrożeniu
 
@@ -38,5 +22,6 @@ Nie ma plików do usunięcia.
 
 ## Następny etap
 
-Redukcja powtarzających się helperów HTML/normalizacji oraz
-uporządkowanie wrapperów `original...`.
+Dalsze porządki można wykonać w `payments.js`: rozdzielić wewnętrznie
+OCR, szybką wpłatę i edycję wpłat na wyraźne sekcje oraz ograniczyć
+pozostałe lokalne helpery bez tworzenia nowych plików.

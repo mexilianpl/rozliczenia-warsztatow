@@ -468,7 +468,7 @@ function saveClass(cid,id,exists){
 (function(){
 "use strict";
 
-function normalizeChildText(s){
+function normalizeChildSearchText(s){
   return String(s||"")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g,"")
@@ -477,7 +477,7 @@ function normalizeChildText(s){
 }
 
 function childLifecycle(card, child){
-  const text=normalizeChildText(card?.textContent||"");
+  const text=normalizeChildSearchText(card?.textContent||"");
 
   if(text.includes("zrezygnowal")){
     return {kind:"resigned",label:"🔴 Zrezygnował"};
@@ -671,19 +671,19 @@ window.deleteChild=async function(childId){
 /* ---------- PODPINANIE DO ISTNIEJĄCYCH EKRANÓW ---------- */
 
 /* Dzieci: patch bez obserwatora całego dokumentu. */
-const originalChildrenView=window.children;
-if(typeof originalChildrenView==="function"){
+const previousChildrenView=window.children;
+if(typeof previousChildrenView==="function"){
   window.children=function(){
-    originalChildrenView();
+    previousChildrenView();
     setTimeout(patchChildrenListStatuses,0);
   };
 }
 
 /* Profil: v94 jest ładowany przed children.js, więc zachowujemy odrabianie. */
-const originalEditChildProfile=window.editChild;
-if(typeof originalEditChildProfile==="function"){
+const previousEditChildProfile=window.editChild;
+if(typeof previousEditChildProfile==="function"){
   window.editChild=function(id){
-    originalEditChildProfile(id);
+    previousEditChildProfile(id);
     if(!id)return;
 
     const patch=()=>{

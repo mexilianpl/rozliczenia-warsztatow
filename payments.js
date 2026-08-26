@@ -387,14 +387,6 @@ async function savePayment(){
 (function(){
 "use strict";
 
-function escapePaymentHtml(s){
-  return String(s ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
 
 const QUICK_PAYMENT_PREFS_KEY = "rw_quick_payment_prefs";
 
@@ -456,7 +448,7 @@ function paymentActiveChildren(){
 
       <label>Dziecko</label>
       <select id="quickPayChildSelect" onchange="refreshQuickPayment()">
-        ${children.map(c=>`<option value="${c.id}" ${String(c.id)===preferredChild?"selected":""}>${escapePaymentHtml(c.last)} ${escapePaymentHtml(c.first)} • ${escapePaymentHtml(c.school||"")}</option>`).join("")}
+        ${children.map(c=>`<option value="${c.id}" ${String(c.id)===preferredChild?"selected":""}>${escapeHtml(c.last)} ${escapeHtml(c.first)} • ${escapeHtml(c.school||"")}</option>`).join("")}
       </select>
 
       <label>Miesiąc</label>
@@ -878,10 +870,10 @@ window.saveCertainOCRPayments=async function(){
   }
 };
 
-const originalShowOCRReview=window.showOCRReview;
-if(typeof originalShowOCRReview==="function"){
+const previousShowOCRReview=window.showOCRReview;
+if(typeof previousShowOCRReview==="function"){
   window.showOCRReview=function(items,fileName){
-    originalShowOCRReview(items,fileName);
+    previousShowOCRReview(items,fileName);
     setTimeout(enhanceOCRReview,0);
   };
 }

@@ -1,5 +1,5 @@
 /* =========================================================
-   sync.js — Rozliczenia Warsztatów v11.8
+   sync.js — Rozliczenia Warsztatów v11.9
    Fundament offline-first i kolejki synchronizacji.
 
    Wersja 11.7 NIE wysyła danych do serwera, dopóki nie zostanie
@@ -343,10 +343,10 @@
     Przechwytujemy centralny save(), więc nie trzeba dodawać kodu synchronizacji
     osobno do każdej funkcji płatności, dziecka, obecności itd.
   */
-  const originalSave=window.save;
-  if(typeof originalSave==="function"){
+  const previousSaveBeforeSync=window.save;
+  if(typeof previousSaveBeforeSync==="function"){
     window.save=function(){
-      originalSave();
+      previousSaveBeforeSync();
       if(suppressNextRevision){
         suppressNextRevision=false;
         return;

@@ -111,19 +111,19 @@ const GROUP_FILTERS_KEY = "rw89_group_filters";
     }
   }
 
-  const originalGroups=window.groups;
-  if(typeof originalGroups==="function"){
+  const previousGroupsView=window.groups;
+  if(typeof previousGroupsView==="function"){
     window.groups=function(){
-      originalGroups();
+      previousGroupsView();
       setTimeout(restoreGroupPrefs,0);
     };
   }
 
   // Owijamy Start, nie zmieniając jego istniejącej zawartości.
-  const originalStart=window.start;
-  if(typeof originalStart==="function"){
+  const previousStartForGroups=window.start;
+  if(typeof previousStartForGroups==="function"){
     window.start=function(){
-      originalStart();
+      previousStartForGroups();
       injectStart();
     };
   }

@@ -16,14 +16,6 @@ function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input 
 (function(){
 "use strict";
 
-function escapeIncomeHtml(s){
-  return String(s??"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
 
 /* ---------- EDYCJA ---------- */
 window.editIncome=function(id){
@@ -32,13 +24,13 @@ window.editIncome=function(id){
 
   modal(`<h2>Edytuj przychód</h2>
     <label>Tytuł</label>
-    <input id="income107Title" value="${escapeIncomeHtml(item.title||"")}">
+    <input id="income107Title" value="${escapeHtml(item.title||"")}">
 
     <label>Kwota</label>
     <input id="income107Amount" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(item.amount||0)}">
 
     <label>Data</label>
-    <input id="income107Date" type="date" value="${escapeIncomeHtml(item.date||"")}">
+    <input id="income107Date" type="date" value="${escapeHtml(item.date||"")}">
 
     <div class="actions">
       <button class="soft" onclick="closeModal()">Anuluj</button>
@@ -103,8 +95,8 @@ window.income=function(){
       ${(data.income||[]).length
         ? data.income.map(i=>`<div class="classrow incomeRow">
             <div class="incomeMain">
-              <b>${escapeIncomeHtml(i.title||"")}</b>
-              <div>${money(i.amount)} • ${escapeIncomeHtml(i.date||"")}</div>
+              <b>${escapeHtml(i.title||"")}</b>
+              <div>${money(i.amount)} • ${escapeHtml(i.date||"")}</div>
             </div>
 
             <div class="incomeActions">
@@ -117,10 +109,10 @@ window.income=function(){
 };
 
 /* ---------- ZALEGŁOŚCI — SZYBKIE DZIAŁANIA ---------- */
-const originalInteractiveListPanel=window.interactiveListPanel;
-if(typeof originalInteractiveListPanel==="function"){
+const previousInteractiveListPanel=window.interactiveListPanel;
+if(typeof previousInteractiveListPanel==="function"){
   window.interactiveListPanel=function(type){
-    if(type!=="arrears")return originalInteractiveListPanel(type);
+    if(type!=="arrears")return previousInteractiveListPanel(type);
 
     const arr=listFilteredChildren();
     const month=listSelectedMonth();
@@ -139,8 +131,8 @@ if(typeof originalInteractiveListPanel==="function"){
       ${debtors.length?debtors.map(({c,ps})=>`
         <div class="interactiveListRow debtRow">
           <div class="interactiveMain">
-            <b>${escapeIncomeHtml(c.last)} ${escapeIncomeHtml(c.first)}</b>
-            <span>${escapeIncomeHtml(c.school||"")}${c.class?` • ${escapeIncomeHtml(c.class)}`:""}</span>
+            <b>${escapeHtml(c.last)} ${escapeHtml(c.first)}</b>
+            <span>${escapeHtml(c.school||"")}${c.class?` • ${escapeHtml(c.class)}`:""}</span>
           </div>
 
           <div class="debtAmounts">
@@ -160,10 +152,10 @@ if(typeof originalInteractiveListPanel==="function"){
 }
 
 /* ---------- LISTA ZALEGŁOŚCI ---------- */
-const originalListRowsBase=window.listRowsBase;
-if(typeof originalListRowsBase==="function"){
+const previousListRowsBase=window.listRowsBase;
+if(typeof previousListRowsBase==="function"){
   window.listRowsBase=function(type){
-    const result=originalListRowsBase(type);
+    const result=previousListRowsBase(type);
     if(type!=="arrears")return result;
 
     const month=typeof listSelectedMonth==="function"

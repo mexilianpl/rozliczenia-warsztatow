@@ -24,14 +24,6 @@ function setAttendance(key,cid,status,btn){
 (function(){
 "use strict";
 
-function escapeAttendanceHtml(s){
-  return String(s ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
 /* ---------- 8.9 / OBECNOŚĆ ---------- */
 
   window.markAllPresent = function(key){
@@ -54,8 +46,8 @@ function escapeAttendanceHtml(s){
     const key=attendanceKey();
     const saved=data.attendance[key]||{};
 
-    modal(`<h2>Obecność — ${escapeAttendanceHtml(gSchool.value)}</h2>
-      <div class="muted">${escapeAttendanceHtml(gDay.value)} ${escapeAttendanceHtml(gTime.value)}</div>
+    modal(`<h2>Obecność — ${escapeHtml(gSchool.value)}</h2>
+      <div class="muted">${escapeHtml(gDay.value)} ${escapeHtml(gTime.value)}</div>
       <div class="attendanceModalDate">${new Intl.DateTimeFormat("pl-PL",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date())}</div>
 
       <div class="attendanceBulkBar">
@@ -63,7 +55,7 @@ function escapeAttendanceHtml(s){
       </div>
 
       ${arr.map(({c})=>`<div class="attendanceRow">
-        <div><b>${escapeAttendanceHtml(c.last)} ${escapeAttendanceHtml(c.first)}</b><small>${escapeAttendanceHtml(c.class||"")} • ${escapeAttendanceHtml(c.pickupPlace||"")}</small></div>
+        <div><b>${escapeHtml(c.last)} ${escapeHtml(c.first)}</b><small>${escapeHtml(c.class||"")} • ${escapeHtml(c.pickupPlace||"")}</small></div>
         <div class="attendanceBtns">
           <button class="${saved[c.id]==="present"?"attActive presentBtn":"soft"}"
             onclick="setAttendance('${key}',${c.id},'present',this)">Obecny</button>
@@ -134,14 +126,6 @@ openAttendanceForGroup = function(school,type,day,time){
 
 data.makeups = Array.isArray(data.makeups) ? data.makeups : [];
 
-function escapeMakeupHtml(s){
-  return String(s??"")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
 
 function makeupLocalToday(){
   const d=new Date();
@@ -218,19 +202,19 @@ window.openMakeup=function(childId){
   const upcoming=existing.filter(m=>m.date>=makeupLocalToday());
 
   modal(`<h2>🔄 Odrabianie zajęć</h2>
-    <div class="muted"><b>${escapeMakeupHtml(ch.first)} ${escapeMakeupHtml(ch.last)}</b> • jednorazowe dopisanie do innej grupy. Nie zmienia stałych zajęć ani płatności.</div>
+    <div class="muted"><b>${escapeHtml(ch.first)} ${escapeHtml(ch.last)}</b> • jednorazowe dopisanie do innej grupy. Nie zmienia stałych zajęć ani płatności.</div>
 
     ${upcoming.length?`<div class="makeupList">
       <h3>Zaplanowane</h3>
       ${upcoming.map(m=>`<div class="makeupItem">
-        <div><b>${escapeMakeupHtml(m.date)}</b><span>${escapeMakeupHtml(m.school)} • ${escapeMakeupHtml(m.type)} • ${escapeMakeupHtml(m.day)} ${escapeMakeupHtml(m.time)}</span>${m.note?`<small>${escapeMakeupHtml(m.note)}</small>`:""}</div>
+        <div><b>${escapeHtml(m.date)}</b><span>${escapeHtml(m.school)} • ${escapeHtml(m.type)} • ${escapeHtml(m.day)} ${escapeHtml(m.time)}</span>${m.note?`<small>${escapeHtml(m.note)}</small>`:""}</div>
         <button class="danger makeupDelete" onclick="deleteMakeup(${m.id},${ch.id})">Usuń</button>
       </div>`).join("")}
     </div>`:""}
 
     <label>Grupa, w której dziecko odrabia</label>
     <select id="makeupGroup" onchange="updateMakeupDate()">
-      ${groups.map((g,i)=>`<option value="${i}">${escapeMakeupHtml(g.school)} • ${escapeMakeupHtml(g.type)} • ${escapeMakeupHtml(g.day)} ${escapeMakeupHtml(g.time)}</option>`).join("")}
+      ${groups.map((g,i)=>`<option value="${i}">${escapeHtml(g.school)} • ${escapeHtml(g.type)} • ${escapeHtml(g.day)} ${escapeHtml(g.time)}</option>`).join("")}
     </select>
 
     <label>Data odrabiania</label>
@@ -309,10 +293,10 @@ window.deleteMakeup=function(id,childId){
 };
 
 /* ===== PROFIL DZIECKA ===== */
-const originalEditChildForMakeup=window.editChild;
-if(typeof originalEditChildForMakeup==="function"){
+const previousEditChildForMakeup=window.editChild;
+if(typeof previousEditChildForMakeup==="function"){
   window.editChild=function(id){
-    originalEditChildForMakeup(id);
+    previousEditChildForMakeup(id);
     if(!id)return;
 
     setTimeout(()=>{
@@ -336,10 +320,10 @@ if(typeof originalEditChildForMakeup==="function"){
 }
 
 /* ===== LISTA OBECNOŚCI ===== */
-const originalSelectedGroupRowsForMakeup=window.selectedGroupRows;
-if(typeof originalSelectedGroupRowsForMakeup==="function"){
+const previousSelectedGroupRowsForMakeup=window.selectedGroupRows;
+if(typeof previousSelectedGroupRowsForMakeup==="function"){
   window.selectedGroupRows=function(){
-    const base=originalSelectedGroupRowsForMakeup();
+    const base=previousSelectedGroupRowsForMakeup();
     const school=document.getElementById("gSchool")?.value||"";
     const workshop=document.getElementById("gWorkshop")?.value||"";
     const day=document.getElementById("gDay")?.value||"";
@@ -376,11 +360,11 @@ if(typeof originalSelectedGroupRowsForMakeup==="function"){
 
 /* v8.9 nadal renderuje samo okno obecności.
    Po jego otwarciu dokładamy oznaczenie "Odrabianie" przy odpowiednim dziecku. */
-const originalShowAttendanceForMakeup=window.showAttendance;
-if(typeof originalShowAttendanceForMakeup==="function"){
+const previousShowAttendanceForMakeup=window.showAttendance;
+if(typeof previousShowAttendanceForMakeup==="function"){
   window.showAttendance=function(){
     const rowsBefore=selectedGroupRows();
-    originalShowAttendanceForMakeup();
+    previousShowAttendanceForMakeup();
 
     setTimeout(()=>{
       const domRows=[...document.querySelectorAll("#modal .attendanceRow")];
@@ -390,7 +374,7 @@ if(typeof originalShowAttendanceForMakeup==="function"){
         if(info){
           info.insertAdjacentHTML("beforeend",` <span class="makeupBadge">🔄 Odrabianie</span>`);
           if(x.makeupData?.note){
-            info.insertAdjacentHTML("beforeend",`<span class="makeupNote">${escapeMakeupHtml(x.makeupData.note)}</span>`);
+            info.insertAdjacentHTML("beforeend",`<span class="makeupNote">${escapeHtml(x.makeupData.note)}</span>`);
           }
         }
       });

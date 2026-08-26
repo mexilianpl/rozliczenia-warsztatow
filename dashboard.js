@@ -306,14 +306,6 @@ function openChildrenForSchool(school){
 (function(){
 "use strict";
 
-function escapeDashboardHtml(s){
-  return String(s ?? "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
 
 function dashboardActiveChildren(){
   return (data.children||[]).filter(c=>typeof childActiveNow==="function" ? childActiveNow(c) : true);
@@ -378,8 +370,8 @@ function dashboardActiveChildren(){
       const btn=document.getElementById("quickPaymentStart");
       const html=`<div id="currentClassNow" class="card currentClassNow">
         <span class="currentClassLabel">${currentClassLabel(g.diff)}</span>
-        <h3>${escapeDashboardHtml(g.school)} • ${escapeDashboardHtml(g.type)}</h3>
-        <p>${escapeDashboardHtml(g.day)} ${escapeDashboardHtml(g.time)} • ${g.children.length} ${g.children.length===1?"dziecko":"dzieci"}</p>
+        <h3>${escapeHtml(g.school)} • ${escapeHtml(g.type)}</h3>
+        <p>${escapeHtml(g.day)} ${escapeHtml(g.time)} • ${g.children.length} ${g.children.length===1?"dziecko":"dzieci"}</p>
         <button class="primary" onclick="openAttendanceForGroup('${String(g.school).replaceAll("'","\\'")}','${String(g.type).replaceAll("'","\\'")}','${String(g.day).replaceAll("'","\\'")}','${String(g.time).replaceAll("'","\\'")}')">Sprawdź obecność</button>
       </div>`;
       if(btn)btn.insertAdjacentHTML("afterend",html);
@@ -451,11 +443,11 @@ function incomeCashBelongs(i,cashPeriod){
   Nie ruszamy należności, zaległości, liczby opłaconych ani statystyk szkół.
   Zmieniamy wyłącznie pola przepływu gotówki: extra i total.
 */
-const originalCurrentMonthDashboard=window.currentMonthDashboard;
+const previousCurrentMonthDashboard=window.currentMonthDashboard;
 
-if(typeof originalCurrentMonthDashboard==="function"){
+if(typeof previousCurrentMonthDashboard==="function"){
   window.currentMonthDashboard=function(){
-    const dash=originalCurrentMonthDashboard();
+    const dash=previousCurrentMonthDashboard();
     const cashPeriod=actualCashPeriod();
 
     const cashChildPaid=(data.payments||[])
@@ -493,10 +485,10 @@ function annotateCashTile(){
   small.textContent=`wg daty wpływu • ${cp.monthName} ${cp.year}`;
 }
 
-const originalStartDashboard=window.start;
-if(typeof originalStartDashboard==="function"){
+const previousStartDashboard=window.start;
+if(typeof previousStartDashboard==="function"){
   window.start=function(){
-    originalStartDashboard();
+    previousStartDashboard();
     annotateCashTile();
   };
 }
