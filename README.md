@@ -1,32 +1,27 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **10.9 — 26.08.2026**
+Aktualna wersja: **11.0 — 26.08.2026**
 
-## Aktywna struktura
+## Moduły
 
-- `app.js` — główny kod legacy; po 10.9 nie zawiera już Grup ani List.
-- `dashboard.js` — Start i podsumowania finansowe.
-- `payments.js` — szybkie wpłaty, edycja wpłat i OCR.
-- `children.js` — lista/profil dzieci, statusy, szybka wpłata i usuwanie.
-- `income.js` — dodatkowe przychody i rozszerzenia zaległości.
-- `groups.js` — Grupy, filtrowanie grupy i wydruki grupowe.
-- `lists.js` — Listy, podgląd, wydruk, Excel i szybkie zaznaczanie obecności.
-- `attendance.js` — obecności grupowe, powrót i odrabianie zajęć.
-- `ui.js` — modale, X i Android Wstecz.
-- `v89.js` — aktywny starszy moduł, jeszcze do migracji.
-- `style.css`, `v89.css`, `v90.css` — style.
-- `service-worker.js` — PWA/cache, w 10.9 także cache logo.
+- `app.js` — pozostały kod bazowy/core.
+- `dashboard.js` — Start i podsumowania.
+- `payments.js` — wpłaty i OCR.
+- `children.js` — dzieci i profil dziecka.
+- `income.js` — dodatkowe przychody.
+- `groups.js` — grupy.
+- `lists.js` — listy.
+- `reports.js` — raporty i eksport raportów.
+- `signups.js` — zapisy i import CSV.
+- `settings.js` — ustawienia i kopia danych.
+- `attendance.js` — obecności i odrabianie.
+- `ui.js` — modale/X/Android Wstecz.
+- `v89.js` — ostatni aktywny starszy moduł do uporządkowania.
 
-## Zmiany techniczne 10.9
+## 11.0
 
-- Funkcje Grup zostały fizycznie przeniesione z `app.js` do `groups.js`.
-- Funkcje List zostały fizycznie przeniesione z `app.js` do `lists.js`.
-- Logo aplikacji zostało dodane do cache offline.
-- `app.js` został zmniejszony bez zmiany danych użytkownika.
+Wydzielono z `app.js` trzy duże sekcje: Raporty, Zapisy i Ustawienia.
+Wewnętrzny numer `VERSION` został ustawiony na 11.0.
+Eksport kopii danych ma nazwę `rozliczenia-kopia-v11.0.json`.
 
-## Kolejny etap
-
-Najbezpieczniej wydzielić następnie:
-`reports.js`, `signups.js`, `settings.js`.
-
-Później można przenieść aktywne funkcje z `v89.js` i usunąć ostatni wersyjny plik JS.
+Następny etap: przeniesienie funkcji z `v89.js` do docelowych modułów oraz scalenie `v89.css`/`v90.css` ze `style.css`.

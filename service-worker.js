@@ -1,4 +1,4 @@
-const CACHE_NAME = "rozliczenia-ui-v10.9";
+const CACHE_NAME = "rozliczenia-ui-v11.0";
 
 const STATIC_FILES = [
  "./",
@@ -8,6 +8,9 @@ const STATIC_FILES = [
  "./v90.css?v=90",
  "./app.js?v=88",
  "./v89.js?v=89",
+ "./reports.js?v=110",
+ "./signups.js?v=110",
+ "./settings.js?v=110",
  "./payments.js?v=102",
  "./dashboard.js?v=101",
  "./groups.js?v=109",
