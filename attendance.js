@@ -1,5 +1,5 @@
 /* =========================================================
-   attendance.js — Rozliczenia Warsztatów v11.3
+   attendance.js — Rozliczenia Warsztatów v11.4
    Pełny moduł obecności i odrabiania.
    Scalono attendance-base.js i część legacy-workflows.js.
    ========================================================= */
@@ -24,7 +24,7 @@ function setAttendance(key,cid,status,btn){
 (function(){
 "use strict";
 
-function esc89(s){
+function escapeAttendanceHtml(s){
   return String(s ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
@@ -54,8 +54,8 @@ function esc89(s){
     const key=attendanceKey();
     const saved=data.attendance[key]||{};
 
-    modal(`<h2>Obecność — ${esc89(gSchool.value)}</h2>
-      <div class="muted">${esc89(gDay.value)} ${esc89(gTime.value)}</div>
+    modal(`<h2>Obecność — ${escapeAttendanceHtml(gSchool.value)}</h2>
+      <div class="muted">${escapeAttendanceHtml(gDay.value)} ${escapeAttendanceHtml(gTime.value)}</div>
       <div class="attendanceModalDate">${new Intl.DateTimeFormat("pl-PL",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date())}</div>
 
       <div class="attendanceBulkBar">
@@ -63,7 +63,7 @@ function esc89(s){
       </div>
 
       ${arr.map(({c})=>`<div class="attendanceRow">
-        <div><b>${esc89(c.last)} ${esc89(c.first)}</b><small>${esc89(c.class||"")} • ${esc89(c.pickupPlace||"")}</small></div>
+        <div><b>${escapeAttendanceHtml(c.last)} ${escapeAttendanceHtml(c.first)}</b><small>${escapeAttendanceHtml(c.class||"")} • ${escapeAttendanceHtml(c.pickupPlace||"")}</small></div>
         <div class="attendanceBtns">
           <button class="${saved[c.id]==="present"?"attActive presentBtn":"soft"}"
             onclick="setAttendance('${key}',${c.id},'present',this)">Obecny</button>
@@ -134,7 +134,7 @@ openAttendanceForGroup = function(school,type,day,time){
 
 data.makeups = Array.isArray(data.makeups) ? data.makeups : [];
 
-function esc94(s){
+function escapeMakeupHtml(s){
   return String(s??"")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
@@ -143,17 +143,17 @@ function esc94(s){
     .replaceAll("'","&#039;");
 }
 
-function localToday94(){
+function makeupLocalToday(){
   const d=new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-function dayName94(dateStr){
+function dayNameForDate(dateStr){
   const d=new Date(dateStr+"T12:00:00");
   return ["Niedziela","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota"][d.getDay()];
 }
 
-function nextDateForDay94(dayName){
+function nextDateForDay(dayName){
   const map={"Niedziela":0,"Poniedziałek":1,"Wtorek":2,"Środa":3,"Czwartek":4,"Piątek":5,"Sobota":6};
   const wanted=map[dayName];
   const d=new Date();
@@ -164,7 +164,7 @@ function nextDateForDay94(dayName){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-function allGroups94(){
+function allMakeupGroups(){
   const map=new Map();
   (data.children||[]).forEach(c=>{
     if(typeof childActiveNow==="function" && !childActiveNow(c))return;
@@ -187,25 +187,25 @@ function allGroups94(){
   );
 }
 
-function childMakeups94(childId){
+function childMakeups(childId){
   return data.makeups
     .filter(m=>Number(m.childId)===Number(childId))
     .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 }
 
-window.updateMakeupDate94=function(){
+window.updateMakeupDate=function(){
   const idx=Number(document.getElementById("makeupGroup94")?.value||0);
-  const g=(window.__makeupGroups94||[])[idx];
+  const g=(window.__makeupGroups||[])[idx];
   const input=document.getElementById("makeupDate94");
-  if(g&&input)input.value=nextDateForDay94(g.day);
+  if(g&&input)input.value=nextDateForDay(g.day);
 };
 
-window.openMakeup94=function(childId){
+window.openMakeup=function(childId){
   const ch=(data.children||[]).find(c=>Number(c.id)===Number(childId));
   if(!ch)return;
 
-  const groups=allGroups94();
-  window.__makeupGroups94=groups;
+  const groups=allMakeupGroups();
+  window.__makeupGroups=groups;
 
   if(!groups.length){
     modal(`<h2>Odrabianie zajęć</h2>
@@ -214,39 +214,39 @@ window.openMakeup94=function(childId){
     return;
   }
 
-  const existing=childMakeups94(ch.id);
-  const upcoming=existing.filter(m=>m.date>=localToday94());
+  const existing=childMakeups(ch.id);
+  const upcoming=existing.filter(m=>m.date>=makeupLocalToday());
 
   modal(`<h2>🔄 Odrabianie zajęć</h2>
-    <div class="muted"><b>${esc94(ch.first)} ${esc94(ch.last)}</b> • jednorazowe dopisanie do innej grupy. Nie zmienia stałych zajęć ani płatności.</div>
+    <div class="muted"><b>${escapeMakeupHtml(ch.first)} ${escapeMakeupHtml(ch.last)}</b> • jednorazowe dopisanie do innej grupy. Nie zmienia stałych zajęć ani płatności.</div>
 
     ${upcoming.length?`<div class="makeupList94">
       <h3>Zaplanowane</h3>
       ${upcoming.map(m=>`<div class="makeupItem94">
-        <div><b>${esc94(m.date)}</b><span>${esc94(m.school)} • ${esc94(m.type)} • ${esc94(m.day)} ${esc94(m.time)}</span>${m.note?`<small>${esc94(m.note)}</small>`:""}</div>
-        <button class="danger makeupDelete94" onclick="deleteMakeup94(${m.id},${ch.id})">Usuń</button>
+        <div><b>${escapeMakeupHtml(m.date)}</b><span>${escapeMakeupHtml(m.school)} • ${escapeMakeupHtml(m.type)} • ${escapeMakeupHtml(m.day)} ${escapeMakeupHtml(m.time)}</span>${m.note?`<small>${escapeMakeupHtml(m.note)}</small>`:""}</div>
+        <button class="danger makeupDelete94" onclick="deleteMakeup(${m.id},${ch.id})">Usuń</button>
       </div>`).join("")}
     </div>`:""}
 
     <label>Grupa, w której dziecko odrabia</label>
-    <select id="makeupGroup94" onchange="updateMakeupDate94()">
-      ${groups.map((g,i)=>`<option value="${i}">${esc94(g.school)} • ${esc94(g.type)} • ${esc94(g.day)} ${esc94(g.time)}</option>`).join("")}
+    <select id="makeupGroup94" onchange="updateMakeupDate()">
+      ${groups.map((g,i)=>`<option value="${i}">${escapeMakeupHtml(g.school)} • ${escapeMakeupHtml(g.type)} • ${escapeMakeupHtml(g.day)} ${escapeMakeupHtml(g.time)}</option>`).join("")}
     </select>
 
     <label>Data odrabiania</label>
-    <input id="makeupDate94" type="date" value="${nextDateForDay94(groups[0].day)}">
+    <input id="makeupDate94" type="date" value="${nextDateForDay(groups[0].day)}">
 
     <label>Notatka (opcjonalnie)</label>
     <input id="makeupNote94" placeholder="np. ustalone z mamą">
 
     <div class="actions">
       <button class="soft" onclick="closeModal();editChild(${ch.id})">Anuluj</button>
-      <button class="primary" onclick="saveMakeup94(${ch.id})">Zapisz odrabianie</button>
+      <button class="primary" onclick="saveMakeup(${ch.id})">Zapisz odrabianie</button>
     </div>`);
 };
 
-window.saveMakeup94=function(childId){
-  const groups=window.__makeupGroups94||[];
+window.saveMakeup=function(childId){
+  const groups=window.__makeupGroups||[];
   const idx=Number(document.getElementById("makeupGroup94")?.value||0);
   const g=groups[idx];
   const date=document.getElementById("makeupDate94")?.value||"";
@@ -255,7 +255,7 @@ window.saveMakeup94=function(childId){
 
   if(!g||!date||!ch)return;
 
-  const actualDay=dayName94(date);
+  const actualDay=dayNameForDate(date);
   if(actualDay!==g.day){
     if(typeof showToast==="function")showToast(`Wybrana grupa ma zajęcia w: ${g.day}`);
     return;
@@ -296,7 +296,7 @@ window.saveMakeup94=function(childId){
   if(typeof showToast==="function")showToast("Odrabianie zapisane");
 };
 
-window.deleteMakeup94=function(id,childId){
+window.deleteMakeup=function(id,childId){
   const m=data.makeups.find(x=>Number(x.id)===Number(id));
   data.makeups=data.makeups.filter(x=>Number(x.id)!==Number(id));
   const ch=(data.children||[]).find(c=>Number(c.id)===Number(childId));
@@ -305,14 +305,14 @@ window.deleteMakeup94=function(id,childId){
   }
   save();
   closeModal();
-  openMakeup94(childId);
+  openMakeup(childId);
 };
 
 /* ===== PROFIL DZIECKA ===== */
-const originalEditChild94=window.editChild;
-if(typeof originalEditChild94==="function"){
+const originalEditChildForMakeup=window.editChild;
+if(typeof originalEditChildForMakeup==="function"){
   window.editChild=function(id){
-    originalEditChild94(id);
+    originalEditChildForMakeup(id);
     if(!id)return;
 
     setTimeout(()=>{
@@ -322,13 +322,13 @@ if(typeof originalEditChild94==="function"){
       const header=box.querySelector(".childProfileHeader");
       if(!header)return;
 
-      const upcoming=childMakeups94(id).filter(m=>m.date>=localToday94());
+      const upcoming=childMakeups(id).filter(m=>m.date>=makeupLocalToday());
       const html=`<div id="makeupProfile94" class="makeupProfile94">
         <div>
           <b>🔄 Odrabianie zajęć</b>
           <span>${upcoming.length?`${upcoming.length} zaplanowane`:"Brak zaplanowanych terminów"}</span>
         </div>
-        <button class="soft" onclick="closeModal();openMakeup94(${Number(id)})">${upcoming.length?"Zarządzaj":"+ Dodaj"}</button>
+        <button class="soft" onclick="closeModal();openMakeup(${Number(id)})">${upcoming.length?"Zarządzaj":"+ Dodaj"}</button>
       </div>`;
       header.insertAdjacentHTML("afterend",html);
     },0);
@@ -336,10 +336,10 @@ if(typeof originalEditChild94==="function"){
 }
 
 /* ===== LISTA OBECNOŚCI ===== */
-const originalSelectedGroupRows94=window.selectedGroupRows;
-if(typeof originalSelectedGroupRows94==="function"){
+const originalSelectedGroupRowsForMakeup=window.selectedGroupRows;
+if(typeof originalSelectedGroupRowsForMakeup==="function"){
   window.selectedGroupRows=function(){
-    const base=originalSelectedGroupRows94();
+    const base=originalSelectedGroupRowsForMakeup();
     const school=document.getElementById("gSchool")?.value||"";
     const workshop=document.getElementById("gWorkshop")?.value||"";
     const day=document.getElementById("gDay")?.value||"";
@@ -361,8 +361,8 @@ if(typeof originalSelectedGroupRows94==="function"){
       base.push({
         c,
         cl:{school:m.school,type:m.type,day:m.day,time:m.time},
-        makeup94:true,
-        makeupData94:m
+        isMakeup:true,
+        makeupData:m
       });
     });
 
@@ -376,21 +376,21 @@ if(typeof originalSelectedGroupRows94==="function"){
 
 /* v8.9 nadal renderuje samo okno obecności.
    Po jego otwarciu dokładamy oznaczenie "Odrabianie" przy odpowiednim dziecku. */
-const originalShowAttendance94=window.showAttendance;
-if(typeof originalShowAttendance94==="function"){
+const originalShowAttendanceForMakeup=window.showAttendance;
+if(typeof originalShowAttendanceForMakeup==="function"){
   window.showAttendance=function(){
     const rowsBefore=selectedGroupRows();
-    originalShowAttendance94();
+    originalShowAttendanceForMakeup();
 
     setTimeout(()=>{
       const domRows=[...document.querySelectorAll("#modal .attendanceRow")];
       rowsBefore.forEach((x,i)=>{
-        if(!x.makeup94 || !domRows[i])return;
+        if(!x.isMakeup || !domRows[i])return;
         const info=domRows[i].querySelector("small");
         if(info){
           info.insertAdjacentHTML("beforeend",` <span class="makeupBadge94">🔄 Odrabianie</span>`);
-          if(x.makeupData94?.note){
-            info.insertAdjacentHTML("beforeend",`<span class="makeupNote94">${esc94(x.makeupData94.note)}</span>`);
+          if(x.makeupData?.note){
+            info.insertAdjacentHTML("beforeend",`<span class="makeupNote94">${escapeMakeupHtml(x.makeupData.note)}</span>`);
           }
         }
       });

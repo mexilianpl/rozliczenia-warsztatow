@@ -1,5 +1,5 @@
 /* =========================================================
-   groups.js — Rozliczenia Warsztatów v11.3
+   groups.js — Rozliczenia Warsztatów v11.4
    Grupy wraz z zapamiętywaniem ostatnich filtrów.
    ========================================================= */
 "use strict";
@@ -55,16 +55,16 @@ function printGroupArrears(){
 }
 
 window.RWModules=window.RWModules||{};
-window.RWModules.groups={version:"10.9"};
+window.RWModules.groups={version:"11.4"};
 
 (function(){
 "use strict";
 
-const RW89_GROUP_KEY = "rw89_group_filters";
+const GROUP_FILTERS_KEY = "rw89_group_filters";
 /* ---------- 8.9 / ZAPAMIĘTYWANIE GRUP ---------- */
 
   function readGroupPrefs89(){
-    try{return JSON.parse(localStorage.getItem(RW89_GROUP_KEY)||"{}")}catch(e){return {}}
+    try{return JSON.parse(localStorage.getItem(GROUP_FILTERS_KEY)||"{}")}catch(e){return {}}
   }
   function saveGroupPrefs89(){
     const prefs={
@@ -73,7 +73,7 @@ const RW89_GROUP_KEY = "rw89_group_filters";
       day:document.getElementById("gDay")?.value||"",
       time:document.getElementById("gTime")?.value||""
     };
-    localStorage.setItem(RW89_GROUP_KEY,JSON.stringify(prefs));
+    localStorage.setItem(GROUP_FILTERS_KEY,JSON.stringify(prefs));
   }
 
   function bindGroupMemory89(){

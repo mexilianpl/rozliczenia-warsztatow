@@ -177,4 +177,4 @@ function listRows(type){
 }
 
 window.RWModules=window.RWModules||{};
-window.RWModules.lists={version:"10.9"};
+window.RWModules.lists={version:"11.4"};

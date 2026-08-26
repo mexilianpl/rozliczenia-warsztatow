@@ -265,4 +265,4 @@ signupCsvInput.onchange=async e=>{
 
 
 window.RWModules=window.RWModules||{};
-window.RWModules.signups={version:"11.0"};
+window.RWModules.signups={version:"11.4"};

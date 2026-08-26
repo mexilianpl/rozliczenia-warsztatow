@@ -11,7 +11,7 @@
 
 /* ---------- X W KAŻDYM MODALU ---------- */
 
-function addCloseX96(root=document){
+function addModalCloseButton(root=document){
   const boxes=root.querySelectorAll ? root.querySelectorAll(".modal .modalbox") : [];
   boxes.forEach(box=>{
     if(box.querySelector(":scope > .modalCloseX96"))return;
@@ -33,36 +33,36 @@ function addCloseX96(root=document){
 }
 
 /* Obserwator obsługuje też modale tworzone przez wcześniejsze wersje. */
-const modalObserver96=new MutationObserver(mutations=>{
+const modalObserver=new MutationObserver(mutations=>{
   for(const m of mutations){
     if(m.addedNodes.length){
-      addCloseX96(document);
+      addModalCloseButton(document);
       break;
     }
   }
 });
-modalObserver96.observe(document.body,{childList:true,subtree:true});
-addCloseX96(document);
+modalObserver.observe(document.body,{childList:true,subtree:true});
+addModalCloseButton(document);
 
 /* ---------- SYSTEMOWY / ANDROIDOWY WSTECZ ---------- */
 
-const BACK_GUARD_KEY96="rw-back-guard-ui";
+const BACK_GUARD_KEY="rw-back-guard-ui";
 
-function installBackGuard96(){
+function installBackGuard(){
   /* Dodajemy wirtualny wpis historii, żeby Android Back nie zamknął PWA. */
   try{
     const st=history.state||{};
-    if(!st[BACK_GUARD_KEY96]){
-      history.pushState({...st,[BACK_GUARD_KEY96]:true},"",location.href);
+    if(!st[BACK_GUARD_KEY]){
+      history.pushState({...st,[BACK_GUARD_KEY]:true},"",location.href);
     }
   }catch(e){}
 }
 
-function restoreBackGuard96(){
+function restoreBackGuard(){
   /* Po każdym cofnięciu tworzymy guard ponownie. */
   setTimeout(()=>{
     try{
-      history.pushState({...(history.state||{}),[BACK_GUARD_KEY96]:true},"",location.href);
+      history.pushState({...(history.state||{}),[BACK_GUARD_KEY]:true},"",location.href);
     }catch(e){}
   },0);
 }
@@ -73,25 +73,25 @@ window.addEventListener("popstate",function(){
   if(modalEl){
     if(typeof closeModal==="function")closeModal();
     else modalEl.remove();
-    restoreBackGuard96();
+    restoreBackGuard();
     return;
   }
 
   if(typeof page!=="undefined" && page!=="start"){
     page="start";
     if(typeof render==="function")render();
-    restoreBackGuard96();
+    restoreBackGuard();
     return;
   }
 
   /* Jesteśmy już na Start — pozostajemy w aplikacji. */
   if(typeof page!=="undefined" && page==="start"){
     if(typeof render==="function")render();
-    restoreBackGuard96();
+    restoreBackGuard();
   }
 });
 
-installBackGuard96();
+installBackGuard();
 
 /* ---------- STYLE ---------- */
 

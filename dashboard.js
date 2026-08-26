@@ -1,5 +1,5 @@
 /* =========================================================
-   dashboard.js — Rozliczenia Warsztatów v11.3
+   dashboard.js — Rozliczenia Warsztatów v11.4
    Pełny moduł Start/dashboard.
    Scalono dashboard-base.js i część legacy-workflows.js.
    ========================================================= */
@@ -306,7 +306,7 @@ function openChildrenForSchool(school){
 (function(){
 "use strict";
 
-function esc89(s){
+function escapeDashboardHtml(s){
   return String(s ?? "")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
@@ -315,7 +315,7 @@ function esc89(s){
     .replaceAll("'","&#039;");
 }
 
-function activeChildren89(){
+function dashboardActiveChildren(){
   return (data.children||[]).filter(c=>typeof childActiveNow==="function" ? childActiveNow(c) : true);
 }
 /* ---------- 8.9 / AKTUALNA GRUPA NA START ---------- */
@@ -329,7 +329,7 @@ function activeChildren89(){
     const day=typeof todayDayName==="function"?todayDayName():["Niedziela","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota"][new Date().getDay()];
     const map={};
 
-    activeChildren89().forEach(c=>{
+    dashboardActiveChildren().forEach(c=>{
       (c.classes||[]).forEach(cl=>{
         if(cl.waitlist || cl.day!==day)return;
         const tm=timeMinutes89(cl.time);
@@ -378,8 +378,8 @@ function activeChildren89(){
       const btn=document.getElementById("quickPaymentStart89");
       const html=`<div id="currentClassNow89" class="card currentClassNow">
         <span class="currentClassLabel">${currentClassLabel89(g.diff)}</span>
-        <h3>${esc89(g.school)} • ${esc89(g.type)}</h3>
-        <p>${esc89(g.day)} ${esc89(g.time)} • ${g.children.length} ${g.children.length===1?"dziecko":"dzieci"}</p>
+        <h3>${escapeDashboardHtml(g.school)} • ${escapeDashboardHtml(g.type)}</h3>
+        <p>${escapeDashboardHtml(g.day)} ${escapeDashboardHtml(g.time)} • ${g.children.length} ${g.children.length===1?"dziecko":"dzieci"}</p>
         <button class="primary" onclick="openAttendanceForGroup('${String(g.school).replaceAll("'","\\'")}','${String(g.type).replaceAll("'","\\'")}','${String(g.day).replaceAll("'","\\'")}','${String(g.time).replaceAll("'","\\'")}')">Sprawdź obecność</button>
       </div>`;
       if(btn)btn.insertAdjacentHTML("afterend",html);
@@ -410,7 +410,7 @@ window.currentDashboardPeriod=function(){
   return {month,year,monthNumber:names.indexOf(month)+1};
 };
 
-function actualCashPeriod101(){
+function actualCashPeriod(){
   const now=new Date();
   const names=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
   return {
@@ -420,15 +420,15 @@ function actualCashPeriod101(){
   };
 }
 
-function dateYearMonth101(date){
+function dateYearMonth(date){
   const s=String(date||"");
   const m=s.match(/^(\d{4})-(\d{2})/);
   if(!m)return null;
   return {year:Number(m[1]),month:Number(m[2])};
 }
 
-function paymentCashBelongs101(p,cashPeriod){
-  const ym=dateYearMonth101(p?.date);
+function paymentCashBelongs(p,cashPeriod){
+  const ym=dateYearMonth(p?.date);
 
   // Nowe i prawidłowe wpisy: zawsze według faktycznej daty wpływu.
   if(ym){
@@ -441,8 +441,8 @@ function paymentCashBelongs101(p,cashPeriod){
   return String(p?.month||"")===names[cashPeriod.month-1];
 }
 
-function incomeCashBelongs101(i,cashPeriod){
-  const ym=dateYearMonth101(i?.date);
+function incomeCashBelongs(i,cashPeriod){
+  const ym=dateYearMonth(i?.date);
   return !!ym && ym.year===cashPeriod.year && ym.month===cashPeriod.month;
 }
 
@@ -451,19 +451,19 @@ function incomeCashBelongs101(i,cashPeriod){
   Nie ruszamy należności, zaległości, liczby opłaconych ani statystyk szkół.
   Zmieniamy wyłącznie pola przepływu gotówki: extra i total.
 */
-const originalCurrentMonthDashboard101=window.currentMonthDashboard;
+const originalCurrentMonthDashboard=window.currentMonthDashboard;
 
-if(typeof originalCurrentMonthDashboard101==="function"){
+if(typeof originalCurrentMonthDashboard==="function"){
   window.currentMonthDashboard=function(){
-    const dash=originalCurrentMonthDashboard101();
-    const cashPeriod=actualCashPeriod101();
+    const dash=originalCurrentMonthDashboard();
+    const cashPeriod=actualCashPeriod();
 
     const cashChildPaid=(data.payments||[])
-      .filter(p=>paymentCashBelongs101(p,cashPeriod))
+      .filter(p=>paymentCashBelongs(p,cashPeriod))
       .reduce((sum,p)=>sum+Number(p.amount||0),0);
 
     const cashExtra=(data.income||[])
-      .filter(i=>incomeCashBelongs101(i,cashPeriod))
+      .filter(i=>incomeCashBelongs(i,cashPeriod))
       .reduce((sum,i)=>sum+Number(i.amount||0),0);
 
     dash.cashChildPaid=cashChildPaid;
@@ -479,7 +479,7 @@ if(typeof originalCurrentMonthDashboard101==="function"){
   Dodajemy małe objaśnienie pod kaflem "Razem wpływy", żeby było jasne,
   że ten kafel jest liczony wg daty wpływu, a nie miesiąca rozliczeniowego.
 */
-function annotateCashTile101(){
+function annotateCashTile(){
   if(typeof page==="undefined" || page!=="start" || !app)return;
 
   const tiles=[...app.querySelectorAll(".dashboardTile")];
@@ -489,15 +489,15 @@ function annotateCashTile101(){
   const small=tile.querySelector("small");
   if(!small)return;
 
-  const cp=actualCashPeriod101();
+  const cp=actualCashPeriod();
   small.textContent=`wg daty wpływu • ${cp.monthName} ${cp.year}`;
 }
 
-const originalStart101=window.start;
-if(typeof originalStart101==="function"){
+const originalStartDashboard=window.start;
+if(typeof originalStartDashboard==="function"){
   window.start=function(){
-    originalStart101();
-    annotateCashTile101();
+    originalStartDashboard();
+    annotateCashTile();
   };
 }
 
@@ -508,6 +508,6 @@ setTimeout(()=>{
 },0);
 
 window.RWModules=window.RWModules||{};
-window.RWModules.dashboard={version:"10.1",cashflowByTransactionDate:true};
+window.RWModules.dashboard={version:"11.4",cashflowByTransactionDate:true};
 
 })();

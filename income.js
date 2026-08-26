@@ -16,7 +16,7 @@ function addIncome(){modal(`<h2>Dodaj przychód</h2><label>Tytuł</label><input 
 (function(){
 "use strict";
 
-function escIncome107(s){
+function escapeIncomeHtml(s){
   return String(s??"")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
@@ -26,27 +26,27 @@ function escIncome107(s){
 }
 
 /* ---------- EDYCJA ---------- */
-window.editIncome107=function(id){
+window.editIncome=function(id){
   const item=(data.income||[]).find(x=>Number(x.id)===Number(id));
   if(!item)return;
 
   modal(`<h2>Edytuj przychód</h2>
     <label>Tytuł</label>
-    <input id="income107Title" value="${escIncome107(item.title||"")}">
+    <input id="income107Title" value="${escapeIncomeHtml(item.title||"")}">
 
     <label>Kwota</label>
     <input id="income107Amount" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(item.amount||0)}">
 
     <label>Data</label>
-    <input id="income107Date" type="date" value="${escIncome107(item.date||"")}">
+    <input id="income107Date" type="date" value="${escapeIncomeHtml(item.date||"")}">
 
     <div class="actions">
       <button class="soft" onclick="closeModal()">Anuluj</button>
-      <button class="primary" onclick="saveIncome107(${Number(item.id)})">Zapisz zmiany</button>
+      <button class="primary" onclick="saveIncome(${Number(item.id)})">Zapisz zmiany</button>
     </div>`);
 };
 
-window.saveIncome107=function(id){
+window.saveIncome=function(id){
   const item=(data.income||[]).find(x=>Number(x.id)===Number(id));
   if(!item)return;
 
@@ -76,7 +76,7 @@ window.saveIncome107=function(id){
 };
 
 /* ---------- USUWANIE ---------- */
-window.deleteIncome107=function(id){
+window.deleteIncome=function(id){
   const item=(data.income||[]).find(x=>Number(x.id)===Number(id));
   if(!item)return;
 
@@ -103,13 +103,13 @@ window.income=function(){
       ${(data.income||[]).length
         ? data.income.map(i=>`<div class="classrow incomeRow107">
             <div class="incomeMain107">
-              <b>${escIncome107(i.title||"")}</b>
-              <div>${money(i.amount)} • ${escIncome107(i.date||"")}</div>
+              <b>${escapeIncomeHtml(i.title||"")}</b>
+              <div>${money(i.amount)} • ${escapeIncomeHtml(i.date||"")}</div>
             </div>
 
             <div class="incomeActions107">
-              <button class="soft" onclick="editIncome107(${Number(i.id)})">Edytuj</button>
-              <button class="danger" onclick="deleteIncome107(${Number(i.id)})">Usuń</button>
+              <button class="soft" onclick="editIncome(${Number(i.id)})">Edytuj</button>
+              <button class="danger" onclick="deleteIncome(${Number(i.id)})">Usuń</button>
             </div>
           </div>`).join("")
         : "Brak dodatkowych przychodów."}
@@ -117,10 +117,10 @@ window.income=function(){
 };
 
 /* ---------- ZALEGŁOŚCI — SZYBKIE DZIAŁANIA ---------- */
-const originalInteractiveListPanel107=window.interactiveListPanel;
-if(typeof originalInteractiveListPanel107==="function"){
+const originalInteractiveListPanel=window.interactiveListPanel;
+if(typeof originalInteractiveListPanel==="function"){
   window.interactiveListPanel=function(type){
-    if(type!=="arrears")return originalInteractiveListPanel107(type);
+    if(type!=="arrears")return originalInteractiveListPanel(type);
 
     const arr=listFilteredChildren();
     const month=listSelectedMonth();
@@ -139,8 +139,8 @@ if(typeof originalInteractiveListPanel107==="function"){
       ${debtors.length?debtors.map(({c,ps})=>`
         <div class="interactiveListRow debtRow107">
           <div class="interactiveMain">
-            <b>${escIncome107(c.last)} ${escIncome107(c.first)}</b>
-            <span>${escIncome107(c.school||"")}${c.class?` • ${escIncome107(c.class)}`:""}</span>
+            <b>${escapeIncomeHtml(c.last)} ${escapeIncomeHtml(c.first)}</b>
+            <span>${escapeIncomeHtml(c.school||"")}${c.class?` • ${escapeIncomeHtml(c.class)}`:""}</span>
           </div>
 
           <div class="debtAmounts107">
@@ -160,10 +160,10 @@ if(typeof originalInteractiveListPanel107==="function"){
 }
 
 /* ---------- LISTA ZALEGŁOŚCI ---------- */
-const originalListRowsBase107=window.listRowsBase;
-if(typeof originalListRowsBase107==="function"){
+const originalListRowsBase=window.listRowsBase;
+if(typeof originalListRowsBase==="function"){
   window.listRowsBase=function(type){
-    const result=originalListRowsBase107(type);
+    const result=originalListRowsBase(type);
     if(type!=="arrears")return result;
 
     const month=typeof listSelectedMonth==="function"
@@ -208,6 +208,6 @@ style.textContent=`
 document.head.appendChild(style);
 
 window.RWModules=window.RWModules||{};
-window.RWModules.income={version:"10.7"};
+window.RWModules.income={version:"11.4"};
 
 })();

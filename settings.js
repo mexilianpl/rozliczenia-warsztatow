@@ -106,10 +106,10 @@ function settings(){
 
 
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v11.3.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v11.4.json";a.click()}
 
 window.RWModules=window.RWModules||{};
-window.RWModules.settings={version:"11.0"};
+window.RWModules.settings={version:"11.4"};
 
 /* Archiwizacja roku z app.js — v11.2 */
 function archiveSchoolYear(){

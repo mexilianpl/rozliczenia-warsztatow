@@ -1,12 +1,26 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.3 — 26.08.2026**
+Aktualna wersja: **11.4 — 26.08.2026**
 
-## Porządki 11.3
+## Porządki 11.4
 
-Usunięto warstwę przejściową `legacy-workflows.js` oraz wszystkie `*-base.js`.
+Usunięto historyczne numery wersji z nazw funkcji wewnętrznych.
 
-Struktura jest teraz domenowa:
+Przykłady:
+- `openQuickPayForChild98` → `openQuickPayForChild`
+- `editPayment102` → `editPayment`
+- `saveCertainOCR98` → `saveCertainOCRPayments`
+- `openMakeup94` → `openMakeup`
+- `deleteMakeup94` → `deleteMakeup`
+- `deleteChild107` → `deleteChild`
+- `editIncome107` → `editIncome`
+- `addCloseX96` → `addModalCloseButton`
+
+Ujednolicono również nazwy helperów i wrapperów wewnątrz modułów.
+Format danych użytkownika i wygląd aplikacji nie zostały zmienione.
+
+## Aktywne moduły
+
 - `core.js`
 - `dashboard.js`
 - `children.js`
@@ -20,20 +34,12 @@ Struktura jest teraz domenowa:
 - `income.js`
 - `ui.js`
 
-Dawna logika szybkiej wpłaty trafiła do `payments.js`.
-Dawna logika okna obecności trafiła do `attendance.js`.
-Aktualna grupa na Start trafiła do `dashboard.js`.
-Zapamiętywanie filtrów grupy trafiło do `groups.js`.
+## Po wdrożeniu
 
-## Po wdrożeniu usuń z repozytorium
+Nie ma nowych plików do ręcznego usunięcia.
 
-- `legacy-workflows.js`
-- `dashboard-base.js`
-- `children-base.js`
-- `payments-base.js`
-- `attendance-base.js`
+## Następny etap
 
-## Kolejny etap
-
-Następnie można usunąć historyczne sufiksy funkcji (`89`, `94`, `98`, `107` itd.)
-i ujednolicić nazewnictwo wewnątrz modułów, bez zmiany interfejsu.
+Można teraz wyczyścić historyczne numery z nazw klas CSS/identyfikatorów DOM
+oraz uprościć duże moduły `children.js` i `payments.js` przez wydzielenie
+mniejszych sekcji wewnętrznych bez zwiększania liczby plików.

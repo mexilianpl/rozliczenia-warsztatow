@@ -1,5 +1,5 @@
 /* =========================================================
-   children.js — Rozliczenia Warsztatów v11.3
+   children.js — Rozliczenia Warsztatów v11.4
    Pełny moduł listy i profilu dzieci.
    Scalono children-base.js z children.js.
    ========================================================= */
@@ -549,7 +549,7 @@ function saveClass(cid,id,exists){
 (function(){
 "use strict";
 
-function norm107(s){
+function normalizeChildText(s){
   return String(s||"")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g,"")
@@ -557,8 +557,8 @@ function norm107(s){
     .trim();
 }
 
-function childLifecycle107(card, child){
-  const text=norm107(card?.textContent||"");
+function childLifecycle(card, child){
+  const text=normalizeChildText(card?.textContent||"");
 
   if(text.includes("zrezygnowal")){
     return {kind:"resigned",label:"🔴 Zrezygnował"};
@@ -576,7 +576,7 @@ function childLifecycle107(card, child){
   return {kind:"active",label:"🟢 Aktywne"};
 }
 
-function replaceLeafText107(root, fromValues, to){
+function replaceLeafText(root, fromValues, to){
   if(!root)return;
   [...root.querySelectorAll("*")].forEach(el=>{
     if(el.children.length)return;
@@ -585,13 +585,13 @@ function replaceLeafText107(root, fromValues, to){
   });
 }
 
-function patchChildCard107(card, child){
+function patchChildCardStatus(card, child){
   if(!card || !child)return;
-  const state=childLifecycle107(card,child);
+  const state=childLifecycle(card,child);
 
-  replaceLeafText107(card,["Aktywne","🟢 Aktywne"],"🟢 Aktywne");
-  replaceLeafText107(card,["Wstrzymane"],"⏸ Wstrzymane");
-  replaceLeafText107(card,["Zrezygnował","Zrezygnowal"],"🔴 Zrezygnował");
+  replaceLeafText(card,["Aktywne","🟢 Aktywne"],"🟢 Aktywne");
+  replaceLeafText(card,["Wstrzymane"],"⏸ Wstrzymane");
+  replaceLeafText(card,["Zrezygnował","Zrezygnowal"],"🔴 Zrezygnował");
 
   if(state.kind!=="active"){
     const badge=card.querySelector(".paymentBadgeText");
@@ -611,7 +611,7 @@ function patchChildCard107(card, child){
   }
 }
 
-function patchChildrenList107(){
+function patchChildrenListStatuses(){
   if(typeof page!=="undefined" && page!=="children")return;
   const list=document.getElementById("childrenList");
   if(!list)return;
@@ -626,18 +626,18 @@ function patchChildrenList107(){
   }
 
   const cards=[...list.children].filter(el=>el.classList?.contains("card"));
-  cards.forEach((card,i)=>patchChildCard107(card,visible[i]));
+  cards.forEach((card,i)=>patchChildCardStatus(card,visible[i]));
 }
 
-function patchProfileStatus107(box){
+function patchProfileStatus(box){
   if(!box)return;
-  replaceLeafText107(box,["Aktywne","🟢 Aktywne"],"🟢 Aktywne");
-  replaceLeafText107(box,["Wstrzymane"],"⏸ Wstrzymane");
-  replaceLeafText107(box,["Zrezygnował","Zrezygnowal"],"🔴 Zrezygnował");
+  replaceLeafText(box,["Aktywne","🟢 Aktywne"],"🟢 Aktywne");
+  replaceLeafText(box,["Wstrzymane"],"⏸ Wstrzymane");
+  replaceLeafText(box,["Zrezygnował","Zrezygnowal"],"🔴 Zrezygnował");
 }
 
 /* ---------- SZYBKA WPŁATA Z PROFILU ---------- */
-function patchProfileQuickPay107(childId, box){
+function patchProfileQuickPay(childId, box){
   if(!box)return;
   const section=box.querySelector('.childProfileSection[data-section="payments"]');
   if(!section)return;
@@ -654,8 +654,8 @@ function patchProfileQuickPay107(childId, box){
 
     if(typeof closeModal==="function")closeModal();
 
-    if(typeof openQuickPayForChild98==="function"){
-      openQuickPayForChild98(Number(childId));
+    if(typeof openQuickPayForChild==="function"){
+      openQuickPayForChild(Number(childId));
       return;
     }
 
@@ -673,8 +673,8 @@ function patchProfileQuickPay107(childId, box){
 }
 
 /* ---------- USUWANIE DZIECKA — TYLKO DANE ---------- */
-function injectDeleteChild107(childId, box){
-  if(!box || box.querySelector("#deleteChild107"))return;
+function injectDeleteChildButton(childId, box){
+  if(!box || box.querySelector("#deleteChild"))return;
 
   const dataSection=box.querySelector('.childProfileSection[data-section="data"]');
   if(!dataSection)return;
@@ -682,17 +682,17 @@ function injectDeleteChild107(childId, box){
   const actions=[...dataSection.querySelectorAll(".actions")].pop();
 
   const btn=document.createElement("button");
-  btn.id="deleteChild107";
+  btn.id="deleteChild";
   btn.type="button";
-  btn.className="danger deleteChild107";
+  btn.className="danger deleteChild";
   btn.textContent="Usuń dziecko";
-  btn.onclick=()=>deleteChild107(Number(childId));
+  btn.onclick=()=>deleteChild(Number(childId));
 
   if(actions)actions.insertAdjacentElement("beforebegin",btn);
   else dataSection.appendChild(btn);
 }
 
-window.deleteChild107=async function(childId){
+window.deleteChild=async function(childId){
   const child=(data.children||[]).find(c=>Number(c.id)===Number(childId));
   if(!child)return;
 
@@ -752,27 +752,27 @@ window.deleteChild107=async function(childId){
 /* ---------- PODPINANIE DO ISTNIEJĄCYCH EKRANÓW ---------- */
 
 /* Dzieci: patch bez obserwatora całego dokumentu. */
-const originalChildren107=window.children;
-if(typeof originalChildren107==="function"){
+const originalChildrenView=window.children;
+if(typeof originalChildrenView==="function"){
   window.children=function(){
-    originalChildren107();
-    setTimeout(patchChildrenList107,0);
+    originalChildrenView();
+    setTimeout(patchChildrenListStatuses,0);
   };
 }
 
 /* Profil: v94 jest ładowany przed children.js, więc zachowujemy odrabianie. */
-const originalEditChild107=window.editChild;
-if(typeof originalEditChild107==="function"){
+const originalEditChildProfile=window.editChild;
+if(typeof originalEditChildProfile==="function"){
   window.editChild=function(id){
-    originalEditChild107(id);
+    originalEditChildProfile(id);
     if(!id)return;
 
     const patch=()=>{
       const box=document.querySelector("#modal .modalbox");
       if(!box)return;
-      patchProfileStatus107(box);
-      patchProfileQuickPay107(id,box);
-      injectDeleteChild107(id,box);
+      patchProfileStatus(box);
+      patchProfileQuickPay(id,box);
+      injectDeleteChildButton(id,box);
     };
 
     setTimeout(patch,0);
@@ -792,7 +792,7 @@ document.addEventListener("click",e=>{
     const box=document.querySelector("#modal .modalbox");
     if(!box)return;
 
-    const deleteBtn=box.querySelector("#deleteChild107");
+    const deleteBtn=box.querySelector("#deleteChild");
     if(deleteBtn){
       /* Przycisk fizycznie znajduje się w sekcji Dane,
          więc nie występuje w innych zakładkach. */
@@ -802,7 +802,7 @@ document.addEventListener("click",e=>{
     if(label==="Płatności"){
       const selected=box.querySelector('.childProfileSection[data-section="payments"] button[onclick*="addPayment("]');
       const match=selected?.getAttribute("onclick")?.match(/addPayment\((\d+)/);
-      if(match)patchProfileQuickPay107(Number(match[1]),box);
+      if(match)patchProfileQuickPay(Number(match[1]),box);
     }
   },0);
 },true);
@@ -811,11 +811,11 @@ const style=document.createElement("style");
 style.textContent=`
 .childPaused107{color:#9a6800!important;font-weight:900}
 .childResigned107{color:#c63b4b!important;font-weight:900}
-.deleteChild107{width:100%;margin:18px 0 8px}
+.deleteChild{width:100%;margin:18px 0 8px}
 `;
 document.head.appendChild(style);
 
 window.RWModules=window.RWModules||{};
-window.RWModules.children={version:"10.7"};
+window.RWModules.children={version:"11.4"};
 
 })();

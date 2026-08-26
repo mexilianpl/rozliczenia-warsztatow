@@ -278,4 +278,4 @@ function refreshReports(){
 
 
 window.RWModules=window.RWModules||{};
-window.RWModules.reports={version:"11.0"};
+window.RWModules.reports={version:"11.4"};
