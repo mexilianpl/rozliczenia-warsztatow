@@ -558,7 +558,7 @@ function paymentActiveChildren(){
 (function(){
 "use strict";
 
-
+const QUICK_PAYMENT_PREFS_KEY = "rw_quick_payment_prefs";
 const OCR_CERTAIN_THRESHOLD=90;
 
 
@@ -608,11 +608,24 @@ window.openQuickPayForChild=function(childId){
     if(typeof showToast==="function") showToast("Nie udało się otworzyć szybkiej wpłaty");
     return;
   }
+
   let prefs={};
-  try{prefs=JSON.parse(localStorage.getItem(QUICK_PAYMENT_PREFS_KEY)||"{}")}catch(e){}
+  try{
+    prefs=JSON.parse(localStorage.getItem(QUICK_PAYMENT_PREFS_KEY)||"{}");
+  }catch(e){}
+
   prefs.childId=Number(childId);
-  if(!prefs.month && typeof currentMonthName==="function")prefs.month=currentMonthName();
-  localStorage.setItem(QUICK_PAYMENT_PREFS_KEY,JSON.stringify(prefs));
+
+  if(!prefs.month && typeof currentMonthName==="function"){
+    prefs.month=currentMonthName();
+  }
+
+  try{
+    localStorage.setItem(QUICK_PAYMENT_PREFS_KEY,JSON.stringify(prefs));
+  }catch(e){
+    console.warn("Nie udało się zapisać wybranego dziecka szybkiej wpłaty",e);
+  }
+
   window.openQuickPayment();
 };
 

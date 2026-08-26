@@ -395,7 +395,7 @@ function editChild(id){
 
   ${id?`<section class="childProfileSection" data-section="payments">
    <h3>Rozliczenia — ${data.currentSchoolYear}</h3>
-   <div class="profilePaymentQuick"><button class="primary" onclick="closeModal();addPayment(${c.id},'${escapeAttr(c.last)}')">+ Dodaj wpłatę</button>${c.phone?`<button class="smsBtn" onclick="sendReminderSMS(${c.id},'${months.includes(currentMonthName())?currentMonthName():"Wrzesień"}')">💬 SMS</button>`:""}</div>
+   <div class="profilePaymentQuick"><button class="primary" onclick="closeModal();openQuickPayForChild(${c.id})">+ Dodaj wpłatę</button>${c.phone?`<button class="smsBtn" onclick="sendReminderSMS(${c.id},'${months.includes(currentMonthName())?currentMonthName():"Wrzesień"}')">💬 SMS</button>`:""}</div>
    <div class="financeTable"><div class="financeHead"><span>Miesiąc</span><span>Należne</span><span>Wpłacono</span><span>Status</span></div>${finance.map(r=>`<div class="financeRow"><span><b>${r.month}</b><small>${r.year}</small></span><span>${money(r.due)}</span><span>${money(r.paid)}</span><span class="${paymentStatusClass(r.kind)}">${r.kind==="paid"?"✓ Opłacone":r.kind==="partial"?`Brakuje ${money(r.missing)}`:r.kind==="unpaid"&&r.due>0?`Brakuje ${money(r.due)}`:r.kind==="overpaid"?`Nadpłata ${money(r.extra)}`:r.kind==="before"?"Przed zapisem":r.kind==="future"?`Do zapłaty ${money(r.due)}`:"—"}</span></div>`).join("")}</div>
   </section>
   <section class="childProfileSection" data-section="attendance">
@@ -450,7 +450,7 @@ function childCard(c){
  <div class="due">Należne ${billMonth}: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div>
  <div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft profileBtn" onclick="editChild(${c.id})">Profil</button></div>
  <div class="childQuickActions">
-   <button onclick="addPayment(${c.id},'${escapeAttr(c.last)}')">＋ Wpłata</button>
+   <button onclick="openQuickPayForChild(${c.id})">＋ Wpłata</button>
    ${c.phone?`<button onclick="sendReminderSMS(${c.id},'${billMonth}')">💬 SMS</button>`:""}
    <button onclick="${todayCl?`quickAttendanceForChild(${c.id})`:`showToast('Dziś brak zajęć')`}">✓ Obecność</button>
    <button onclick="${c.classes?.length?`editClass(${c.id},${c.classes[0].id})`:`editClass(${c.id})`}">✎ Zajęcia</button>
