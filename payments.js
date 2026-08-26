@@ -604,12 +604,16 @@ window.quickPaySearch=function(value){
 };
 
 window.openQuickPayForChild=function(childId){
-  if(typeof openQuickPayment!=="function")return;
-  let prefs={}; try{prefs=JSON.parse(localStorage.getItem(QUICK_PAYMENT_PREFS_KEY)||"{}")}catch(e){}
+  if(typeof window.openQuickPayment!=="function"){
+    if(typeof showToast==="function") showToast("Nie udało się otworzyć szybkiej wpłaty");
+    return;
+  }
+  let prefs={};
+  try{prefs=JSON.parse(localStorage.getItem(QUICK_PAYMENT_PREFS_KEY)||"{}")}catch(e){}
   prefs.childId=Number(childId);
   if(!prefs.month && typeof currentMonthName==="function")prefs.month=currentMonthName();
   localStorage.setItem(QUICK_PAYMENT_PREFS_KEY,JSON.stringify(prefs));
-  openQuickPayment();
+  window.openQuickPayment();
 };
 
 function replacePaymentCard(){
