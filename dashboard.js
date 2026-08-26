@@ -1,5 +1,5 @@
 /* =========================================================
-   dashboard.js — Rozliczenia Warsztatów v11.4
+   dashboard.js — Rozliczenia Warsztatów v11.5
    Pełny moduł Start/dashboard.
    Scalono dashboard-base.js i część legacy-workflows.js.
    ========================================================= */
@@ -320,19 +320,19 @@ function dashboardActiveChildren(){
 }
 /* ---------- 8.9 / AKTUALNA GRUPA NA START ---------- */
 
-  function timeMinutes89(t){
+  function timeMinutes(t){
     const m=String(t||"").match(/^(\d{1,2}):(\d{2})$/);
     return m?Number(m[1])*60+Number(m[2]):null;
   }
 
-  function currentClassCandidate89(){
+  function currentClassCandidate(){
     const day=typeof todayDayName==="function"?todayDayName():["Niedziela","Poniedziałek","Wtorek","Środa","Czwartek","Piątek","Sobota"][new Date().getDay()];
     const map={};
 
     dashboardActiveChildren().forEach(c=>{
       (c.classes||[]).forEach(cl=>{
         if(cl.waitlist || cl.day!==day)return;
-        const tm=timeMinutes89(cl.time);
+        const tm=timeMinutes(cl.time);
         if(tm===null)return;
         const key=[cl.school||c.school||"",cl.type||"",cl.day||"",cl.time||""].join("|");
         if(!map[key])map[key]={school:cl.school||c.school||"",type:cl.type||"",day:cl.day||"",time:cl.time||"",children:[]};
@@ -342,14 +342,14 @@ function dashboardActiveChildren(){
 
     const now=new Date();
     const n=now.getHours()*60+now.getMinutes();
-    const candidates=Object.values(map).map(g=>({...g,diff:timeMinutes89(g.time)-n}))
+    const candidates=Object.values(map).map(g=>({...g,diff:timeMinutes(g.time)-n}))
       .filter(g=>g.diff>=-90 && g.diff<=60)
       .sort((a,b)=>Math.abs(a.diff)-Math.abs(b.diff));
 
     return candidates[0]||null;
   }
 
-  function currentClassLabel89(diff){
+  function currentClassLabel(diff){
     if(diff>15)return `Za ${diff} min`;
     if(diff>0)return `Zaraz • za ${diff} min`;
     if(diff===0)return "Teraz";
@@ -358,26 +358,26 @@ function dashboardActiveChildren(){
     return `Trwające / ostatnie • ${ago} min temu`;
   }
 
-  function injectStart89(){
+  function injectStart(){
     if(page!=="start" || !app)return;
 
     // Szybka wpłata
-    if(!document.getElementById("quickPaymentStart89")){
+    if(!document.getElementById("quickPaymentStart")){
       const anchor=app.querySelector(".dashboardTop")||app.firstElementChild;
       if(anchor){
         anchor.insertAdjacentHTML("afterend",
-          `<button id="quickPaymentStart89" class="primary quickPaymentStart" onclick="openQuickPayment89()">⚡ Szybka wpłata</button>`
+          `<button id="quickPaymentStart" class="primary quickPaymentStart" onclick="openQuickPayment()">⚡ Szybka wpłata</button>`
         );
       }
     }
 
     // Aktualna / zaraz rozpoczynająca się grupa
-    document.getElementById("currentClassNow89")?.remove();
-    const g=currentClassCandidate89();
+    document.getElementById("currentClassNow")?.remove();
+    const g=currentClassCandidate();
     if(g){
-      const btn=document.getElementById("quickPaymentStart89");
-      const html=`<div id="currentClassNow89" class="card currentClassNow">
-        <span class="currentClassLabel">${currentClassLabel89(g.diff)}</span>
+      const btn=document.getElementById("quickPaymentStart");
+      const html=`<div id="currentClassNow" class="card currentClassNow">
+        <span class="currentClassLabel">${currentClassLabel(g.diff)}</span>
         <h3>${escapeDashboardHtml(g.school)} • ${escapeDashboardHtml(g.type)}</h3>
         <p>${escapeDashboardHtml(g.day)} ${escapeDashboardHtml(g.time)} • ${g.children.length} ${g.children.length===1?"dziecko":"dzieci"}</p>
         <button class="primary" onclick="openAttendanceForGroup('${String(g.school).replaceAll("'","\\'")}','${String(g.type).replaceAll("'","\\'")}','${String(g.day).replaceAll("'","\\'")}','${String(g.time).replaceAll("'","\\'")}')">Sprawdź obecność</button>
@@ -508,6 +508,6 @@ setTimeout(()=>{
 },0);
 
 window.RWModules=window.RWModules||{};
-window.RWModules.dashboard={version:"11.4",cashflowByTransactionDate:true};
+window.RWModules.dashboard={version:"11.5",cashflowByTransactionDate:true};
 
 })();

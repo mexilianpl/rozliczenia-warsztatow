@@ -1,5 +1,5 @@
 /* =========================================================
-   attendance.js — Rozliczenia Warsztatów v11.4
+   attendance.js — Rozliczenia Warsztatów v11.5
    Pełny moduł obecności i odrabiania.
    Scalono attendance-base.js i część legacy-workflows.js.
    ========================================================= */
@@ -34,7 +34,7 @@ function escapeAttendanceHtml(s){
 }
 /* ---------- 8.9 / OBECNOŚĆ ---------- */
 
-  window.markAllPresent89 = function(key){
+  window.markAllPresent = function(key){
     const arr=selectedGroupRows();
     data.attendance[key]=data.attendance[key]||{};
     arr.forEach(({c})=>data.attendance[key][c.id]="present");
@@ -59,7 +59,7 @@ function escapeAttendanceHtml(s){
       <div class="attendanceModalDate">${new Intl.DateTimeFormat("pl-PL",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date())}</div>
 
       <div class="attendanceBulkBar">
-        <button class="primary" onclick="markAllPresent89('${key}')">✓ Wszyscy obecni</button>
+        <button class="primary" onclick="markAllPresent('${key}')">✓ Wszyscy obecni</button>
       </div>
 
       ${arr.map(({c})=>`<div class="attendanceRow">
@@ -194,9 +194,9 @@ function childMakeups(childId){
 }
 
 window.updateMakeupDate=function(){
-  const idx=Number(document.getElementById("makeupGroup94")?.value||0);
+  const idx=Number(document.getElementById("makeupGroup")?.value||0);
   const g=(window.__makeupGroups||[])[idx];
-  const input=document.getElementById("makeupDate94");
+  const input=document.getElementById("makeupDate");
   if(g&&input)input.value=nextDateForDay(g.day);
 };
 
@@ -220,24 +220,24 @@ window.openMakeup=function(childId){
   modal(`<h2>🔄 Odrabianie zajęć</h2>
     <div class="muted"><b>${escapeMakeupHtml(ch.first)} ${escapeMakeupHtml(ch.last)}</b> • jednorazowe dopisanie do innej grupy. Nie zmienia stałych zajęć ani płatności.</div>
 
-    ${upcoming.length?`<div class="makeupList94">
+    ${upcoming.length?`<div class="makeupList">
       <h3>Zaplanowane</h3>
-      ${upcoming.map(m=>`<div class="makeupItem94">
+      ${upcoming.map(m=>`<div class="makeupItem">
         <div><b>${escapeMakeupHtml(m.date)}</b><span>${escapeMakeupHtml(m.school)} • ${escapeMakeupHtml(m.type)} • ${escapeMakeupHtml(m.day)} ${escapeMakeupHtml(m.time)}</span>${m.note?`<small>${escapeMakeupHtml(m.note)}</small>`:""}</div>
-        <button class="danger makeupDelete94" onclick="deleteMakeup(${m.id},${ch.id})">Usuń</button>
+        <button class="danger makeupDelete" onclick="deleteMakeup(${m.id},${ch.id})">Usuń</button>
       </div>`).join("")}
     </div>`:""}
 
     <label>Grupa, w której dziecko odrabia</label>
-    <select id="makeupGroup94" onchange="updateMakeupDate()">
+    <select id="makeupGroup" onchange="updateMakeupDate()">
       ${groups.map((g,i)=>`<option value="${i}">${escapeMakeupHtml(g.school)} • ${escapeMakeupHtml(g.type)} • ${escapeMakeupHtml(g.day)} ${escapeMakeupHtml(g.time)}</option>`).join("")}
     </select>
 
     <label>Data odrabiania</label>
-    <input id="makeupDate94" type="date" value="${nextDateForDay(groups[0].day)}">
+    <input id="makeupDate" type="date" value="${nextDateForDay(groups[0].day)}">
 
     <label>Notatka (opcjonalnie)</label>
-    <input id="makeupNote94" placeholder="np. ustalone z mamą">
+    <input id="makeupNote" placeholder="np. ustalone z mamą">
 
     <div class="actions">
       <button class="soft" onclick="closeModal();editChild(${ch.id})">Anuluj</button>
@@ -247,10 +247,10 @@ window.openMakeup=function(childId){
 
 window.saveMakeup=function(childId){
   const groups=window.__makeupGroups||[];
-  const idx=Number(document.getElementById("makeupGroup94")?.value||0);
+  const idx=Number(document.getElementById("makeupGroup")?.value||0);
   const g=groups[idx];
-  const date=document.getElementById("makeupDate94")?.value||"";
-  const note=document.getElementById("makeupNote94")?.value.trim()||"";
+  const date=document.getElementById("makeupDate")?.value||"";
+  const note=document.getElementById("makeupNote")?.value.trim()||"";
   const ch=(data.children||[]).find(c=>Number(c.id)===Number(childId));
 
   if(!g||!date||!ch)return;
@@ -317,13 +317,13 @@ if(typeof originalEditChildForMakeup==="function"){
 
     setTimeout(()=>{
       const box=document.querySelector("#modal .modalbox");
-      if(!box || box.querySelector("#makeupProfile94"))return;
+      if(!box || box.querySelector("#makeupProfile"))return;
 
       const header=box.querySelector(".childProfileHeader");
       if(!header)return;
 
       const upcoming=childMakeups(id).filter(m=>m.date>=makeupLocalToday());
-      const html=`<div id="makeupProfile94" class="makeupProfile94">
+      const html=`<div id="makeupProfile" class="makeupProfile">
         <div>
           <b>🔄 Odrabianie zajęć</b>
           <span>${upcoming.length?`${upcoming.length} zaplanowane`:"Brak zaplanowanych terminów"}</span>
@@ -388,9 +388,9 @@ if(typeof originalShowAttendanceForMakeup==="function"){
         if(!x.isMakeup || !domRows[i])return;
         const info=domRows[i].querySelector("small");
         if(info){
-          info.insertAdjacentHTML("beforeend",` <span class="makeupBadge94">🔄 Odrabianie</span>`);
+          info.insertAdjacentHTML("beforeend",` <span class="makeupBadge">🔄 Odrabianie</span>`);
           if(x.makeupData?.note){
-            info.insertAdjacentHTML("beforeend",`<span class="makeupNote94">${escapeMakeupHtml(x.makeupData.note)}</span>`);
+            info.insertAdjacentHTML("beforeend",`<span class="makeupNote">${escapeMakeupHtml(x.makeupData.note)}</span>`);
           }
         }
       });
@@ -401,15 +401,15 @@ if(typeof originalShowAttendanceForMakeup==="function"){
 /* style tylko dla tej funkcji — bez osobnego CSS */
 const style=document.createElement("style");
 style.textContent=`
-.makeupProfile94{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;margin:12px 0;border:1px solid #c8e7df;border-radius:18px;background:#f2fbf8}
-.makeupProfile94 b,.makeupProfile94 span{display:block}.makeupProfile94 b{color:var(--blue);font-size:16px}.makeupProfile94 span{color:#687680;margin-top:3px;font-size:13px;font-weight:700}
-.makeupList94{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:18px;background:#fafcfd}.makeupList94 h3{margin:0 0 8px;color:var(--blue)}
-.makeupItem94{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.makeupItem94:last-child{border-bottom:0}
-.makeupItem94 b,.makeupItem94 span,.makeupItem94 small{display:block}.makeupItem94 span{margin-top:3px;color:#52616f;font-weight:700}.makeupItem94 small{margin-top:3px;color:#7a8490}
-.makeupDelete94{padding:9px 12px;font-size:13px}
-.makeupBadge94{display:inline-block;margin-left:6px;padding:3px 7px;border-radius:999px;background:#e6f7f2;color:#13745e;font-weight:900;font-size:11px}
-.makeupNote94{display:block;margin-top:4px;color:#8a6b00;font-weight:800}
-@media(max-width:520px){.makeupProfile94{align-items:flex-start}.makeupItem94{align-items:flex-start}.makeupItem94 .danger{flex:0 0 auto}}
+.makeupProfile{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;margin:12px 0;border:1px solid #c8e7df;border-radius:18px;background:#f2fbf8}
+.makeupProfile b,.makeupProfile span{display:block}.makeupProfile b{color:var(--blue);font-size:16px}.makeupProfile span{color:#687680;margin-top:3px;font-size:13px;font-weight:700}
+.makeupList{margin:16px 0;padding:14px;border:1px solid var(--line);border-radius:18px;background:#fafcfd}.makeupList h3{margin:0 0 8px;color:var(--blue)}
+.makeupItem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.makeupItem:last-child{border-bottom:0}
+.makeupItem b,.makeupItem span,.makeupItem small{display:block}.makeupItem span{margin-top:3px;color:#52616f;font-weight:700}.makeupItem small{margin-top:3px;color:#7a8490}
+.makeupDelete{padding:9px 12px;font-size:13px}
+.makeupBadge{display:inline-block;margin-left:6px;padding:3px 7px;border-radius:999px;background:#e6f7f2;color:#13745e;font-weight:900;font-size:11px}
+.makeupNote{display:block;margin-top:4px;color:#8a6b00;font-weight:800}
+@media(max-width:520px){.makeupProfile{align-items:flex-start}.makeupItem{align-items:flex-start}.makeupItem .danger{flex:0 0 auto}}
 `;
 document.head.appendChild(style);
 

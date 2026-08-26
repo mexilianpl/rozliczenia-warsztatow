@@ -14,11 +14,11 @@
 function addModalCloseButton(root=document){
   const boxes=root.querySelectorAll ? root.querySelectorAll(".modal .modalbox") : [];
   boxes.forEach(box=>{
-    if(box.querySelector(":scope > .modalCloseX96"))return;
+    if(box.querySelector(":scope > .modalCloseX"))return;
 
     const btn=document.createElement("button");
     btn.type="button";
-    btn.className="modalCloseX96";
+    btn.className="modalCloseX";
     btn.setAttribute("aria-label","Zamknij okno");
     btn.innerHTML="×";
     btn.addEventListener("click",e=>{
@@ -100,7 +100,7 @@ style.textContent=`
 .modalbox{
   position:relative;
 }
-.modalCloseX96{
+.modalCloseX{
   position:sticky;
   top:0;
   z-index:50;
@@ -120,11 +120,11 @@ style.textContent=`
   justify-content:center;
   box-shadow:0 1px 4px rgba(0,0,0,.10);
 }
-.modalCloseX96:active{
+.modalCloseX:active{
   transform:scale(.96);
 }
 @media(min-width:760px){
-  .modalCloseX96{
+  .modalCloseX{
     width:40px;
     height:40px;
     font-size:30px;

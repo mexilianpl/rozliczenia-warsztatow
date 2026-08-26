@@ -606,25 +606,25 @@ button.actionSaved{
    v9.0 — przeniesienie Szybkiej wpłaty z 8.9 do Wpłaty
    ========================================================= */
 
-#quickPaymentStart89{
+#quickPaymentStart{
   display:none!important;
 }
 
-.quickPaySearch90{
+.quickPaySearchBox{
   margin-top:12px;
 }
 
-.quickPayResults90{
+.quickPayResults{
   display:grid;
   gap:8px;
   margin-top:10px;
 }
 
-.quickPayResults90:empty{
+.quickPayResults:empty{
   display:none;
 }
 
-.quickPayChild90{
+.quickPayChild{
   width:100%;
   display:flex;
   justify-content:space-between;
@@ -638,35 +638,35 @@ button.actionSaved{
   padding:14px 16px;
 }
 
-.quickPayChild90 b,
-.quickPayChild90 small{
+.quickPayChild b,
+.quickPayChild small{
   display:block;
 }
 
-.quickPayChild90 b{
+.quickPayChild b{
   font-size:17px;
 }
 
-.quickPayChild90 small{
+.quickPayChild small{
   margin-top:4px;
   color:#707985;
   font-weight:700;
   font-size:13px;
 }
 
-.quickPayChild90 .arrow90{
+.quickPayChild .quickPayArrow{
   font-size:24px;
   flex:0 0 auto;
 }
 
-.quickPayHelp90{
+.quickPayHelp{
   margin-top:10px;
   color:#707985;
   font-size:13px;
   line-height:1.45;
 }
 
-.quickPayEmpty90{
+.quickPayEmpty{
   padding:12px 14px;
   border-radius:15px;
   background:#fff6f7;
@@ -675,7 +675,7 @@ button.actionSaved{
 }
 
 @media(max-width:520px){
-  .quickPayChild90{
+  .quickPayChild{
     padding:14px;
   }
 }

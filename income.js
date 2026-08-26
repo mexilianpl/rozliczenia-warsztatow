@@ -99,15 +99,15 @@ window.income=function(){
     <h2 class="title">Dodatkowe przychody</h2>
     <button class="primary" onclick="addIncome()">+ Dodaj przychód</button>
 
-    <div class="card incomeList107">
+    <div class="card incomeList">
       ${(data.income||[]).length
-        ? data.income.map(i=>`<div class="classrow incomeRow107">
-            <div class="incomeMain107">
+        ? data.income.map(i=>`<div class="classrow incomeRow">
+            <div class="incomeMain">
               <b>${escapeIncomeHtml(i.title||"")}</b>
               <div>${money(i.amount)} • ${escapeIncomeHtml(i.date||"")}</div>
             </div>
 
-            <div class="incomeActions107">
+            <div class="incomeActions">
               <button class="soft" onclick="editIncome(${Number(i.id)})">Edytuj</button>
               <button class="danger" onclick="deleteIncome(${Number(i.id)})">Usuń</button>
             </div>
@@ -137,14 +137,14 @@ if(typeof originalInteractiveListPanel==="function"){
       <div class="muted interactiveListInfo">${month} • ${debtors.length} ${debtors.length===1?"osoba":"osób"} z zaległością</div>
 
       ${debtors.length?debtors.map(({c,ps})=>`
-        <div class="interactiveListRow debtRow107">
+        <div class="interactiveListRow debtRow">
           <div class="interactiveMain">
             <b>${escapeIncomeHtml(c.last)} ${escapeIncomeHtml(c.first)}</b>
             <span>${escapeIncomeHtml(c.school||"")}${c.class?` • ${escapeIncomeHtml(c.class)}`:""}</span>
           </div>
 
-          <div class="debtAmounts107">
-            <div class="debtPaid107"><span>Wpłacono</span><b>${money(ps.paid||0)}</b></div>
+          <div class="debtAmounts">
+            <div class="debtPaid"><span>Wpłacono</span><b>${money(ps.paid||0)}</b></div>
             <div class="interactiveDebt"><span>Brakuje</span><b>${money(ps.missing||0)}</b></div>
           </div>
 
@@ -187,27 +187,27 @@ if(typeof originalListRowsBase==="function"){
 
 const style=document.createElement("style");
 style.textContent=`
-.incomeRow107{display:flex;align-items:center;justify-content:space-between;gap:14px}
-.incomeMain107{min-width:0}
-.incomeActions107{display:flex;gap:8px;flex:0 0 auto}
+.incomeRow{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.incomeMain{min-width:0}
+.incomeActions{display:flex;gap:8px;flex:0 0 auto}
 
-.debtAmounts107{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.debtAmounts107>div{padding:10px 12px;border-radius:15px;background:#f5f8fa}
-.debtAmounts107 span,.debtAmounts107 b{display:block}
-.debtAmounts107 span{color:#77818b;font-size:12px;font-weight:800}
-.debtAmounts107 b{margin-top:3px;font-size:18px}
-.debtPaid107 b{color:#168867}
-.debtAmounts107 .interactiveDebt b{color:var(--red)}
+.debtAmounts{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.debtAmounts>div{padding:10px 12px;border-radius:15px;background:#f5f8fa}
+.debtAmounts span,.debtAmounts b{display:block}
+.debtAmounts span{color:#77818b;font-size:12px;font-weight:800}
+.debtAmounts b{margin-top:3px;font-size:18px}
+.debtPaid b{color:#168867}
+.debtAmounts .interactiveDebt b{color:var(--red)}
 
 @media(max-width:520px){
-  .incomeRow107{align-items:flex-start}
-  .incomeActions107{flex-direction:column}
-  .incomeActions107 button{min-width:100px}
+  .incomeRow{align-items:flex-start}
+  .incomeActions{flex-direction:column}
+  .incomeActions button{min-width:100px}
 }
 `;
 document.head.appendChild(style);
 
 window.RWModules=window.RWModules||{};
-window.RWModules.income={version:"11.4"};
+window.RWModules.income={version:"11.5"};
 
 })();

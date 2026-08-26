@@ -1,10 +1,12 @@
 /* =========================================================
-   payments.js — Rozliczenia Warsztatów v11.4
+   payments.js — Rozliczenia Warsztatów v11.5
    Pełny moduł płatności: baza, OCR, szybka wpłata, edycja.
    Scalono payments-base.js i część legacy-workflows.js.
    ========================================================= */
 "use strict";
 
+
+/* ===== WIDOK WPŁAT ===== */
 function payments(){
  let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0),inc=data.income.reduce((s,p)=>s+Number(p.amount),0);
  app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Wpłaty</h2>
@@ -428,7 +430,7 @@ function paymentActiveChildren(){
 }
 /* ---------- 8.9 / SZYBKA WPŁATA ---------- */
 
-  window.openQuickPayment89 = function(){
+  window.openQuickPayment = function(){
     const children=paymentActiveChildren().slice().sort((a,b)=>
       `${a.last} ${a.first}`.localeCompare(`${b.last} ${b.first}`,"pl")
     );
@@ -447,34 +449,34 @@ function paymentActiveChildren(){
       <div class="muted">Wybierz dziecko. Kwota ustawi się automatycznie na brakującą należność.</div>
 
       <label>Dziecko</label>
-      <select id="qpayChild89" onchange="refreshQuickPayment89()">
+      <select id="quickPayChildSelect" onchange="refreshQuickPayment()">
         ${children.map(c=>`<option value="${c.id}" ${String(c.id)===preferredChild?"selected":""}>${escapePaymentHtml(c.last)} ${escapePaymentHtml(c.first)} • ${escapePaymentHtml(c.school||"")}</option>`).join("")}
       </select>
 
       <label>Miesiąc</label>
-      <select id="qpayMonth89" onchange="refreshQuickPayment89()">
+      <select id="quickPayMonthSelect" onchange="refreshQuickPayment()">
         ${(months||[]).map(m=>`<option ${m===month?"selected":""}>${m}</option>`).join("")}
       </select>
 
-      <div id="qpaySummary89"></div>
+      <div id="quickPaySummary"></div>
 
       <label>Kwota wpłaty</label>
-      <input id="qpayAmount89" type="number" min="0" step="0.01" inputmode="decimal">
+      <input id="quickPayAmountInput" type="number" min="0" step="0.01" inputmode="decimal">
 
       <label>Data</label>
-      <input id="qpayDate89" type="date" value="${quickPaymentTodayISO()}">
+      <input id="quickPayDateInput" type="date" value="${quickPaymentTodayISO()}">
 
       <div class="actions">
         <button class="soft" onclick="closeModal()">Anuluj</button>
-        <button class="primary" onclick="saveQuickPayment89()">Zapisz wpłatę</button>
+        <button class="primary" onclick="saveQuickPayment()">Zapisz wpłatę</button>
       </div>
     </div>`);
-    refreshQuickPayment89(true);
+    refreshQuickPayment(true);
   };
 
-  window.refreshQuickPayment89 = function(forceAmount){
-    const cid=Number(document.getElementById("qpayChild89")?.value||0);
-    const month=document.getElementById("qpayMonth89")?.value||quickPaymentCurrentMonth();
+  window.refreshQuickPayment = function(forceAmount){
+    const cid=Number(document.getElementById("quickPayChildSelect")?.value||0);
+    const month=document.getElementById("quickPayMonthSelect")?.value||quickPaymentCurrentMonth();
     const ch=(data.children||[]).find(c=>Number(c.id)===cid);
     if(!ch)return;
 
@@ -487,7 +489,7 @@ function paymentActiveChildren(){
       ps={due,paid,missing:Math.max(0,due-paid),kind:paid>=due?"paid":"unpaid"};
     }
 
-    const summary=document.getElementById("qpaySummary89");
+    const summary=document.getElementById("quickPaySummary");
     if(summary){
       summary.innerHTML=`<div class="quickPaymentSummary">
         <div><span>Należne</span><b>${money(ps.due||0)}</b></div>
@@ -496,23 +498,23 @@ function paymentActiveChildren(){
       </div>`;
     }
 
-    const amount=document.getElementById("qpayAmount89");
+    const amount=document.getElementById("quickPayAmountInput");
     if(amount && (forceAmount || !amount.dataset.userChanged)){
       amount.value=Number(ps.missing||0).toFixed(2);
     }
-    if(amount && !amount.dataset.bound89){
-      amount.dataset.bound89="1";
+    if(amount && !amount.dataset.groupMemoryBound){
+      amount.dataset.groupMemoryBound="1";
       amount.addEventListener("input",()=>amount.dataset.userChanged="1");
     }
 
     localStorage.setItem(QUICK_PAYMENT_PREFS_KEY,JSON.stringify({childId:cid,month}));
   };
 
-  window.saveQuickPayment89 = function(){
-    const cid=Number(document.getElementById("qpayChild89")?.value||0);
-    const month=document.getElementById("qpayMonth89")?.value||quickPaymentCurrentMonth();
-    const amount=Number(String(document.getElementById("qpayAmount89")?.value||"0").replace(",","."));
-    const date=document.getElementById("qpayDate89")?.value||quickPaymentTodayISO();
+  window.saveQuickPayment = function(){
+    const cid=Number(document.getElementById("quickPayChildSelect")?.value||0);
+    const month=document.getElementById("quickPayMonthSelect")?.value||quickPaymentCurrentMonth();
+    const amount=Number(String(document.getElementById("quickPayAmountInput")?.value||"0").replace(",","."));
+    const date=document.getElementById("quickPayDateInput")?.value||quickPaymentTodayISO();
     const ch=(data.children||[]).find(c=>Number(c.id)===cid);
 
     if(!ch){
@@ -585,7 +587,7 @@ function activeChildrenPay(){
 }
 
 window.quickPaySearch=function(value){
-  const box=document.getElementById("quickPayResults98"); if(!box)return;
+  const box=document.getElementById("quickPayResults"); if(!box)return;
   const q=normPay(value); if(!q){box.innerHTML="";return}
   const tokens=q.split(" ").filter(Boolean);
 
@@ -595,23 +597,23 @@ window.quickPaySearch=function(value){
   }).slice(0,25);
 
   if(!found.length){
-    box.innerHTML='<div class="quickPayEmpty90">Brak pasującego dziecka.</div>';
+    box.innerHTML='<div class="quickPayEmpty">Brak pasującego dziecka.</div>';
     return;
   }
 
-  box.innerHTML=found.map(c=>`<button type="button" class="quickPayChild90" onclick="openQuickPayForChild(${c.id})">
+  box.innerHTML=found.map(c=>`<button type="button" class="quickPayChild" onclick="openQuickPayForChild(${c.id})">
     <span><b>${escPay(c.last)} ${escPay(c.first)}</b><small>${escPay(c.school||"")}${c.class?` • ${escPay(c.class)}`:""}</small></span>
-    <span class="arrow90">›</span>
+    <span class="quickPayArrow">›</span>
   </button>`).join("");
 };
 
 window.openQuickPayForChild=function(childId){
-  if(typeof openQuickPayment89!=="function")return;
+  if(typeof openQuickPayment!=="function")return;
   let prefs={}; try{prefs=JSON.parse(localStorage.getItem(QUICKPAY89_KEY)||"{}")}catch(e){}
   prefs.childId=Number(childId);
   if(!prefs.month && typeof currentMonthName==="function")prefs.month=currentMonthName();
   localStorage.setItem(QUICKPAY89_KEY,JSON.stringify(prefs));
-  openQuickPayment89();
+  openQuickPayment();
 };
 
 function replacePaymentCard(){
@@ -624,24 +626,26 @@ function replacePaymentCard(){
     return h && normPay(h.textContent)==="dodaj wplate";
   });
 
-  if(!card || card.dataset.quickPay98==="1")return;
-  card.dataset.quickPay98="1";
+  if(!card || card.dataset.quickPayPatched==="1")return;
+  card.dataset.quickPayPatched="1";
   card.innerHTML=`<h2>Dodaj wpłatę</h2>
-    <div class="quickPaySearch90">
+    <div class="quickPaySearchBox">
       <div class="search">
-        <input id="quickPayInput98" type="search" autocomplete="off" placeholder="Szukaj dziecka..." oninput="quickPaySearch(this.value)">
+        <input id="quickPayInput" type="search" autocomplete="off" placeholder="Szukaj dziecka..." oninput="quickPaySearch(this.value)">
       </div>
-      <div id="quickPayResults98" class="quickPayResults90"></div>
-      <div class="quickPayHelp90">Wpisz pierwsze litery nazwiska lub imienia i wybierz dziecko.</div>
+      <div id="quickPayResults" class="quickPayResults"></div>
+      <div class="quickPayHelp">Wpisz pierwsze litery nazwiska lub imienia i wybierz dziecko.</div>
     </div>`;
 }
 
-function removeStartQuickPay(){document.getElementById("quickPaymentStart89")?.remove()}
+function removeStartQuickPay(){document.getElementById("quickPaymentStart")?.remove()}
 
 /* =========================
    EDYCJA ISTNIEJĄCEJ WPŁATY
    ========================= */
 
+
+/* ===== EDYCJA WPŁAT ===== */
 window.editPayment=function(paymentId){
   const p=(data.payments||[]).find(x=>Number(x.id)===Number(paymentId));
   if(!p){
@@ -656,30 +660,30 @@ window.editPayment=function(paymentId){
   const selectedChild=(data.children||[]).find(c=>Number(c.id)===Number(p.childId));
 
   modal(`<h2>Edytuj wpłatę</h2>
-    <div class="muted editPaymentInfo102">
+    <div class="muted editPaymentInfo">
       Zmiany od razu przeliczą rozliczenie dziecka oraz podsumowanie wpływów.
     </div>
 
     <label>Dziecko</label>
-    <select id="epChild102">
+    <select id="editPaymentChild">
       ${children.map(c=>`<option value="${c.id}" ${Number(c.id)===Number(p.childId)?"selected":""}>${escPay(c.last)} ${escPay(c.first)} • ${escPay(c.school||"")}</option>`).join("")}
     </select>
 
     <label>Miesiąc rozliczeniowy</label>
-    <select id="epMonth102">
+    <select id="editPaymentMonth">
       ${(months||[]).map(m=>`<option ${String(m)===String(p.month)?"selected":""}>${escPay(m)}</option>`).join("")}
     </select>
 
     <label>Kwota</label>
-    <input id="epAmount102" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(p.amount||0).toFixed(2)}">
+    <input id="editPaymentAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(p.amount||0).toFixed(2)}">
 
     <label>Data wpływu</label>
-    <input id="epDate102" type="date" value="${escPay(p.date||"")}">
+    <input id="editPaymentDate" type="date" value="${escPay(p.date||"")}">
 
     <label>Tytuł / uwagi</label>
-    <input id="epNote102" value="${escPay(p.note||"")}">
+    <input id="editPaymentNote" value="${escPay(p.note||"")}">
 
-    <div class="paymentEditHint102">
+    <div class="paymentEditHint">
       <b>Miesiąc rozliczeniowy</b> określa, za który miesiąc płaci dziecko.
       <b>Data wpływu</b> określa, w którym miesiącu kwota trafia do „Razem wpływy”.
     </div>
@@ -694,11 +698,11 @@ window.saveEditedPayment=function(paymentId){
   const p=(data.payments||[]).find(x=>Number(x.id)===Number(paymentId));
   if(!p)return;
 
-  const childId=Number(document.getElementById("epChild102")?.value||0);
-  const month=document.getElementById("epMonth102")?.value||"";
-  const amount=Number(String(document.getElementById("epAmount102")?.value||"0").replace(",","."));
-  const date=document.getElementById("epDate102")?.value||"";
-  const note=document.getElementById("epNote102")?.value.trim()||"";
+  const childId=Number(document.getElementById("editPaymentChild")?.value||0);
+  const month=document.getElementById("editPaymentMonth")?.value||"";
+  const amount=Number(String(document.getElementById("editPaymentAmount")?.value||"0").replace(",","."));
+  const date=document.getElementById("editPaymentDate")?.value||"";
+  const note=document.getElementById("editPaymentNote")?.value.trim()||"";
   const ch=(data.children||[]).find(c=>Number(c.id)===childId);
 
   if(!ch){
@@ -763,14 +767,14 @@ function addPaymentEditButtons(){
   const payments=data.payments||[];
 
   rows.forEach((row,index)=>{
-    if(row.querySelector(".editPaymentBtn102"))return;
+    if(row.querySelector(".editPaymentBtn"))return;
     const p=payments[index];
     if(!p)return;
 
     const del=[...row.querySelectorAll("button")].find(b=>normPay(b.textContent)==="usun");
     const btn=document.createElement("button");
     btn.type="button";
-    btn.className="soft editPaymentBtn102";
+    btn.className="soft editPaymentBtn";
     btn.textContent="Edytuj";
     btn.onclick=()=>editPayment(p.id);
 
@@ -801,7 +805,7 @@ function unresolvedCertainOCRPayments(){
   );
 }
 function updateOCRBulkButton(){
-  const btn=document.getElementById("ocrBulkCertain98");
+  const btn=document.getElementById("ocrBulkCertain");
   if(!btn)return;
   const count=unresolvedCertainOCRPayments().length;
   btn.disabled=count===0;
@@ -811,8 +815,8 @@ function updateOCRBulkButton(){
 function enhanceOCRReview(){
   const items=window.__ocrItems||[];
   const review=document.getElementById("ocrReview");
-  if(!review || review.dataset.enhanced98==="1")return;
-  review.dataset.enhanced98="1";
+  if(!review || review.dataset.ocrEnhanced==="1")return;
+  review.dataset.ocrEnhanced="1";
 
   items.forEach((t,idx)=>{
     const hint=document.getElementById(`ocrHint${idx}`);
@@ -820,7 +824,7 @@ function enhanceOCRReview(){
     const score=ocrMatchConfidence(t);
     if(t.match?.child){
       hint.insertAdjacentHTML("afterend",
-        `<div class="ocrConfidence98 ${score>=OCR_CERTAIN_THRESHOLD?"certain":"review"}">
+        `<div class="ocrConfidence ${score>=OCR_CERTAIN_THRESHOLD?"certain":"review"}">
           Pewność dopasowania: ${score}%${score>=OCR_CERTAIN_THRESHOLD?" • pewne":" • sprawdź ręcznie"}
         </div>`);
     }
@@ -828,9 +832,9 @@ function enhanceOCRReview(){
 
   const certain=unresolvedCertainOCRPayments().length;
   review.insertAdjacentHTML("beforebegin",
-    `<div class="ocrBulkBar98">
+    `<div class="ocrBulkBar">
       <div><b>Automatyczna weryfikacja</b><span>${certain} z ${items.length} pozycji ma pewność co najmniej ${OCR_CERTAIN_THRESHOLD}%.</span></div>
-      <button id="ocrBulkCertain98" class="primary" onclick="saveCertainOCRPayments()">✓ Zapisz ${certain} pewnych wpłat</button>
+      <button id="ocrBulkCertain" class="primary" onclick="saveCertainOCRPayments()">✓ Zapisz ${certain} pewnych wpłat</button>
     </div>`);
 }
 
@@ -878,15 +882,15 @@ if(typeof originalShowOCRReview==="function"){
 
 const style=document.createElement("style");
 style.textContent=`
-.ocrBulkBar98{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:14px 0;padding:14px;border:1px solid #bfe4da;border-radius:18px;background:#f0faf7}
-.ocrBulkBar98 b,.ocrBulkBar98 span{display:block}.ocrBulkBar98 b{color:#126f5d;font-size:16px}.ocrBulkBar98 span{margin-top:4px;color:#64727d;font-size:13px;font-weight:700}
-.ocrConfidence98{margin:7px 0 10px;padding:7px 10px;border-radius:12px;font-size:13px;font-weight:900}
-.ocrConfidence98.certain{background:#e7f8f1;color:#11745d}.ocrConfidence98.review{background:#fff6df;color:#9a6800}
-.editPaymentBtn102{margin-right:8px}
-.editPaymentInfo102{margin-bottom:14px}
-.paymentEditHint102{margin:14px 0;padding:12px 14px;border-radius:16px;background:#eef8fb;color:#526573;font-size:13px;line-height:1.5}
-.paymentEditHint102 b{color:var(--blue)}
-@media(max-width:620px){.ocrBulkBar98{align-items:stretch;flex-direction:column}.ocrBulkBar98 button{width:100%}}
+.ocrBulkBar{display:flex;gap:12px;align-items:center;justify-content:space-between;margin:14px 0;padding:14px;border:1px solid #bfe4da;border-radius:18px;background:#f0faf7}
+.ocrBulkBar b,.ocrBulkBar span{display:block}.ocrBulkBar b{color:#126f5d;font-size:16px}.ocrBulkBar span{margin-top:4px;color:#64727d;font-size:13px;font-weight:700}
+.ocrConfidence{margin:7px 0 10px;padding:7px 10px;border-radius:12px;font-size:13px;font-weight:900}
+.ocrConfidence.certain{background:#e7f8f1;color:#11745d}.ocrConfidence.review{background:#fff6df;color:#9a6800}
+.editPaymentBtn{margin-right:8px}
+.editPaymentInfo{margin-bottom:14px}
+.paymentEditHint{margin:14px 0;padding:12px 14px;border-radius:16px;background:#eef8fb;color:#526573;font-size:13px;line-height:1.5}
+.paymentEditHint b{color:var(--blue)}
+@media(max-width:620px){.ocrBulkBar{align-items:stretch;flex-direction:column}.ocrBulkBar button{width:100%}}
 `;
 document.head.appendChild(style);
 
@@ -898,5 +902,5 @@ setTimeout(()=>{
 },0);
 
 window.RWModules=window.RWModules||{};
-window.RWModules.payments={version:"11.4",ocrCertainThreshold:OCR_CERTAIN_THRESHOLD,paymentEditing:true};
+window.RWModules.payments={version:"11.5",ocrCertainThreshold:OCR_CERTAIN_THRESHOLD,paymentEditing:true};
 })();

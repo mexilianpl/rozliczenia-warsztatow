@@ -1,10 +1,12 @@
 /* =========================================================
-   children.js — Rozliczenia Warsztatów v11.4
+   children.js — Rozliczenia Warsztatów v11.5
    Pełny moduł listy i profilu dzieci.
    Scalono children-base.js z children.js.
    ========================================================= */
 "use strict";
 
+
+/* ===== LISTA DZIECI ===== */
 function quickSearch(q){let el=document.querySelector("#quickResults");q=q.toLowerCase().trim(); if(!q){el.innerHTML="";return} el.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)).map(c=>`<div class="card" onclick="openChild(${c.id})"><b class="name">${c.last} ${c.first}</b><div class="muted">${c.class} • ${c.school} • zajęcia: ${c.classes.length}</div></div>`).join("")||"Brak wyników"}
 function children(){
  app.innerHTML=`<div class="titleline"><div><div class="eyebrow">BAZA</div><h2 class="title">Dzieci</h2></div></div>
@@ -187,6 +189,8 @@ function printAttendanceList(){
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Lista obecności</title><style>body{font-family:Arial;padding:24px}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{border:1px solid #999;padding:9px;text-align:left}td:nth-child(4),td:nth-child(5){height:28px;width:70px}@media print{button{display:none}}</style></head><body><h1>Lista obecności</h1><p>${sf} • ${wf} • ${df} • ${tf}</p><table><thead><tr><th>Lp.</th><th>Nazwisko i imię</th><th>Klasa</th><th>Sala / odbiór</th><th>Obecny</th><th>Nieobecny</th><th>Uwagi</th></tr></thead><tbody>${rows}</tbody></table><button onclick="window.print()">Drukuj</button></body></html>`);
  win.document.close();setTimeout(()=>win.print(),250);
 }
+
+/* ===== KARTA DZIECKA ===== */
 function childCard(c){
  const ps=paymentState(c,"Wrzesień");
  return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • ${c.sex}${c.pickupPlace?` • ${c.pickupPlace}`:""}</div>
@@ -220,6 +224,8 @@ function attendanceSummary(cid){
  return {h,present,absent,total,pct:total?Math.round(present*100/total):0};
 }
 function attendanceDatePL(d){if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))return d;const [y,m,day]=d.split("-");return `${day}.${m}.${y}`}
+
+/* ===== PROFIL DZIECKA ===== */
 function editChild(id){
  let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],parent:"",phone:"",email:"",pickupPlace:"",consents:{rules:"",personal:"",image:""},classes:[]};
  c.consents=c.consents||{rules:"",personal:"",image:""};
@@ -597,7 +603,7 @@ function patchChildCardStatus(card, child){
     const badge=card.querySelector(".paymentBadgeText");
     if(badge){
       badge.classList.remove("free","paid","partial","unpaid","overpaid");
-      badge.classList.add(state.kind==="resigned"?"childResigned107":"childPaused107");
+      badge.classList.add(state.kind==="resigned"?"childResigned":"childPaused");
       badge.textContent=state.label;
     }else{
       const free=[...card.querySelectorAll("*")].find(el=>
@@ -605,7 +611,7 @@ function patchChildCardStatus(card, child){
       );
       if(free){
         free.textContent=state.label;
-        free.classList.add(state.kind==="resigned"?"childResigned107":"childPaused107");
+        free.classList.add(state.kind==="resigned"?"childResigned":"childPaused");
       }
     }
   }
@@ -645,8 +651,8 @@ function patchProfileQuickPay(childId, box){
   const btn=[...section.querySelectorAll("button")]
     .find(b=>(b.textContent||"").includes("Dodaj wpłatę"));
 
-  if(!btn || btn.dataset.quickPay107==="1")return;
-  btn.dataset.quickPay107="1";
+  if(!btn || btn.dataset.profileQuickPayBound==="1")return;
+  btn.dataset.profileQuickPayBound="1";
 
   btn.onclick=function(e){
     e.preventDefault();
@@ -659,7 +665,7 @@ function patchProfileQuickPay(childId, box){
       return;
     }
 
-    if(typeof openQuickPayment89==="function"){
+    if(typeof openQuickPayment==="function"){
       let prefs={};
       try{prefs=JSON.parse(localStorage.getItem("rw89_quickpay")||"{}")}catch(err){}
       prefs.childId=Number(childId);
@@ -667,7 +673,7 @@ function patchProfileQuickPay(childId, box){
         prefs.month=currentMonthName();
       }
       localStorage.setItem("rw89_quickpay",JSON.stringify(prefs));
-      openQuickPayment89();
+      openQuickPayment();
     }
   };
 }
@@ -809,13 +815,13 @@ document.addEventListener("click",e=>{
 
 const style=document.createElement("style");
 style.textContent=`
-.childPaused107{color:#9a6800!important;font-weight:900}
-.childResigned107{color:#c63b4b!important;font-weight:900}
+.childPaused{color:#9a6800!important;font-weight:900}
+.childResigned{color:#c63b4b!important;font-weight:900}
 .deleteChild{width:100%;margin:18px 0 8px}
 `;
 document.head.appendChild(style);
 
 window.RWModules=window.RWModules||{};
-window.RWModules.children={version:"11.4"};
+window.RWModules.children={version:"11.5"};
 
 })();

@@ -1,45 +1,33 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.4 — 26.08.2026**
+Aktualna wersja: **11.5 — 26.08.2026**
 
-## Porządki 11.4
+## Porządki 11.5
 
-Usunięto historyczne numery wersji z nazw funkcji wewnętrznych.
+Wyczyszczono historyczne numery wersji z:
+- klas CSS,
+- identyfikatorów DOM,
+- nazw pól formularzy,
+- pozostałych funkcji i helperów z dawnych wersji 8.9–10.7.
 
-Przykłady:
-- `openQuickPayForChild98` → `openQuickPayForChild`
-- `editPayment102` → `editPayment`
-- `saveCertainOCR98` → `saveCertainOCRPayments`
-- `openMakeup94` → `openMakeup`
-- `deleteMakeup94` → `deleteMakeup`
-- `deleteChild107` → `deleteChild`
-- `editIncome107` → `editIncome`
-- `addCloseX96` → `addModalCloseButton`
+Przykładowo:
+- `openQuickPayment89` → `openQuickPayment`
+- `quickPaymentStart89` → `quickPaymentStart`
+- `modalCloseX96` → `modalCloseX`
+- `makeupProfile94` → `makeupProfile`
+- `ocrBulkBar98` → `ocrBulkBar`
+- `incomeRow107` → `incomeRow`
 
-Ujednolicono również nazwy helperów i wrapperów wewnątrz modułów.
-Format danych użytkownika i wygląd aplikacji nie zostały zmienione.
-
-## Aktywne moduły
-
-- `core.js`
-- `dashboard.js`
-- `children.js`
-- `payments.js`
-- `attendance.js`
-- `groups.js`
-- `lists.js`
-- `reports.js`
-- `signups.js`
-- `settings.js`
-- `income.js`
-- `ui.js`
+`children.js` i `payments.js` otrzymały czytelniejsze sekcje wewnętrzne.
+Nie zmieniono formatu danych, interfejsu ani zasad rozliczania.
 
 ## Po wdrożeniu
 
-Nie ma nowych plików do ręcznego usunięcia.
+Nie ma nowych plików do usunięcia.
 
 ## Następny etap
 
-Można teraz wyczyścić historyczne numery z nazw klas CSS/identyfikatorów DOM
-oraz uprościć duże moduły `children.js` i `payments.js` przez wydzielenie
-mniejszych sekcji wewnętrznych bez zwiększania liczby plików.
+Następne porządki mogą objąć:
+- usunięcie starych numerów wersji z nazw kluczy localStorage,
+- ujednolicenie prywatnych nazw wrapperów `original...`,
+- analizę powtarzających się helperów HTML/escape i redukcję duplikacji.

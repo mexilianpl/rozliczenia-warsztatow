@@ -1,5 +1,5 @@
 /* =========================================================
-   groups.js — Rozliczenia Warsztatów v11.4
+   groups.js — Rozliczenia Warsztatów v11.5
    Grupy wraz z zapamiętywaniem ostatnich filtrów.
    ========================================================= */
 "use strict";
@@ -55,7 +55,7 @@ function printGroupArrears(){
 }
 
 window.RWModules=window.RWModules||{};
-window.RWModules.groups={version:"11.4"};
+window.RWModules.groups={version:"11.5"};
 
 (function(){
 "use strict";
@@ -63,10 +63,10 @@ window.RWModules.groups={version:"11.4"};
 const GROUP_FILTERS_KEY = "rw89_group_filters";
 /* ---------- 8.9 / ZAPAMIĘTYWANIE GRUP ---------- */
 
-  function readGroupPrefs89(){
+  function readGroupPrefs(){
     try{return JSON.parse(localStorage.getItem(GROUP_FILTERS_KEY)||"{}")}catch(e){return {}}
   }
-  function saveGroupPrefs89(){
+  function saveGroupPrefs(){
     const prefs={
       school:document.getElementById("gSchool")?.value||"",
       workshop:document.getElementById("gWorkshop")?.value||"",
@@ -76,18 +76,18 @@ const GROUP_FILTERS_KEY = "rw89_group_filters";
     localStorage.setItem(GROUP_FILTERS_KEY,JSON.stringify(prefs));
   }
 
-  function bindGroupMemory89(){
+  function bindGroupMemory(){
     ["gSchool","gWorkshop","gDay","gTime"].forEach(id=>{
       const el=document.getElementById(id);
-      if(el && !el.dataset.memory89){
-        el.dataset.memory89="1";
-        el.addEventListener("change",()=>setTimeout(saveGroupPrefs89,0));
+      if(el && !el.dataset.groupMemoryBound){
+        el.dataset.groupMemoryBound="1";
+        el.addEventListener("change",()=>setTimeout(saveGroupPrefs,0));
       }
     });
   }
 
-  function restoreGroupPrefs89(){
-    const p=readGroupPrefs89();
+  function restoreGroupPrefs(){
+    const p=readGroupPrefs();
     const s=document.getElementById("gSchool");
     const w=document.getElementById("gWorkshop");
     const d=document.getElementById("gDay");
@@ -103,7 +103,7 @@ const GROUP_FILTERS_KEY = "rw89_group_filters";
     if(t && p.time && [...t.options].some(o=>o.value===p.time))t.value=p.time;
 
     try{groupList()}catch(e){}
-    bindGroupMemory89();
+    bindGroupMemory();
 
     const card=s.closest(".card");
     if(card && !card.querySelector(".rememberHint")){
@@ -111,27 +111,27 @@ const GROUP_FILTERS_KEY = "rw89_group_filters";
     }
   }
 
-  const originalGroups89=window.groups;
-  if(typeof originalGroups89==="function"){
+  const originalGroups=window.groups;
+  if(typeof originalGroups==="function"){
     window.groups=function(){
-      originalGroups89();
-      setTimeout(restoreGroupPrefs89,0);
+      originalGroups();
+      setTimeout(restoreGroupPrefs,0);
     };
   }
 
   // Owijamy Start, nie zmieniając jego istniejącej zawartości.
-  const originalStart89=window.start;
-  if(typeof originalStart89==="function"){
+  const originalStart=window.start;
+  if(typeof originalStart==="function"){
     window.start=function(){
-      originalStart89();
-      injectStart89();
+      originalStart();
+      injectStart();
     };
   }
 
   // Jeśli skrypt załadował się już na Start, odśwież dodatki.
   setTimeout(()=>{
-    if(page==="start")injectStart89();
-    if(page==="groups"){restoreGroupPrefs89();}
+    if(page==="start")injectStart();
+    if(page==="groups"){restoreGroupPrefs();}
   },0);
 
 
