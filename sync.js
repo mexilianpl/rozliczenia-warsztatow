@@ -1,8 +1,8 @@
 /* =========================================================
-   sync.js — Rozliczenia Warsztatów v11.6
+   sync.js — Rozliczenia Warsztatów v11.7
    Fundament offline-first i kolejki synchronizacji.
 
-   Wersja 11.6 NIE wysyła danych do serwera, dopóki nie zostanie
+   Wersja 11.7 NIE wysyła danych do serwera, dopóki nie zostanie
    skonfigurowany endpoint. Wszystkie zmiany są zapisywane lokalnie,
    otrzymują numer rewizji i pozostają jako oczekujące do synchronizacji.
    ========================================================= */
@@ -204,9 +204,11 @@
 
       <div class="actions">
         <button class="soft" onclick="closeModal()">Zamknij</button>
-        <button class="primary" onclick="RWOfflineSync.syncNow(true)" ${configured&&navigator.onLine?"":"disabled"}>
-          Synchronizuj teraz
-        </button>
+        ${configured
+          ? (navigator.onLine
+              ? `<button class="primary" onclick="RWOfflineSync.syncNow(true)">Synchronizuj teraz</button>`
+              : `<button class="soft syncActionDisabled" type="button" disabled>Brak internetu</button>`)
+          : `<button class="soft syncActionDisabled" type="button" disabled>Serwer niepodłączony</button>`}
       </div>`;
 
     if(typeof modal==="function") modal(html);
@@ -226,7 +228,7 @@
 
     if(!url){
       if(manual && typeof showToast==="function"){
-        showToast("Serwer synchronizacji nie jest jeszcze podłączony");
+        showToast("Serwer nie jest jeszcze podłączony");
       }
       updateSyncStatus();
       return {ok:false,reason:"not-configured"};
@@ -382,65 +384,6 @@
     refreshStatus:updateSyncStatus
   };
 
-  const css=document.createElement("style");
-  css.textContent=`
-  .syncStatus{
-    display:inline-flex;
-    align-items:center;
-    width:max-content;
-    margin-top:6px;
-    padding:5px 9px;
-    border:0;
-    border-radius:999px;
-    font-size:11px;
-    line-height:1;
-    font-weight:900;
-    cursor:pointer;
-  }
-  .syncStatus.local{background:#fff5d9;color:#856400}
-  .syncStatus.pending{background:#fff0d9;color:#9a5b00}
-  .syncStatus.offline{background:#fde9ec;color:#b1283d}
-  .syncStatus.syncing{background:#e7f2fb;color:#176796}
-  .syncStatus.synced{background:#e7f8f1;color:#11745d}
-  .syncStatus.error{background:#fff0d9;color:#9a5b00}
-  .syncStateCard{
-    padding:14px;
-    border-radius:16px;
-    margin-bottom:14px;
-    background:#f4f7f9;
-  }
-  .syncStateCard b,.syncStateCard span{display:block}
-  .syncStateCard span{margin-top:5px;color:#65717b;font-size:13px;font-weight:700}
-  .syncDetailsGrid{
-    display:grid;
-    grid-template-columns:repeat(3,1fr);
-    gap:8px;
-    margin:12px 0;
-  }
-  .syncDetailsGrid>div{
-    padding:11px 8px;
-    border-radius:14px;
-    background:#f5f8fa;
-    text-align:center;
-  }
-  .syncDetailsGrid span,.syncDetailsGrid b{display:block}
-  .syncDetailsGrid span{font-size:11px;color:#77818b;font-weight:800}
-  .syncDetailsGrid b{margin-top:4px;font-size:19px;color:#17324b}
-  .syncMeta{margin:12px 0}
-  .syncError{
-    margin:10px 0;
-    padding:10px 12px;
-    border-radius:12px;
-    background:#fde9ec;
-    color:#b1283d;
-    font-size:13px;
-    font-weight:800;
-  }
-  @media(max-width:420px){
-    .syncDetailsGrid{grid-template-columns:1fr 1fr 1fr}
-    .syncStatus{font-size:10px}
-  }`;
-  document.head.appendChild(css);
-
   setTimeout(updateSyncStatus,0);
+
 })();

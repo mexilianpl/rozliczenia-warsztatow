@@ -1,50 +1,41 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.6 — 26.08.2026**
+Aktualna wersja: **11.7 — 26.08.2026**
+
+## Poprawka synchronizacji
+
+Do czasu podłączenia serwera okno synchronizacji nie pokazuje już
+pozornie aktywnego przycisku „Synchronizuj teraz”.
+
+Teraz:
+- bez skonfigurowanego serwera: **Serwer niepodłączony** — przycisk nieaktywny,
+- serwer skonfigurowany, ale brak internetu: **Brak internetu** — przycisk nieaktywny,
+- serwer + internet: **Synchronizuj teraz** — aktywny.
+
+Oczekujące zmiany pozostają zapisane lokalnie i nie są kasowane.
+
+## Porządkowanie struktury
+
+Style modułu synchronizacji zostały usunięte z `sync.js`
+i przeniesione do głównego `style.css`.
+
+Dzięki temu:
+- `sync.js` zawiera tylko logikę synchronizacji,
+- `style.css` odpowiada za wygląd,
+- nie tworzymy już arkusza CSS dynamicznie przy starcie aplikacji.
 
 ## Offline-first
 
-Dodano `sync.js`, który przygotowuje aplikację do pracy:
-- bez internetu,
-- przy bardzo słabym internecie,
-- z późniejszą automatyczną synchronizacją na serwer.
-
-Każde wywołanie centralnego `save()`:
-1. zapisuje dane lokalnie tak jak dotychczas,
-2. zwiększa lokalny numer rewizji,
-3. oznacza zmianę jako oczekującą na synchronizację.
-
-Na razie endpoint serwera jest pusty, więc żadne dane nie są wysyłane.
-Po podłączeniu backendu wystarczy skonfigurować endpoint przez
-`RWOfflineSync.configureEndpoint(...)`.
-
-## Status synchronizacji
-
-W nagłówku aplikacji pojawia się mały status:
-- 🔴 Offline
-- 🟠 X oczekuje
-- 🟡 Tryb lokalny
-- 🔵 Synchronizacja…
-- 🟢 Zsynchronizowano
-
-Kliknięcie statusu pokazuje szczegóły.
-
-## Service Worker
-
-Cache aplikacji obejmuje cały lokalny shell wraz z logo.
-Tesseract i XLSX z jsDelivr są teraz cache'owane przy pierwszym udanym
-użyciu online, dzięki czemu później mogą działać offline.
-
-## Bezpieczeństwo danych
-
-Brak internetu nigdy nie kasuje danych. Nieudana synchronizacja pozostawia
-wszystkie zmiany lokalnie i oznacza je jako oczekujące.
+Mechanizm kolejkowania zmian z 11.6 pozostaje zgodny:
+- zapis lokalny działa natychmiast,
+- każda zmiana zwiększa lokalną rewizję,
+- po podłączeniu backendu oczekujące zmiany będą mogły być wysłane na serwer.
 
 ## Po wdrożeniu
 
 Nie ma plików do usunięcia.
 
-## Następny krok za 3 dni
+## Następny etap
 
-Na serwerze należy uruchomić backend synchronizacji (PHP + MySQL lub
-równoważny endpoint), a następnie skonfigurować jego adres w aplikacji.
+Po przeniesieniu aplikacji na serwer podłączamy endpoint synchronizacji
+i mechanizm rozwiązywania zmian między telefonem i komputerem.
