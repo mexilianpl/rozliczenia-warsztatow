@@ -1,43 +1,34 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **10.7 — 25.08.2026**
+Aktualna wersja: **10.8 — 26.08.2026**
 
-## Struktura aplikacji
+## Aktywna struktura
 
-- `app.js` — główny kod legacy aplikacji; będzie dzielony etapami.
-- `dashboard.js` — podsumowanie strony Start i przepływy finansowe.
+- `app.js` — główny kod legacy; będzie dalej dzielony etapami.
+- `dashboard.js` — Start i podsumowania finansowe.
 - `payments.js` — szybkie wpłaty, edycja wpłat i OCR.
-- `children.js` — karta dziecka, profil, statusy, szybka wpłata z profilu i usuwanie dziecka.
+- `children.js` — lista/profil dzieci, statusy, szybka wpłata i usuwanie.
 - `income.js` — dodatkowe przychody i rozszerzenia listy zaległości.
-- `v94.js` — jednorazowe odrabianie zajęć; pozostaje osobno, ponieważ łączy profil dziecka z obecnością.
-- `v96.js` — zamykanie modali X i obsługa przycisku Wstecz na Androidzie.
-- `v89.js` — działające mechanizmy szybkiej wpłaty i obecności wymagane przez późniejsze moduły.
-- `attendance-fix.js` — poprawka powrotu z obecności.
+- `attendance.js` — obecności, powrót do poprzedniego ekranu i odrabianie zajęć.
+- `ui.js` — modale, X oraz obsługa Android Wstecz.
+- `v89.js` — starszy aktywny moduł wymagany przez szybkie wpłaty i część obecności.
 - `style.css`, `v89.css`, `v90.css` — style.
 - `service-worker.js` — PWA/cache.
 
-## Pliki stare, nieładowane od wersji 10.7
+## Porządki w 10.8
 
-Po potwierdzeniu, że 10.7 działa poprawnie, z repozytorium można usunąć:
+Scalono:
+- `attendance-fix.js` + `v94.js` -> `attendance.js`
+- `v96.js` -> `ui.js`
 
-- `v90.js`
-- `v91.js`
-- `v91.css`
-- `v92.js`
-- `v93.js`
-- `v95.js`
-- `v99.js`
-- `v100.js`
-- `v103.js`
-- `v104.js`
-- `v105.js`
-- `v106.js`
+Po wdrożeniu 10.8 można bezpiecznie usunąć z repozytorium:
+- `attendance-fix.js`
+- `v94.js`
+- `v96.js`
 
-Stare `README.txt` i `INSTRUKCJA.txt` również są nieaktualne i mogą zostać usunięte po przejściu na ten plik `README.md`.
+## Kolejny etap
 
-## Kolejne etapy optymalizacji
+Następne moduły do wydzielenia z `app.js`:
+`groups.js`, `lists.js`, `reports.js`, `signups.js`, `settings.js`.
 
-Następny bezpieczny krok to stopniowe wydzielanie z `app.js`:
-`attendance.js`, `groups.js`, `reports.js`, `lists.js`, `signups.js`, `settings.js` i `ui.js`.
-
-Nie należy przepisywać całego `app.js` jednocześnie — moduły powinny być przenoszone i testowane pojedynczo.
+Docelowo warto również przenieść funkcje z `v89.js`, aby pozbyć się ostatniego pliku wersyjnego JS.

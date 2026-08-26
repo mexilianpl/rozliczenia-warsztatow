@@ -1,4 +1,5 @@
-const CACHE_NAME = "rozliczenia-ui-v10.7";
+const CACHE_NAME = "rozliczenia-ui-v10.8";
+
 const STATIC_FILES = [
  "./",
  "./index.html",
@@ -6,14 +7,13 @@ const STATIC_FILES = [
  "./v89.css?v=89",
  "./v90.css?v=90",
  "./app.js?v=88",
- "./attendance-fix.js?v=1",
  "./v89.js?v=89",
  "./payments.js?v=102",
  "./dashboard.js?v=101",
- "./v94.js?v=94",
+ "./attendance.js?v=108",
  "./children.js?v=107",
  "./income.js?v=107",
- "./v96.js?v=96",
+ "./ui.js?v=108",
  "./manifest.webmanifest",
  "./icon-192.png",
  "./icon-512.png"
@@ -35,6 +35,7 @@ self.addEventListener("activate",e=>{
 
 self.addEventListener("fetch",e=>{
   if(e.request.method!=="GET")return;
+
   const u=new URL(e.request.url);
   if(u.origin!==self.location.origin)return;
 
