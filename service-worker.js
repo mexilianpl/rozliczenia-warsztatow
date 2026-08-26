@@ -1,4 +1,4 @@
-const CACHE_NAME = "rozliczenia-ui-v10.8";
+const CACHE_NAME = "rozliczenia-ui-v10.9";
 
 const STATIC_FILES = [
  "./",
@@ -10,13 +10,16 @@ const STATIC_FILES = [
  "./v89.js?v=89",
  "./payments.js?v=102",
  "./dashboard.js?v=101",
+ "./groups.js?v=109",
+ "./lists.js?v=109",
  "./attendance.js?v=108",
  "./children.js?v=107",
  "./income.js?v=107",
  "./ui.js?v=108",
  "./manifest.webmanifest",
  "./icon-192.png",
- "./icon-512.png"
+ "./icon-512.png",
+ "./logo-centrum-kreatywnosci.png"
 ];
 
 self.addEventListener("install",e=>{
