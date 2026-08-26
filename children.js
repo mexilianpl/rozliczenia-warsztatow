@@ -316,6 +316,8 @@ function childActiveNow(c){
  return true;
 }
 
+
+/* ===== ROZLICZENIA DZIECKA ===== */
 function childDue(ch){return childActiveNow(ch)?(ch.classes||[]).reduce((s,c)=>s+dueClass(c),0):0}
 
 function groupActiveCount(school,type,day,time,excludeCid=0){
@@ -344,6 +346,8 @@ function switchChildProfileTab(name,btn){
  if(content)content.scrollTop=0;
 }
 
+
+/* ===== EDYCJA DANYCH DZIECKA ===== */
 function editChild(id){
  let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],parent:"",phone:"",email:"",pickupPlace:"",activityStatus:"Aktywne",startDate:"",endDate:"",payerGroup:"",consents:{rules:"",personal:"",image:""},classes:[]};
  c.consents=c.consents||{rules:"",personal:"",image:""};
