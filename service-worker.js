@@ -1,21 +1,22 @@
-const CACHE_NAME = "rozliczenia-ui-v11.5";
+const CACHE_NAME = "rozliczenia-ui-v11.6";
 
 const STATIC_FILES = [
  "./",
  "./index.html",
- "./style.css?v=115",
- "./core.js?v=115",
- "./reports.js?v=115",
- "./signups.js?v=115",
- "./settings.js?v=115",
- "./payments.js?v=115",
- "./groups.js?v=115",
- "./lists.js?v=115",
- "./dashboard.js?v=115",
- "./attendance.js?v=115",
- "./children.js?v=115",
- "./income.js?v=115",
- "./ui.js?v=115",
+ "./style.css?v=116",
+ "./core.js?v=116",
+ "./sync.js?v=116",
+ "./reports.js?v=116",
+ "./signups.js?v=116",
+ "./settings.js?v=116",
+ "./payments.js?v=116",
+ "./groups.js?v=116",
+ "./lists.js?v=116",
+ "./dashboard.js?v=116",
+ "./attendance.js?v=116",
+ "./children.js?v=116",
+ "./income.js?v=116",
+ "./ui.js?v=116",
  "./manifest.webmanifest",
  "./icon-192.png",
  "./icon-512.png",
@@ -40,9 +41,9 @@ self.addEventListener("fetch",e=>{
   if(e.request.method!=="GET")return;
 
   const u=new URL(e.request.url);
-  if(u.origin!==self.location.origin)return;
+  const sameOrigin=u.origin===self.location.origin;
 
-  if(e.request.mode==="navigate"){
+  if(sameOrigin && e.request.mode==="navigate"){
     e.respondWith(
       fetch(e.request)
         .then(r=>{
@@ -55,13 +56,33 @@ self.addEventListener("fetch",e=>{
     return;
   }
 
-  e.respondWith(
-    caches.match(e.request).then(cached=>
-      cached || fetch(e.request).then(r=>{
-        const x=r.clone();
-        caches.open(CACHE_NAME).then(c=>c.put(e.request,x));
-        return r;
+  if(sameOrigin){
+    e.respondWith(
+      caches.match(e.request).then(cached=>
+        cached || fetch(e.request).then(r=>{
+          const x=r.clone();
+          caches.open(CACHE_NAME).then(c=>c.put(e.request,x));
+          return r;
+        })
+      )
+    );
+    return;
+  }
+
+  /*
+    Biblioteki z CDN (Tesseract/XLSX) zapisujemy przy pierwszym udanym
+    użyciu online. Później mogą zostać wykorzystane bez internetu.
+  */
+  if(u.hostname==="cdn.jsdelivr.net"){
+    e.respondWith(
+      caches.match(e.request).then(cached=>{
+        if(cached)return cached;
+        return fetch(e.request).then(r=>{
+          const x=r.clone();
+          caches.open(CACHE_NAME).then(c=>c.put(e.request,x));
+          return r;
+        });
       })
-    )
-  );
+    );
+  }
 });

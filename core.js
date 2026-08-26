@@ -3,7 +3,7 @@
  Dane, zapis, wspólne obliczenia, nawigacja i migracje modelu.
  ========================================================= */
 
-const VERSION="11.5";
+const VERSION="11.6";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];

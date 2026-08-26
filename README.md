@@ -1,33 +1,50 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.5 — 26.08.2026**
+Aktualna wersja: **11.6 — 26.08.2026**
 
-## Porządki 11.5
+## Offline-first
 
-Wyczyszczono historyczne numery wersji z:
-- klas CSS,
-- identyfikatorów DOM,
-- nazw pól formularzy,
-- pozostałych funkcji i helperów z dawnych wersji 8.9–10.7.
+Dodano `sync.js`, który przygotowuje aplikację do pracy:
+- bez internetu,
+- przy bardzo słabym internecie,
+- z późniejszą automatyczną synchronizacją na serwer.
 
-Przykładowo:
-- `openQuickPayment89` → `openQuickPayment`
-- `quickPaymentStart89` → `quickPaymentStart`
-- `modalCloseX96` → `modalCloseX`
-- `makeupProfile94` → `makeupProfile`
-- `ocrBulkBar98` → `ocrBulkBar`
-- `incomeRow107` → `incomeRow`
+Każde wywołanie centralnego `save()`:
+1. zapisuje dane lokalnie tak jak dotychczas,
+2. zwiększa lokalny numer rewizji,
+3. oznacza zmianę jako oczekującą na synchronizację.
 
-`children.js` i `payments.js` otrzymały czytelniejsze sekcje wewnętrzne.
-Nie zmieniono formatu danych, interfejsu ani zasad rozliczania.
+Na razie endpoint serwera jest pusty, więc żadne dane nie są wysyłane.
+Po podłączeniu backendu wystarczy skonfigurować endpoint przez
+`RWOfflineSync.configureEndpoint(...)`.
+
+## Status synchronizacji
+
+W nagłówku aplikacji pojawia się mały status:
+- 🔴 Offline
+- 🟠 X oczekuje
+- 🟡 Tryb lokalny
+- 🔵 Synchronizacja…
+- 🟢 Zsynchronizowano
+
+Kliknięcie statusu pokazuje szczegóły.
+
+## Service Worker
+
+Cache aplikacji obejmuje cały lokalny shell wraz z logo.
+Tesseract i XLSX z jsDelivr są teraz cache'owane przy pierwszym udanym
+użyciu online, dzięki czemu później mogą działać offline.
+
+## Bezpieczeństwo danych
+
+Brak internetu nigdy nie kasuje danych. Nieudana synchronizacja pozostawia
+wszystkie zmiany lokalnie i oznacza je jako oczekujące.
 
 ## Po wdrożeniu
 
-Nie ma nowych plików do usunięcia.
+Nie ma plików do usunięcia.
 
-## Następny etap
+## Następny krok za 3 dni
 
-Następne porządki mogą objąć:
-- usunięcie starych numerów wersji z nazw kluczy localStorage,
-- ujednolicenie prywatnych nazw wrapperów `original...`,
-- analizę powtarzających się helperów HTML/escape i redukcję duplikacji.
+Na serwerze należy uruchomić backend synchronizacji (PHP + MySQL lub
+równoważny endpoint), a następnie skonfigurować jego adres w aplikacji.
