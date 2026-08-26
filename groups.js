@@ -1,6 +1,6 @@
 /* =========================================================
-   groups.js — Rozliczenia Warsztatów v10.9
-   Wydzielone z app.js: ekran Grup i operacje na grupie.
+   groups.js — Rozliczenia Warsztatów v11.3
+   Grupy wraz z zapamiętywaniem ostatnich filtrów.
    ========================================================= */
 "use strict";
 
@@ -56,3 +56,83 @@ function printGroupArrears(){
 
 window.RWModules=window.RWModules||{};
 window.RWModules.groups={version:"10.9"};
+
+(function(){
+"use strict";
+
+const RW89_GROUP_KEY = "rw89_group_filters";
+/* ---------- 8.9 / ZAPAMIĘTYWANIE GRUP ---------- */
+
+  function readGroupPrefs89(){
+    try{return JSON.parse(localStorage.getItem(RW89_GROUP_KEY)||"{}")}catch(e){return {}}
+  }
+  function saveGroupPrefs89(){
+    const prefs={
+      school:document.getElementById("gSchool")?.value||"",
+      workshop:document.getElementById("gWorkshop")?.value||"",
+      day:document.getElementById("gDay")?.value||"",
+      time:document.getElementById("gTime")?.value||""
+    };
+    localStorage.setItem(RW89_GROUP_KEY,JSON.stringify(prefs));
+  }
+
+  function bindGroupMemory89(){
+    ["gSchool","gWorkshop","gDay","gTime"].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el && !el.dataset.memory89){
+        el.dataset.memory89="1";
+        el.addEventListener("change",()=>setTimeout(saveGroupPrefs89,0));
+      }
+    });
+  }
+
+  function restoreGroupPrefs89(){
+    const p=readGroupPrefs89();
+    const s=document.getElementById("gSchool");
+    const w=document.getElementById("gWorkshop");
+    const d=document.getElementById("gDay");
+    const t=document.getElementById("gTime");
+    if(!s)return;
+
+    if(p.school && [...s.options].some(o=>o.value===p.school))s.value=p.school;
+    try{updateScheduleSelects("gSchool","gDay","gTime")}catch(e){}
+
+    if(w && p.workshop && [...w.options].some(o=>o.value===p.workshop))w.value=p.workshop;
+    if(d && p.day && [...d.options].some(o=>o.value===p.day))d.value=p.day;
+    try{updateTimeSelect("gSchool","gDay","gTime")}catch(e){}
+    if(t && p.time && [...t.options].some(o=>o.value===p.time))t.value=p.time;
+
+    try{groupList()}catch(e){}
+    bindGroupMemory89();
+
+    const card=s.closest(".card");
+    if(card && !card.querySelector(".rememberHint")){
+      card.insertAdjacentHTML("beforeend",`<div class="rememberHint">✓ Aplikacja zapamiętuje ostatnią szkołę, warsztaty, dzień i godzinę.</div>`);
+    }
+  }
+
+  const originalGroups89=window.groups;
+  if(typeof originalGroups89==="function"){
+    window.groups=function(){
+      originalGroups89();
+      setTimeout(restoreGroupPrefs89,0);
+    };
+  }
+
+  // Owijamy Start, nie zmieniając jego istniejącej zawartości.
+  const originalStart89=window.start;
+  if(typeof originalStart89==="function"){
+    window.start=function(){
+      originalStart89();
+      injectStart89();
+    };
+  }
+
+  // Jeśli skrypt załadował się już na Start, odśwież dodatki.
+  setTimeout(()=>{
+    if(page==="start")injectStart89();
+    if(page==="groups"){restoreGroupPrefs89();}
+  },0);
+
+
+})();

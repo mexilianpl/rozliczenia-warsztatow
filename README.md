@@ -1,30 +1,39 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.2 — 26.08.2026**
+Aktualna wersja: **11.3 — 26.08.2026**
 
-## 11.2
+## Porządki 11.3
 
-`app.js` został całkowicie usunięty z aktywnej struktury.
+Usunięto warstwę przejściową `legacy-workflows.js` oraz wszystkie `*-base.js`.
 
-Podział:
-- `core.js` — model, zapis, wspólne obliczenia i nawigacja,
-- `dashboard-base.js` — bazowy Start,
-- `children-base.js` — bazowa lista/profil dzieci,
-- `payments-base.js` — bazowe wpłaty/OCR/rodziny,
-- `attendance-base.js` — bazowa obecność.
+Struktura jest teraz domenowa:
+- `core.js`
+- `dashboard.js`
+- `children.js`
+- `payments.js`
+- `attendance.js`
+- `groups.js`
+- `lists.js`
+- `reports.js`
+- `signups.js`
+- `settings.js`
+- `income.js`
+- `ui.js`
 
-Dodatkowe przychody bazowe zostały dołączone do `income.js`,
-a archiwizacja roku do `settings.js`.
+Dawna logika szybkiej wpłaty trafiła do `payments.js`.
+Dawna logika okna obecności trafiła do `attendance.js`.
+Aktualna grupa na Start trafiła do `dashboard.js`.
+Zapamiętywanie filtrów grupy trafiło do `groups.js`.
 
-Warstwy `*-base.js` są etapem przejściowym potrzebnym do zachowania
-kolejności istniejącego `legacy-workflows.js`.
+## Po wdrożeniu usuń z repozytorium
 
-## Po wdrożeniu usuń
+- `legacy-workflows.js`
+- `dashboard-base.js`
+- `children-base.js`
+- `payments-base.js`
+- `attendance-base.js`
 
-- `app.js`
+## Kolejny etap
 
-## Następny etap
-
-Rozłożyć `legacy-workflows.js` do docelowych modułów, a następnie
-scalać `*-base.js` z `dashboard.js`, `children.js`, `payments.js`
-i `attendance.js`.
+Następnie można usunąć historyczne sufiksy funkcji (`89`, `94`, `98`, `107` itd.)
+i ujednolicić nazewnictwo wewnątrz modułów, bez zmiany interfejsu.
