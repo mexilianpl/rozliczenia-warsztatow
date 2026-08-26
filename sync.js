@@ -1,5 +1,5 @@
 /* =========================================================
-   sync.js — Rozliczenia Warsztatów v11.7
+   sync.js — Rozliczenia Warsztatów v11.8
    Fundament offline-first i kolejki synchronizacji.
 
    Wersja 11.7 NIE wysyła danych do serwera, dopóki nie zostanie

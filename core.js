@@ -3,7 +3,7 @@
  Dane, zapis, wspólne obliczenia, nawigacja i migracje modelu.
  ========================================================= */
 
-const VERSION="11.7";
+const VERSION="11.8";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -135,12 +135,7 @@ let page="start"; const app=document.querySelector("#app"), nav=document.querySe
 function save(){localStorage.setItem("rw45",JSON.stringify(data));showSavedFeedback()}
 function money(v){return Number(v||0).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})+" zł"}
 function dueClass(c){return c.status==="bezplatne"?0:Math.max(0,c.price*(1-(c.discount||0)/100))}
-function childDue(ch){return ch.classes.reduce((s,c)=>s+dueClass(c),0)}
 
-function childPaymentsForMonth(ch,month="Wrzesień"){
-  return data.payments.filter(p=>Number(p.childId)===Number(ch.id)&&p.month===month)
-    .reduce((s,p)=>s+Number(p.amount||0),0);
-}
 function paymentState(ch,month="Wrzesień"){
   const due=childDueForMonth(ch,month,new Date().getFullYear()), paid=childPaymentsForMonth(ch,month);
   if(due<=0)return {kind:"free",due,paid,missing:0,extra:Math.max(0,paid),label:"BEZPŁATNE"};
@@ -184,7 +179,6 @@ const tabs=[["start","⌂","Start"],["children","👥","Dzieci"],["payments","�
 function renderNav(){nav.innerHTML=tabs.map(t=>`<button class="${page==t[0]?"active":""}" onclick="go('${t[0]}')"><div>${t[1]}</div>${t[2]}</button>`).join("")}
 function go(p){page=p;render()}
 function render(){renderNav(); ({start,children,payments,income,signups,groups,reports,lists,settings}[page]||start)()}
-
 
 
 function showToast(text){

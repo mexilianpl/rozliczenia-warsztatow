@@ -191,15 +191,6 @@ function printAttendanceList(){
 }
 
 /* ===== KARTA DZIECKA ===== */
-function childCard(c){
- const ps=paymentState(c,"Wrzesień");
- return `<div class="card"><div class="childhead"><div><div class="name">${c.last} ${c.first}</div><div class="muted">${c.class} • ${c.school} • ${c.sex}${c.pickupPlace?` • ${c.pickupPlace}`:""}</div>
- <div class="imageConsentStatus ${consentLabel(c.consents?.image)==="Tak"?"consentYes":consentLabel(c.consents?.image)==="Nie"?"consentNo":"consentUnknown"}">
-   Wizerunek: ${consentLabel(c.consents?.image)||"brak danych"}
- </div>
- <div class="due">Należne Wrzesień: ${money(ps.due)} • wpłacono ${money(ps.paid)}</div><div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div></div><button class="soft" onclick="editChild(${c.id})">Profil</button></div>
- ${c.classes.map(cl=>`<div class="classrow"><h3>${cl.type}</h3><div class="muted">${cl.day} ${cl.time} • ${cl.school}</div><div class="muted">Cena ${money(dueClass(cl))}${cl.discount?` • rabat ${cl.discount}%`:""}${cl.startDate?` • od ${new Date(cl.startDate+"T12:00:00").toLocaleDateString("pl-PL")}`:""}</div>${cl.firstMonthOverride!==""&&cl.firstMonthOverride!==undefined?`<div class="firstMonthBadge">Pierwszy miesiąc: ${money(cl.firstMonthOverride)} — korekta ręczna</div>`:""}<div class="actions"><button class="soft" onclick="editClass(${c.id},${cl.id})">Edytuj zajęcia</button><button class="danger" onclick="deleteClass(${c.id},${cl.id})">Usuń zajęcia</button></div></div>`).join("")}
- <div class="actions"><button class="primary" onclick="editClass(${c.id})">+ Dodaj zajęcia</button></div></div>`}
 function modal(html){document.body.insertAdjacentHTML("beforeend",`<div class="modal" id="modal"><div class="modalbox">${html}</div></div>`)}
 function closeModal(){document.querySelector("#modal")?.remove()}
 function consentLabel(v){
@@ -226,83 +217,6 @@ function attendanceSummary(cid){
 function attendanceDatePL(d){if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(d))return d;const [y,m,day]=d.split("-");return `${day}.${m}.${y}`}
 
 /* ===== PROFIL DZIECKA ===== */
-function editChild(id){
- let c=data.children.find(x=>x.id==id)||{id:Date.now(),last:"",first:"",sex:"Dziewczynka",class:"",school:schools[0],parent:"",phone:"",email:"",pickupPlace:"",consents:{rules:"",personal:"",image:""},classes:[]};
- c.consents=c.consents||{rules:"",personal:"",image:""};
- modal(`<h2>${id?"Edytuj profil dziecka":"Dodaj dziecko"}</h2>
- <div class="grid2">
-  <div><label>Nazwisko</label><input id="fLast" value="${c.last}"></div>
-  <div><label>Imię</label><input id="fFirst" value="${c.first}"></div>
-  <div><label>Płeć</label><select id="fSex">${opt(["Dziewczynka","Chłopiec"],c.sex)}</select></div>
-  <div><label>Klasa</label><input id="fClass" value="${c.class}"></div>
- </div>
- <label>Szkoła</label><select id="fSchool" onchange="updateScheduleSelects('fSchool','fDay','fTime')">${opt(schools,c.school)}</select>
- <label>Rodzaj warsztatów</label><select id="fWorkshop">${opt(workshops,c.classes?.[0]?.type||workshops[0])}</select>
- <div class="grid2">
-   <div><label>Dzień tygodnia</label><select id="fDay" onchange="updateTimeSelect('fSchool','fDay','fTime')">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).days,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).day)}</select></div>
-   <div><label>Godzina</label><select id="fTime">${opt(dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).times,dependentSchedule(c.school,c.classes?.[0]?.day||days[0],c.classes?.[0]?.time||times[0]).time)}</select></div>
- </div>
- <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["",...pickupPlaces],c.pickupPlace||"")}</select>
- <div class="muted" style="margin-top:8px">Wybranie sali oznacza, że dziecko jest odbierane ze świetlicy. „Przychodzi sam/a” oznacza brak odbioru ze świetlicy.</div>
- <label>Rodzic / opiekun</label><input id="fParent" value="${c.parent||""}">
- <label>Telefon</label><input id="fPhone" value="${c.phone||""}">
- <label>E-mail</label><input id="fEmail" value="${c.email||""}">
- <div class="consentBox">
-   <h3>Zgody z formularza</h3>
-   <div class="consentRow">
-     <span>Zgoda na wizerunek</span>
-     <select id="fImageConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.image))}</select>
-   </div>
-   <div class="consentRow">
-     <span>Dane osobowe</span>
-     <select id="fPersonalConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.personal))}</select>
-   </div>
-   <div class="consentRow">
-     <span>Regulamin zajęć</span>
-     <select id="fRulesConsent">${opt(["","Tak","Nie"],consentLabel(c.consents.rules))}</select>
-   </div>
- </div>
- ${id?(()=>{const a=attendanceSummary(c.id);return `<div class="consentBox"><h3>Frekwencja</h3><div class="attendanceStats"><div><b>${a.total}</b><span>Zajęć</span></div><div><b>${a.present}</b><span>Obecności</span></div><div><b>${a.absent}</b><span>Nieobecności</span></div><div><b>${a.pct}%</b><span>Frekwencja</span></div></div>${a.h.filter(x=>x.status==="absent").length?`<div class="muted attendanceDates"><b>Daty nieobecności:</b> ${a.h.filter(x=>x.status==="absent").map(x=>attendanceDatePL(x.date)).join(", ")}</div>`:`<div class="muted attendanceDates">Brak zapisanych nieobecności.</div>`}</div>`})():""}
- <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveChild(${c.id},${id?1:0})">Zapisz</button></div>`)
-}
-function saveChild(id,exists){
- const old=exists?data.children.find(c=>c.id==id):null;
- let obj={
-  id,
-  last:fLast.value,
-  first:fFirst.value,
-  sex:fSex.value,
-  class:fClass.value,
-  school:fSchool.value,
-  club:fPickup.value==="Przychodzi sam/a"?"Nie":(fPickup.value?"Tak":(old?.club||"")),
-  pickupPlace:fPickup.value,
-  parent:fParent.value,
-  phone:fPhone.value,
-  email:fEmail.value,
-  consents:{
-    rules:fRulesConsent.value,
-    personal:fPersonalConsent.value,
-    image:fImageConsent.value
-  },
-  classes:old?.classes||[],
-  notes:old?.notes||"",
-  sourceEntryId:old?.sourceEntryId||"",
-  sourceCreatedAt:old?.sourceCreatedAt||""
- };
- const selectedType=document.getElementById("fWorkshop")?.value||"";
- if(selectedType){
-   const prev=obj.classes?.[0];
-   const firstClass=prev?{...prev}:{id:Date.now(),price:defaultWorkshopPrice(selectedType),discount:0,status:"brak"};
-   firstClass.school=fSchool.value;
-   firstClass.type=selectedType;
-   firstClass.day=document.getElementById("fDay")?.value||days[0];
-   firstClass.time=document.getElementById("fTime")?.value||times[0];
-   if(!firstClass.price)firstClass.price=defaultWorkshopPrice(selectedType);
-   if(obj.classes?.length)obj.classes[0]=firstClass;else obj.classes=[firstClass];
- }
- if(exists)data.children[data.children.findIndex(c=>c.id==id)]=obj;else data.children.push(obj);
- save();closeModal();render()
-}
 
 
 function dependentSchedule(school,currentDay,currentTime){
@@ -363,7 +277,6 @@ function editClass(cid,clid){let ch=data.children.find(c=>c.id==cid),cl=ch.class
  <div class="muted firstMonthHint">Jeżeli pole zostawisz puste, pierwszy miesiąc zostanie policzony proporcjonalnie do liczby zajęć pozostałych od daty rozpoczęcia. Od następnego miesiąca obowiązuje pełna stawka.</div>
  <label>Status</label><select id="clStatus"><option value="brak" ${cl.status=="brak"?"selected":""}>Brak wpłaty</option><option value="oplacone" ${cl.status=="oplacone"?"selected":""}>Wpłacono</option><option value="bezplatne" ${cl.status=="bezplatne"?"selected":""}>Bezpłatne</option></select>
  <div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="saveClass(${cid},${cl.id},${clid?1:0})">Zapisz</button></div>`) }
-function saveClass(cid,id,exists){let ch=data.children.find(c=>c.id==cid),cl={id,type:clType.value,school:clSchool.value,day:clDay.value,time:clTime.value,price:+clPrice.value,discount:+clDisc.value,status:clStatus.value};if(exists)ch.classes[ch.classes.findIndex(x=>x.id==id)]=cl;else ch.classes.push(cl);save();closeModal();render()}
 function confirmModal({title,message,confirmText="Usuń",cancelText="Anuluj",danger=true}){
  return new Promise(resolve=>{
   const existing=document.getElementById("confirmModal"); if(existing)existing.remove();

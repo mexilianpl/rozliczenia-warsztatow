@@ -18,19 +18,6 @@ function payments(){
    return `<div class="classrow"><b>${p.child}</b><div>${money(p.amount)} • ${p.month} • ${p.date||""}</div>${ps?`<div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div>`:""}<button class="danger" onclick="deletePayment(${p.id})">Usuń</button></div>`;
  }).join("")||'<div class="muted">Brak wpłat.</div>'}</div>`}
 function payHints(q){q=q.toLowerCase();payHints.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)&&q).map(c=>`<button class="soft" onclick="addPayment(${c.id})">${c.last} ${c.first}</button>`).join("")}
-function addPayment(cid,query=""){
- let q=String(query||"").trim().toLowerCase();
- let matches=q?data.children.filter(c=>(c.last+" "+c.first+" "+c.first+" "+c.last).toLowerCase().includes(q)):data.children;
- if(cid){
-   const selected=data.children.find(c=>c.id==cid);
-   if(selected)matches=[selected];
- }
- if(!matches.length){
-   confirmModal({title:"Nie znaleziono dziecka",message:`Brak dziecka pasującego do „${query}”. Zmień wpisane litery i spróbuj ponownie.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
-   return;
- }
- modal(`<h2>Dodaj wpłatę</h2>${q?`<div class="payFilterInfo">Wyniki dla: <b>${query}</b> • ${matches.length}</div>`:""}<label>Dziecko</label><select id="pChild">${matches.map(c=>`<option value="${c.id}" ${c.id==cid?"selected":""}>${c.last} ${c.first}</option>`).join("")}</select><div class="grid2"><div><label>Miesiąc</label><select id="pMonth">${opt(months,"Wrzesień")}</select></div><div><label>Kwota</label><input id="pAmount" type="number"></div></div><label>Data</label><input id="pDate" type="date"><label>Tytuł / uwagi</label><input id="pNote"><div class="actions"><button class="soft" onclick="closeModal()">Anuluj</button><button class="primary" onclick="savePayment()">Zapisz</button></div>`)
-}
 async function savePayment(){
  let ch=data.children.find(c=>c.id==pChild.value), amount=+pAmount.value, month=pMonth.value;
  const candidate={date:pDate.value,amount,payer:"RĘCZNIE",title:pNote.value,childId:ch.id};
@@ -409,7 +396,26 @@ function escapePaymentHtml(s){
     .replaceAll("'","&#039;");
 }
 
-const QUICK_PAYMENT_PREFS_KEY = "rw89_quickpay";
+const QUICK_PAYMENT_PREFS_KEY = "rw_quick_payment_prefs";
+
+const LEGACY_QUICK_PAYMENT_PREFS_KEY = "rw89_quickpay";
+
+(function migrateQuickPaymentPreferences(){
+  try{
+    if(localStorage.getItem(QUICK_PAYMENT_PREFS_KEY)==null){
+      const oldValue=localStorage.getItem(LEGACY_QUICK_PAYMENT_PREFS_KEY);
+      if(oldValue!=null){
+        localStorage.setItem(QUICK_PAYMENT_PREFS_KEY,oldValue);
+      }
+    }
+    if(localStorage.getItem(QUICK_PAYMENT_PREFS_KEY)!=null){
+      localStorage.removeItem(LEGACY_QUICK_PAYMENT_PREFS_KEY);
+    }
+  }catch(e){
+    console.warn("Nie udało się zmigrować ustawień szybkiej wpłaty",e);
+  }
+})();
+
 
 function quickPaymentTodayISO(){
   const d=new Date();
@@ -564,7 +570,7 @@ function paymentActiveChildren(){
 (function(){
 "use strict";
 
-const QUICKPAY89_KEY="rw89_quickpay";
+
 const OCR_CERTAIN_THRESHOLD=90;
 
 function normPay(s){
@@ -609,10 +615,10 @@ window.quickPaySearch=function(value){
 
 window.openQuickPayForChild=function(childId){
   if(typeof openQuickPayment!=="function")return;
-  let prefs={}; try{prefs=JSON.parse(localStorage.getItem(QUICKPAY89_KEY)||"{}")}catch(e){}
+  let prefs={}; try{prefs=JSON.parse(localStorage.getItem(QUICK_PAYMENT_PREFS_KEY)||"{}")}catch(e){}
   prefs.childId=Number(childId);
   if(!prefs.month && typeof currentMonthName==="function")prefs.month=currentMonthName();
-  localStorage.setItem(QUICKPAY89_KEY,JSON.stringify(prefs));
+  localStorage.setItem(QUICK_PAYMENT_PREFS_KEY,JSON.stringify(prefs));
   openQuickPayment();
 };
 

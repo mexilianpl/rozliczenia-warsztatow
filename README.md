@@ -1,35 +1,36 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.7 — 26.08.2026**
+Aktualna wersja: **11.8 — 26.08.2026**
 
-## Poprawka synchronizacji
+## Porządki 11.8
 
-Do czasu podłączenia serwera okno synchronizacji nie pokazuje już
-pozornie aktywnego przycisku „Synchronizuj teraz”.
+Usunięto martwe, starsze definicje funkcji, które były później
+nadpisywane nowszymi wersjami.
 
-Teraz:
-- bez skonfigurowanego serwera: **Serwer niepodłączony** — przycisk nieaktywny,
-- serwer skonfigurowany, ale brak internetu: **Brak internetu** — przycisk nieaktywny,
-- serwer + internet: **Synchronizuj teraz** — aktywny.
+Usunięte duplikaty:
+- `childCard`
+- `editChild`
+- `saveChild`
+- `saveClass`
+- `addPayment`
 
-Oczekujące zmiany pozostają zapisane lokalnie i nie są kasowane.
+Z `core.js` usunięto również funkcje domenowe, które były dublowane:
+- `childDue` — pozostaje w `children.js`
+- `childPaymentsForMonth` — pozostaje w `payments.js`
 
-## Porządkowanie struktury
+## Ustawienia szybkiej wpłaty
 
-Style modułu synchronizacji zostały usunięte z `sync.js`
-i przeniesione do głównego `style.css`.
+Dwa stare aliasy zapisu zostały sprowadzone do jednego klucza:
 
-Dzięki temu:
-- `sync.js` zawiera tylko logikę synchronizacji,
-- `style.css` odpowiada za wygląd,
-- nie tworzymy już arkusza CSS dynamicznie przy starcie aplikacji.
+`rw_quick_payment_prefs`
 
-## Offline-first
+Stary klucz `rw89_quickpay` jest obsługiwany wyłącznie przez jednorazową
+migrację. Dane są najpierw kopiowane do nowego klucza, a dopiero potem
+stary klucz jest usuwany.
 
-Mechanizm kolejkowania zmian z 11.6 pozostaje zgodny:
-- zapis lokalny działa natychmiast,
-- każda zmiana zwiększa lokalną rewizję,
-- po podłączeniu backendu oczekujące zmiany będą mogły być wysłane na serwer.
+## Synchronizacja
+
+Mechanizm offline-first i oczekujące rewizje pozostają bez zmian.
 
 ## Po wdrożeniu
 
@@ -37,5 +38,5 @@ Nie ma plików do usunięcia.
 
 ## Następny etap
 
-Po przeniesieniu aplikacji na serwer podłączamy endpoint synchronizacji
-i mechanizm rozwiązywania zmian między telefonem i komputerem.
+Redukcja powtarzających się helperów HTML/normalizacji oraz
+uporządkowanie wrapperów `original...`.
