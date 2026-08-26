@@ -1,27 +1,9 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.9 — 26.08.2026**
+Aktualna wersja: **12.0 — 26.08.2026**
 
-## Porządki 11.9
+Uporządkowano `payments.js`: usunięto martwą starszą definicję `savePayment`, dodano sekcje OCR, szybkiej wpłaty, rozliczeń i edycji oraz ujednolicono nazwy helperów.
 
-Wspólne kodowanie tekstu HTML zostało sprowadzone do `escapeHtml()` z `core.js`.
-Usunięto lokalne duplikaty z modułów dashboard, income, attendance i payments.
+Synchronizacja offline-first bez zmian.
 
-Nazwy wrapperów `original...` zostały ujednolicone do `previous...`, żeby
-było jasne, że moduł rozszerza wcześniejszą funkcję zamiast przechowywać
-drugą wersję funkcjonalności.
-
-`normalizeChildText` zmieniono na `normalizeChildSearchText`, aby nazwa
-jednoznacznie opisywała zastosowanie.
-
-Nie zmieniono interfejsu, danych, płatności, obecności ani synchronizacji.
-
-## Po wdrożeniu
-
-Nie ma plików do usunięcia.
-
-## Następny etap
-
-Dalsze porządki można wykonać w `payments.js`: rozdzielić wewnętrznie
-OCR, szybką wpłatę i edycję wpłat na wyraźne sekcje oraz ograniczyć
-pozostałe lokalne helpery bez tworzenia nowych plików.
+**Po wdrożeniu: brak plików do usunięcia.**

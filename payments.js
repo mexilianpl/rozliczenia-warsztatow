@@ -7,33 +7,23 @@
 
 
 /* ===== WIDOK WPŁAT ===== */
+
+/* ===== WIDOK I PODSTAWOWE OPERACJE ===== */
 function payments(){
  let paid=data.payments.reduce((s,p)=>s+Number(p.amount),0), due=data.children.reduce((s,c)=>s+childDue(c),0),inc=data.income.reduce((s,p)=>s+Number(p.amount),0);
  app.innerHTML=`<div class="eyebrow">FINANSE</div><h2 class="title">Wpłaty</h2>
- <div class="card"><h2>Dodaj wpłatę</h2><div class="search"><input id="paySearch" placeholder="Szukaj dziecka..." oninput="payHints(this.value)"></div><div id="payHints"></div><button class="primary" onclick="addPayment(null,paySearch.value)">+ Dodaj wpłatę ręcznie</button></div>
+ <div class="card"><h2>Dodaj wpłatę</h2><div class="search"><input id="paySearch" placeholder="Szukaj dziecka..." oninput="paymentHints(this.value)"></div><div id="paymentHints"></div><button class="primary" onclick="addPayment(null,paySearch.value)">+ Dodaj wpłatę ręcznie</button></div>
  <div class="card"><h2>Import wpłat ze screena</h2><p class="muted">Dodaj zrzut ekranu z aplikacji bankowej. Aplikacja sprawdzi kwotę względem należności i ostrzeże także przed powtórnym dodaniem tego samego przelewu.</p><div class="drop" onclick="screenInput.click()">📷<h3>Dodaj zrzut ekranu</h3><div>PNG lub JPG</div></div><button class="dark" onclick="screenInput.click()">📷 Rozpoznaj wpłaty ze screena</button><div id="ocrStatus"></div></div>
  <div class="card"><h2>Lista wpłat</h2>${data.payments.map(p=>{
    const ch=data.children.find(c=>Number(c.id)===Number(p.childId));
    const ps=ch?paymentState(ch,p.month):null;
    return `<div class="classrow"><b>${p.child}</b><div>${money(p.amount)} • ${p.month} • ${p.date||""}</div>${ps?`<div class="paymentBadgeText ${paymentStatusClass(ps.kind)}">${ps.label}</div>`:""}<button class="danger" onclick="deletePayment(${p.id})">Usuń</button></div>`;
  }).join("")||'<div class="muted">Brak wpłat.</div>'}</div>`}
-function payHints(q){q=q.toLowerCase();payHints.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)&&q).map(c=>`<button class="soft" onclick="addPayment(${c.id})">${c.last} ${c.first}</button>`).join("")}
-async function savePayment(){
- let ch=data.children.find(c=>c.id==pChild.value), amount=+pAmount.value, month=pMonth.value;
- const candidate={date:pDate.value,amount,payer:"RĘCZNIE",title:pNote.value,childId:ch.id};
- const dup=findDuplicatePayment(candidate);
- if(dup){
-   await confirmModal({title:"Ta wpłata już istnieje",message:`${ch.last} ${ch.first} • ${money(amount)} • ${pDate.value||"brak daty"}. Nie zapisuję jej ponownie.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
-   return;
- }
- data.payments.push({id:Date.now(),childId:ch.id,child:ch.last+" "+ch.first,month,amount,date:pDate.value,note:pNote.value,sourceFingerprint:paymentFingerprint(candidate)});
- save();closeModal();render();
- const ps=paymentState(ch,month);
- if(ps.kind==="partial") await confirmModal({title:"Wpłata częściowa",message:`Wpłacono ${money(ps.paid)} z ${money(ps.due)}. Brakuje ${money(ps.missing)}.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
- else if(ps.kind==="overpaid") await confirmModal({title:"Nadpłata",message:`Wpłacono ${money(ps.paid)}, należne ${money(ps.due)}. Nadpłata: ${money(ps.extra)}.`,confirmText:"OK",cancelText:"Zamknij",danger:false});
-}
+function paymentHints(q){q=q.toLowerCase();paymentHints.innerHTML=data.children.filter(c=>(c.last+" "+c.first).toLowerCase().includes(q)&&q).map(c=>`<button class="soft" onclick="addPayment(${c.id})">${c.last} ${c.first}</button>`).join("")}
 async function deletePayment(id){let p=data.payments.find(x=>x.id==id);let ok=await confirmModal({title:"Usunąć wpłatę?",message:`${p?p.child+" • "+money(p.amount)+". ":""}Tej operacji nie można cofnąć.`,confirmText:"Usuń wpłatę"});if(!ok)return;data.payments=data.payments.filter(p=>p.id!=id);save();render()}
 
+
+/* ===== OCR — ROZPOZNAWANIE PRZELEWÓW ===== */
 function normalizeOCR(s){return (s||"").replace(/\u00a0/g," ").replace(/[|]/g,"I").replace(/\s+/g," ").trim()}
 function parseMoney(s){
   let m=(s||"").match(/(\d{1,4}(?:[ .]\d{3})*[,.]\d{2})\s*(?:PLN|zł)?/i);
@@ -268,6 +258,8 @@ screenInput.onchange=async e=>{
   }finally{e.target.value=""}
 };
 
+
+/* ===== ROZLICZENIA MIESIĘCZNE I RODZINNE ===== */
 function childPaymentsForMonth(ch,month="Wrzesień"){
  let total=data.payments.filter(p=>Number(p.childId)===Number(ch.id)&&p.month===month).reduce((s,p)=>s+Number(p.amount||0),0);
  data.creditTransfers.forEach(t=>{
@@ -347,6 +339,8 @@ function distributeFamilyPayment(ch,month,amount,date,note){
  return created;
 }
 
+
+/* ===== FORMULARZ WPŁATY ===== */
 function addPayment(cid,query=""){
  let q=String(query||"").trim().toLowerCase(),matches=q?data.children.filter(c=>(c.last+" "+c.first+" "+c.first+" "+c.last).toLowerCase().includes(q)):data.children;
  if(cid){const selected=data.children.find(c=>c.id==cid);if(selected)matches=[selected]}
@@ -409,6 +403,8 @@ const LEGACY_QUICK_PAYMENT_PREFS_KEY = "rw89_quickpay";
 })();
 
 
+
+/* ===== SZYBKA WPŁATA ===== */
 function quickPaymentTodayISO(){
   const d=new Date();
   const y=d.getFullYear();
@@ -565,20 +561,22 @@ function paymentActiveChildren(){
 
 const OCR_CERTAIN_THRESHOLD=90;
 
-function normPay(s){
+
+/* ===== WYSZUKIWANIE DZIECKA ===== */
+function normalizeQuickPaymentText(s){
   return String(s||"")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g,"")
     .replace(/ł/g,"l").replace(/Ł/g,"L")
     .toLowerCase().replace(/\s+/g," ").trim();
 }
-function escPay(s){
+function escapeQuickPaymentAttribute(s){
   return String(s??"")
     .replaceAll("&","&amp;").replaceAll("<","&lt;")
     .replaceAll(">","&gt;").replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
-function activeChildrenPay(){
+function quickPaymentActiveChildren(){
   return (data.children||[])
     .filter(c=>typeof childActiveNow==="function"?childActiveNow(c):true)
     .slice().sort((a,b)=>`${a.last} ${a.first}`.localeCompare(`${b.last} ${b.first}`,"pl"));
@@ -586,11 +584,11 @@ function activeChildrenPay(){
 
 window.quickPaySearch=function(value){
   const box=document.getElementById("quickPayResults"); if(!box)return;
-  const q=normPay(value); if(!q){box.innerHTML="";return}
+  const q=normalizeQuickPaymentText(value); if(!q){box.innerHTML="";return}
   const tokens=q.split(" ").filter(Boolean);
 
-  const found=activeChildrenPay().filter(c=>{
-    const hay=normPay([c.last,c.first,`${c.last} ${c.first}`,`${c.first} ${c.last}`,c.school||"",c.class||""].join(" "));
+  const found=quickPaymentActiveChildren().filter(c=>{
+    const hay=normalizeQuickPaymentText([c.last,c.first,`${c.last} ${c.first}`,`${c.first} ${c.last}`,c.school||"",c.class||""].join(" "));
     return tokens.every(t=>hay.includes(t));
   }).slice(0,25);
 
@@ -600,7 +598,7 @@ window.quickPaySearch=function(value){
   }
 
   box.innerHTML=found.map(c=>`<button type="button" class="quickPayChild" onclick="openQuickPayForChild(${c.id})">
-    <span><b>${escPay(c.last)} ${escPay(c.first)}</b><small>${escPay(c.school||"")}${c.class?` • ${escPay(c.class)}`:""}</small></span>
+    <span><b>${escapeQuickPaymentAttribute(c.last)} ${escapeQuickPaymentAttribute(c.first)}</b><small>${escapeQuickPaymentAttribute(c.school||"")}${c.class?` • ${escapeQuickPaymentAttribute(c.class)}`:""}</small></span>
     <span class="quickPayArrow">›</span>
   </button>`).join("");
 };
@@ -616,12 +614,12 @@ window.openQuickPayForChild=function(childId){
 
 function replacePaymentCard(){
   if(!app)return;
-  const pageTitle=[...app.querySelectorAll(".title")].find(x=>normPay(x.textContent)==="wplaty");
+  const pageTitle=[...app.querySelectorAll(".title")].find(x=>normalizeQuickPaymentText(x.textContent)==="wplaty");
   if(!pageTitle)return;
 
   const card=[...app.querySelectorAll(".card")].find(c=>{
     const h=c.querySelector("h2");
-    return h && normPay(h.textContent)==="dodaj wplate";
+    return h && normalizeQuickPaymentText(h.textContent)==="dodaj wplate";
   });
 
   if(!card || card.dataset.quickPayPatched==="1")return;
@@ -664,22 +662,22 @@ window.editPayment=function(paymentId){
 
     <label>Dziecko</label>
     <select id="editPaymentChild">
-      ${children.map(c=>`<option value="${c.id}" ${Number(c.id)===Number(p.childId)?"selected":""}>${escPay(c.last)} ${escPay(c.first)} • ${escPay(c.school||"")}</option>`).join("")}
+      ${children.map(c=>`<option value="${c.id}" ${Number(c.id)===Number(p.childId)?"selected":""}>${escapeQuickPaymentAttribute(c.last)} ${escapeQuickPaymentAttribute(c.first)} • ${escapeQuickPaymentAttribute(c.school||"")}</option>`).join("")}
     </select>
 
     <label>Miesiąc rozliczeniowy</label>
     <select id="editPaymentMonth">
-      ${(months||[]).map(m=>`<option ${String(m)===String(p.month)?"selected":""}>${escPay(m)}</option>`).join("")}
+      ${(months||[]).map(m=>`<option ${String(m)===String(p.month)?"selected":""}>${escapeQuickPaymentAttribute(m)}</option>`).join("")}
     </select>
 
     <label>Kwota</label>
     <input id="editPaymentAmount" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(p.amount||0).toFixed(2)}">
 
     <label>Data wpływu</label>
-    <input id="editPaymentDate" type="date" value="${escPay(p.date||"")}">
+    <input id="editPaymentDate" type="date" value="${escapeQuickPaymentAttribute(p.date||"")}">
 
     <label>Tytuł / uwagi</label>
-    <input id="editPaymentNote" value="${escPay(p.note||"")}">
+    <input id="editPaymentNote" value="${escapeQuickPaymentAttribute(p.note||"")}">
 
     <div class="paymentEditHint">
       <b>Miesiąc rozliczeniowy</b> określa, za który miesiąc płaci dziecko.
@@ -753,11 +751,13 @@ window.saveEditedPayment=function(paymentId){
 };
 
 /* Dodajemy przycisk Edytuj do każdej istniejącej pozycji bez ruszania app.js. */
+
+/* ===== EDYCJA WPŁAT ===== */
 function addPaymentEditButtons(){
   if(typeof page==="undefined" || page!=="payments" || !app)return;
 
   const listCard=[...app.querySelectorAll(".card")].find(card=>
-    normPay(card.querySelector("h2")?.textContent||"")==="lista wplat"
+    normalizeQuickPaymentText(card.querySelector("h2")?.textContent||"")==="lista wplat"
   );
   if(!listCard)return;
 
@@ -769,7 +769,7 @@ function addPaymentEditButtons(){
     const p=payments[index];
     if(!p)return;
 
-    const del=[...row.querySelectorAll("button")].find(b=>normPay(b.textContent)==="usun");
+    const del=[...row.querySelectorAll("button")].find(b=>normalizeQuickPaymentText(b.textContent)==="usun");
     const btn=document.createElement("button");
     btn.type="button";
     btn.className="soft editPaymentBtn";
@@ -789,6 +789,8 @@ const paymentViewObserver=new MutationObserver(()=>{
 });
 paymentViewObserver.observe(app,{childList:true,subtree:true});
 
+
+/* ===== AUTOMATYCZNE OCR ===== */
 function ocrMatchConfidence(item){
   return Math.round(Math.max(0,Math.min(100,Number(item?.match?.score||0))));
 }
