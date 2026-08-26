@@ -1,27 +1,30 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.1 — 26.08.2026**
+Aktualna wersja: **11.2 — 26.08.2026**
 
-## Porządki 11.1
+## 11.2
 
-- `v89.js` otrzymał nazwę funkcjonalną `legacy-workflows.js`.
-- `v89.css` i `v90.css` zostały scalone z `style.css` z zachowaniem dotychczasowej kolejności kaskady.
-- `index.html` ładuje teraz tylko jeden lokalny arkusz stylów.
-- `service-worker.js` cache'uje nową strukturę.
-- wewnętrzny `VERSION` i nazwa eksportu kopii danych zostały ustawione na 11.1.
+`app.js` został całkowicie usunięty z aktywnej struktury.
 
-## Aktywne moduły
+Podział:
+- `core.js` — model, zapis, wspólne obliczenia i nawigacja,
+- `dashboard-base.js` — bazowy Start,
+- `children-base.js` — bazowa lista/profil dzieci,
+- `payments-base.js` — bazowe wpłaty/OCR/rodziny,
+- `attendance-base.js` — bazowa obecność.
 
-`app.js`, `legacy-workflows.js`, `dashboard.js`, `payments.js`, `children.js`,
-`income.js`, `groups.js`, `lists.js`, `reports.js`, `signups.js`, `settings.js`,
-`attendance.js`, `ui.js`.
+Dodatkowe przychody bazowe zostały dołączone do `income.js`,
+a archiwizacja roku do `settings.js`.
 
-## Po wdrożeniu 11.1 usuń z repozytorium
+Warstwy `*-base.js` są etapem przejściowym potrzebnym do zachowania
+kolejności istniejącego `legacy-workflows.js`.
 
-- `v89.js`
-- `v89.css`
-- `v90.css`
+## Po wdrożeniu usuń
 
-Następny etap: rozdzielić pozostały `app.js` na `core.js` oraz mniejsze domeny,
-a następnie stopniowo rozłożyć `legacy-workflows.js` pomiędzy `payments.js`
+- `app.js`
+
+## Następny etap
+
+Rozłożyć `legacy-workflows.js` do docelowych modułów, a następnie
+scalać `*-base.js` z `dashboard.js`, `children.js`, `payments.js`
 i `attendance.js`.

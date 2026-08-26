@@ -106,7 +106,19 @@ function settings(){
 
 
 
-backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v11.1.json";a.click()}
+backupBtn.onclick=()=>{let blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="rozliczenia-kopia-v11.2.json";a.click()}
 
 window.RWModules=window.RWModules||{};
 window.RWModules.settings={version:"11.0"};
+
+/* Archiwizacja roku z app.js — v11.2 */
+function archiveSchoolYear(){
+ confirmModal({title:"Zamknąć rok szkolny?",message:`Utworzę archiwum ${data.currentSchoolYear}. Wpłaty, przychody i obecności bieżącego roku zostaną wyzerowane, a dzieci i zajęcia pozostaną w bazie.`,confirmText:"Archiwizuj",cancelText:"Anuluj",danger:false}).then(ok=>{
+  if(!ok)return;
+  data.archives.push({year:data.currentSchoolYear,createdAt:new Date().toISOString(),payments:structuredClone(data.payments),income:structuredClone(data.income),attendance:structuredClone(data.attendance),history:structuredClone(data.history),creditTransfers:structuredClone(data.creditTransfers)});
+  const parts=String(data.currentSchoolYear).match(/(\d{4}).*?(\d{4})/);
+  if(parts)data.currentSchoolYear=`${Number(parts[1])+1}/${Number(parts[2])+1}`;
+  data.payments=[];data.income=[];data.attendance={};data.creditTransfers=[];
+  save();settings();showToast("Rok zarchiwizowany");
+ });
+}
