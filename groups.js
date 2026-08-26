@@ -4,6 +4,8 @@
    ========================================================= */
 "use strict";
 
+
+/* ===== WIDOK GRUP ===== */
 function groups(){
  app.innerHTML=`<div class="eyebrow">ZAJĘCIA</div><h2 class="title">Grupy i listy</h2><div class="card">
  <label>Szkoła</label><select id="gSchool" onchange="updateScheduleSelects('gSchool','gDay','gTime');groupList()">${opt(schools,schools[0])}</select>
@@ -63,7 +65,9 @@ window.RWModules.groups={version:"11.5"};
 const GROUP_FILTERS_KEY = "rw89_group_filters";
 /* ---------- 8.9 / ZAPAMIĘTYWANIE GRUP ---------- */
 
-  function readGroupPrefs(){
+  
+/* ===== ZAPAMIĘTYWANIE FILTRÓW ===== */
+function readGroupPrefs(){
     try{return JSON.parse(localStorage.getItem(GROUP_FILTERS_KEY)||"{}")}catch(e){return {}}
   }
   function saveGroupPrefs(){

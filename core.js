@@ -3,13 +3,17 @@
  Dane, zapis, wspólne obliczenia, nawigacja i migracje modelu.
  ========================================================= */
 
-const VERSION="12.1";
+
+/* ===== WERSJA I STAŁE ===== */
+const VERSION="12.2";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
 const days=["Poniedziałek","Wtorek","Środa","Czwartek","Piątek"];
 const times=["13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00"];
 const pickupPlaces=["Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam/a"];
+
+/* ===== MODEL DANYCH ===== */
 let data=JSON.parse(localStorage.getItem("rw45")||"null")||{
  children:[
  {id:1,last:"Kolasa",first:"Nikola",sex:"Dziewczynka",class:"4A",school:"SP 162",club:"Tak",parent:"Łukasz Kolasa",phone:"50340488",email:"mexilianpl@gmail.com",classes:[
@@ -132,6 +136,8 @@ function markButtonDirty(el){
 }
 
 let page="start"; const app=document.querySelector("#app"), nav=document.querySelector("#nav");
+
+/* ===== ZAPIS I PERSISTENCJA ===== */
 function save(){localStorage.setItem("rw45",JSON.stringify(data));showSavedFeedback()}
 function money(v){return Number(v||0).toLocaleString("pl-PL",{minimumFractionDigits:2,maximumFractionDigits:2})+" zł"}
 function dueClass(c){return c.status==="bezplatne"?0:Math.max(0,c.price*(1-(c.discount||0)/100))}
@@ -178,6 +184,8 @@ function opt(arr,val){return arr.map(x=>`<option ${x==val?"selected":""}>${x}</o
 const tabs=[["start","⌂","Start"],["children","👥","Dzieci"],["payments","✓","Wpłaty"],["income","+","Przychody"],["signups","✉","Zapisy"],["groups","☷","Grupy"],["reports","▥","Raporty"],["lists","☑","Listy"],["settings","⚙","Ustawienia"]];
 function renderNav(){nav.innerHTML=tabs.map(t=>`<button class="${page==t[0]?"active":""}" onclick="go('${t[0]}')"><div>${t[1]}</div>${t[2]}</button>`).join("")}
 function go(p){page=p;render()}
+
+/* ===== NAWIGACJA I RENDER ===== */
 function render(){renderNav(); ({start,children,payments,income,signups,groups,reports,lists,settings}[page]||start)()}
 
 

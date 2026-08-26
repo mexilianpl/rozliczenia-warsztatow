@@ -5,6 +5,8 @@
    ========================================================= */
 "use strict";
 
+
+/* ===== PODSTAWOWA OBECNOŚĆ ===== */
 function attendanceKey(){return `${new Date().toISOString().slice(0,10)}|${gSchool.value}|${gDay.value}|${gTime.value}`}
 function showAttendance(){
  const arr=selectedGroupRows();if(!arr.length)return;

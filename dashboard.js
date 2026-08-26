@@ -151,6 +151,8 @@ function incomeBelongsToDashboardMonth(i,period){
  const ym=incomeYearMonth(i);
  return ym.year===period.year && ym.month===period.monthNumber;
 }
+
+/* ===== PODSUMOWANIA MIESIĘCZNE ===== */
 function currentMonthDashboard(){
  const period=currentDashboardPeriod();
  const activeSchoolMonth=months.includes(period.month);
@@ -251,6 +253,8 @@ function showMissingPhoneList(){
  <div class="actions"><button class="soft" onclick="closeModal();openAttentionPanel()">← Wróć</button><button class="soft" onclick="closeModal()">Zamknij</button></div>`;
 }
 
+
+/* ===== START / DASHBOARD ===== */
 function start(){
  const dash=currentMonthDashboard(),payStats=dashboardPaidStats();
  const next=nextClassDayInfo(),groupsToday=classesGroupedForDay(next.items);
