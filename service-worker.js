@@ -1,13 +1,11 @@
-const CACHE_NAME = "rozliczenia-ui-v11.0";
+const CACHE_NAME = "rozliczenia-ui-v11.1";
 
 const STATIC_FILES = [
  "./",
  "./index.html",
- "./style.css?v=88",
- "./v89.css?v=89",
- "./v90.css?v=90",
+ "./style.css?v=111",
  "./app.js?v=88",
- "./v89.js?v=89",
+ "./legacy-workflows.js?v=111",
  "./reports.js?v=110",
  "./signups.js?v=110",
  "./settings.js?v=110",

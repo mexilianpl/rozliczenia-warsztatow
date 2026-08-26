@@ -1,27 +1,27 @@
 # Rozliczenia Warsztatów
 
-Aktualna wersja: **11.0 — 26.08.2026**
+Aktualna wersja: **11.1 — 26.08.2026**
 
-## Moduły
+## Porządki 11.1
 
-- `app.js` — pozostały kod bazowy/core.
-- `dashboard.js` — Start i podsumowania.
-- `payments.js` — wpłaty i OCR.
-- `children.js` — dzieci i profil dziecka.
-- `income.js` — dodatkowe przychody.
-- `groups.js` — grupy.
-- `lists.js` — listy.
-- `reports.js` — raporty i eksport raportów.
-- `signups.js` — zapisy i import CSV.
-- `settings.js` — ustawienia i kopia danych.
-- `attendance.js` — obecności i odrabianie.
-- `ui.js` — modale/X/Android Wstecz.
-- `v89.js` — ostatni aktywny starszy moduł do uporządkowania.
+- `v89.js` otrzymał nazwę funkcjonalną `legacy-workflows.js`.
+- `v89.css` i `v90.css` zostały scalone z `style.css` z zachowaniem dotychczasowej kolejności kaskady.
+- `index.html` ładuje teraz tylko jeden lokalny arkusz stylów.
+- `service-worker.js` cache'uje nową strukturę.
+- wewnętrzny `VERSION` i nazwa eksportu kopii danych zostały ustawione na 11.1.
 
-## 11.0
+## Aktywne moduły
 
-Wydzielono z `app.js` trzy duże sekcje: Raporty, Zapisy i Ustawienia.
-Wewnętrzny numer `VERSION` został ustawiony na 11.0.
-Eksport kopii danych ma nazwę `rozliczenia-kopia-v11.0.json`.
+`app.js`, `legacy-workflows.js`, `dashboard.js`, `payments.js`, `children.js`,
+`income.js`, `groups.js`, `lists.js`, `reports.js`, `signups.js`, `settings.js`,
+`attendance.js`, `ui.js`.
 
-Następny etap: przeniesienie funkcji z `v89.js` do docelowych modułów oraz scalenie `v89.css`/`v90.css` ze `style.css`.
+## Po wdrożeniu 11.1 usuń z repozytorium
+
+- `v89.js`
+- `v89.css`
+- `v90.css`
+
+Następny etap: rozdzielić pozostały `app.js` na `core.js` oraz mniejsze domeny,
+a następnie stopniowo rozłożyć `legacy-workflows.js` pomiędzy `payments.js`
+i `attendance.js`.
