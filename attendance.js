@@ -32,7 +32,13 @@ function setAttendance(key,cid,status,btn){
     const arr=selectedGroupRows();
     data.attendance[key]=data.attendance[key]||{};
     arr.forEach(({c})=>data.attendance[key][c.id]="present");
-    showAttendance();
+
+    // Aktualizuj bieżące okno zamiast otwierać drugi modal.
+    document.querySelectorAll(".attendanceBtns").forEach(row=>{
+      const buttons=row.querySelectorAll("button");
+      buttons.forEach(btn=>btn.className="soft");
+      if(buttons[0])buttons[0].className="attActive presentBtn";
+    });
   };
 
   // attendance-fix.js jest ładowany wcześniej. Nadpisujemy tylko jego okno,
