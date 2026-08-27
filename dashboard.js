@@ -266,7 +266,7 @@ function start(){
    <button class="stat dashboardTile" onclick="page='reports';render()"><span>Należne w miesiącu</span><b>${money(dash.due)}</b><small>${payStats.dueCount} dzieci z należnością</small></button>
    <button class="stat paidStat dashboardTile" onclick="page='payments';render()"><span>Wpłaty dzieci</span><b>${money(dash.childPaid)}</b><small>${payStats.paidCount}/${payStats.dueCount} opłaconych</small></button>
    <button class="stat missingStat dashboardTile" onclick="openDashboardArrears('all')"><span>Brakuje wpłat</span><b>${money(dash.missing)}</b><small>${dash.missingPeople} ${dash.missingPeople===1?"osoba z zaległością":"osób z zaległością"}</small></button>
-   <button class="stat partialStat dashboardTile" onclick="openDashboardArrears('partial')"><span>Niepełne wpłaty</span><b>${dash.partialPeople}</b><small>${payStats.partialCount} częściowych • ${payStats.unpaidCount} bez wpłaty</small></button>
+   <button class="stat partialStat dashboardTile" onclick="openDashboardArrears('partial')"><span>Niepełne wpłaty</span><b>${dash.partialPeople}</b><small>${payStats.partialCount} częściowych</small></button>
    <button class="stat dashboardTile" onclick="page='income';render()"><span>Dodatkowe przychody</span><b>${money(dash.extra)}</b><small>otwórz przychody</small></button>
    <button class="stat dashboardTile" onclick="page='reports';render()"><span>Razem wpływy</span><b>${money(dash.total)}</b><small>zobacz raport</small></button>
  </div>

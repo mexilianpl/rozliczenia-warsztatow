@@ -5,7 +5,7 @@
 
 
 /* ===== WERSJA I STAŁE ===== */
-const VERSION="12.4";
+const VERSION="12.5";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
