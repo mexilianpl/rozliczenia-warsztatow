@@ -384,6 +384,8 @@ function dashboardActiveChildren(){
   }
 
   
+
+  window.injectStart=injectStart;
 })();
 (function(){
 "use strict";
@@ -488,8 +490,6 @@ function annotateCashTile(){
   const cp=actualCashPeriod();
   small.textContent=`wg daty wpływu • ${cp.monthName} ${cp.year}`;
 }
-
-window.injectStart=injectStart;
 
 const previousStartDashboard=window.start;
 if(typeof previousStartDashboard==="function"){
