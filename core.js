@@ -5,7 +5,7 @@
 
 
 /* ===== WERSJA I STAŁE ===== */
-const VERSION="12.5";
+const VERSION="12.6";
 const months=["Wrzesień","Październik","Listopad","Grudzień","Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec"];
 const schools=["SP 162","ZSP 17"];
 const workshops=["Rękodzieło","Zaawansowane","Artystyczne"];
@@ -17,9 +17,9 @@ const pickupPlaces=["Sala 1","Sala 2","Sala 3","Sala 4","Sala 5","Przychodzi sam
 let data=JSON.parse(localStorage.getItem("rw45")||"null")||{
  children:[
  {id:1,last:"Kolasa",first:"Nikola",sex:"Dziewczynka",class:"4A",school:"SP 162",club:"Tak",parent:"Łukasz Kolasa",phone:"50340488",email:"mexilianpl@gmail.com",classes:[
-  {id:11,type:"Rękodzieło",day:"Wtorek",time:"15:00",school:"SP 162",price:defaultWorkshopPrice(workshops[0]),discount:0,status:"brak"},
+  {id:11,type:"Rękodzieło",day:"Wtorek",time:"15:00",school:"SP 162",price:155,discount:0,status:"brak"},
   {id:12,type:"Zaawansowane",day:"Środa",time:"15:30",school:"SP 162",price:165,discount:10,status:"brak"}]},
- {id:2,last:"Kowalski",first:"Jan",sex:"Chłopiec",class:"5A",school:"ZSP 17",club:"Nie",parent:"",phone:"",email:"",classes:[{id:21,type:"Rękodzieło",day:"Wtorek",time:"15:30",school:"ZSP 17",price:defaultWorkshopPrice(workshops[0]),discount:0,status:"brak"}]},
+ {id:2,last:"Kowalski",first:"Jan",sex:"Chłopiec",class:"5A",school:"ZSP 17",club:"Nie",parent:"",phone:"",email:"",classes:[{id:21,type:"Rękodzieło",day:"Wtorek",time:"15:30",school:"ZSP 17",price:155,discount:0,status:"brak"}]},
  {id:3,last:"Nowak",first:"Maja",sex:"Dziewczynka",class:"3B",school:"SP 162",club:"Tak",parent:"",phone:"",email:"",classes:[{id:31,type:"Artystyczne",day:"Wtorek",time:"15:30",school:"SP 162",price:155,discount:100,status:"bezplatne"}]}
  ],payments:[],income:[]};
 data.attendance=data.attendance||{};
@@ -180,6 +180,15 @@ function defaultWorkshopPrice(type){
  const row=data.settings?.workshops?.find(x=>x.name===type);
  return Number(row?.price||155);
 }
+function polishCount(n,one,few,many){
+ n=Math.abs(Number(n)||0);
+ if(n===1)return one;
+ const mod10=n%10,mod100=n%100;
+ return (mod10>=2&&mod10<=4&&!(mod100>=12&&mod100<=14))?few:many;
+}
+function childWord(n){return polishCount(n,"dziecko","dzieci","dzieci")}
+function personArrearsWord(n){return polishCount(n,"osoba z zaległością","osoby z zaległością","osób z zaległością")}
+function activeChildrenText(n){return `${n} ${polishCount(n,"aktywne dziecko","aktywnych dzieci","aktywnych dzieci")}`}
 function opt(arr,val){return arr.map(x=>`<option ${x==val?"selected":""}>${x}</option>`).join("")}
 const tabs=[["start","⌂","Start"],["children","👥","Dzieci"],["payments","✓","Wpłaty"],["income","+","Przychody"],["signups","✉","Zapisy"],["groups","☷","Grupy"],["reports","▥","Raporty"],["lists","☑","Listy"],["settings","⚙","Ustawienia"]];
 function renderNav(){nav.innerHTML=tabs.map(t=>`<button class="${page==t[0]?"active":""}" onclick="go('${t[0]}')"><div>${t[1]}</div>${t[2]}</button>`).join("")}

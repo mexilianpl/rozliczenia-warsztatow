@@ -128,13 +128,13 @@ function readGroupPrefs(){
   if(typeof previousStartForGroups==="function"){
     window.start=function(){
       previousStartForGroups();
-      injectStart();
+      if(typeof window.injectStart==="function") window.injectStart();
     };
   }
 
   // Jeśli skrypt załadował się już na Start, odśwież dodatki.
   setTimeout(()=>{
-    if(page==="start")injectStart();
+    if(page==="start" && typeof window.injectStart==="function") window.injectStart();
     if(page==="groups"){restoreGroupPrefs();}
   },0);
 

@@ -263,16 +263,16 @@ function start(){
  app.innerHTML=`<div class="dashboardTop"><div><div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Podsumowanie miesiąca</h2></div><button class="attentionBell ${attention.total?"hasAttention":""}" onclick="openAttentionPanel()" aria-label="Powiadomienia wymagające uwagi">🔔${attention.total?`<span>${attention.total}</span>`:""}</button></div>
  <div class="currentPeriodLabel">${dash.period.month} ${dash.period.year}</div>
  <div class="summary dashboardSummary">
-   <button class="stat dashboardTile" onclick="page='reports';render()"><span>Należne w miesiącu</span><b>${money(dash.due)}</b><small>${payStats.dueCount} dzieci z należnością</small></button>
+   <button class="stat dashboardTile" onclick="page='reports';render()"><span>Należne w miesiącu</span><b>${money(dash.due)}</b><small>${payStats.dueCount} ${childWord(payStats.dueCount)} z należnością</small></button>
    <button class="stat paidStat dashboardTile" onclick="page='payments';render()"><span>Wpłaty dzieci</span><b>${money(dash.childPaid)}</b><small>${payStats.paidCount}/${payStats.dueCount} opłaconych</small></button>
-   <button class="stat missingStat dashboardTile" onclick="openDashboardArrears('all')"><span>Brakuje wpłat</span><b>${money(dash.missing)}</b><small>${dash.missingPeople} ${dash.missingPeople===1?"osoba z zaległością":"osób z zaległością"}</small></button>
+   <button class="stat missingStat dashboardTile" onclick="openDashboardArrears('all')"><span>Brakuje wpłat</span><b>${money(dash.missing)}</b><small>${dash.missingPeople} ${personArrearsWord(dash.missingPeople)}</small></button>
    <button class="stat partialStat dashboardTile" onclick="openDashboardArrears('partial')"><span>Niepełne wpłaty</span><b>${dash.partialPeople}</b><small>${payStats.partialCount} częściowych</small></button>
    <button class="stat dashboardTile" onclick="page='income';render()"><span>Dodatkowe przychody</span><b>${money(dash.extra)}</b><small>otwórz przychody</small></button>
    <button class="stat dashboardTile" onclick="page='reports';render()"><span>Razem wpływy</span><b>${money(dash.total)}</b><small>zobacz raport</small></button>
  </div>
  ${!dash.activeSchoolMonth?`<div class="notice dashboardNotice">Aktualny miesiąc (${dash.period.month}) jest poza standardowym okresem zajęć Wrzesień–Czerwiec, dlatego należność miesięczna wynosi 0,00 zł.</div>`:""}
  <div class="schoolStatsGrid">
- ${(data.settings?.schools||schools).map(s=>{const x=dash.schoolStats[s]||{total:0,girls:0,boys:0};return `<button class="schoolStatCard" onclick="openChildrenForSchool('${s.replace(/'/g,"\\'")}')"><b>${s}</b><strong>${x.total} aktywnych dzieci</strong><span>👧 ${x.girls} dziewczynek • 👦 ${x.boys} chłopców</span><small>Dotknij, aby otworzyć dzieci tej szkoły</small></button>`}).join("")}
+ ${(data.settings?.schools||schools).map(s=>{const x=dash.schoolStats[s]||{total:0,girls:0,boys:0};return `<button class="schoolStatCard" onclick="openChildrenForSchool('${s.replace(/'/g,"\\'")}')"><b>${s}</b><strong>${activeChildrenText(x.total)}</strong><span>👧 ${x.girls} dziewczynek • 👦 ${x.boys} chłopców</span><small>Dotknij, aby otworzyć dzieci tej szkoły</small></button>`}).join("")}
  </div>
  <div class="card"><h2>${dayText}</h2>${next.delta!==null?`<div class="nextClassDate">${formatNextClassDate(next.delta)}</div>`:""}${groupsToday.map(g=>{const a=groupAttendanceState(g),isToday=next.delta===0;return `<div class="nextClassActionCard"><div><b>${g.school} • ${g.type}</b><span>${g.day} ${g.time} • ${g.children.length} dzieci</span>${isToday?`<small class="${a.done?"attendanceDone":"attendancePending"}">${a.done?"✓ Obecność sprawdzona":`Obecność: ${a.count}/${a.total}`}</small>`:""}</div><button class="${a.done?"doneAttendanceBtn":"primary"}" onclick="${isToday?`openAttendanceForGroup('${g.school}','${g.type}','${g.day}','${g.time}')`:`goToGroup('${g.school}','${g.day}','${g.time}','${g.type}')`}">${isToday?(a.done?"✓ Sprawdzone":"Sprawdź obecność"):"Otwórz grupę"}</button></div>`}).join("")||'<div class="muted">Brak zaplanowanych zajęć.</div>'}</div>`;
 }
@@ -488,6 +488,8 @@ function annotateCashTile(){
   const cp=actualCashPeriod();
   small.textContent=`wg daty wpływu • ${cp.monthName} ${cp.year}`;
 }
+
+window.injectStart=injectStart;
 
 const previousStartDashboard=window.start;
 if(typeof previousStartDashboard==="function"){
