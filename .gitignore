@@ -1,0 +1,33 @@
+# === SEKRETY / KONFIGURACJA SERWERA ===
+api/config.php
+api/.encryption-key.php
+**/config.php
+**/.encryption-key.php
+.env
+.env.*
+!.env.example
+
+# === BACKUPY / BAZY DANYCH ===
+_backups/
+backup/
+*.sql
+*.sql.gz
+*.dump
+*.bak
+*.backup
+
+# === DANE EKSPORTOWANE Z APLIKACJI ===
+rozliczenia-kopia-*.json
+*export*.json
+*dane*.json
+
+# === LOGI / PLIKI TYMCZASOWE ===
+*.log
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# === EDYTORY / IDE ===
+.vscode/
+.idea/

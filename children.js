@@ -373,7 +373,7 @@ function editChild(id){
    </div>
    <div class="grid2">
     <div><label>Status dziecka</label><select id="fActivity">${opt(["Aktywne","Wstrzymane","Zrezygnował"],c.activityStatus||"Aktywne")}</select></div>
-    <div><label>Wspólny płatnik / rodzina</label><input id="fPayerGroup" value="${escapeAttr(c.payerGroup||"")}" placeholder="np. Rodzina Kolasa"></div>
+    <div><label>Wspólny płatnik / rodzina</label><input id="fPayerGroup" value="${escapeAttr(c.payerGroup||"")}" placeholder="np. Rodzina Kowalskich"></div>
    </div>
    <div class="grid2"><div><label>Od kiedy</label><input id="fStartDate" type="date" value="${c.startDate||""}"></div><div><label>Do kiedy / przerwa</label><input id="fEndDate" type="date" value="${c.endDate||""}"></div></div>
    <label>Sala / sposób odbioru</label><select id="fPickup">${opt(["",...pickupPlaces],c.pickupPlace||"")}</select>

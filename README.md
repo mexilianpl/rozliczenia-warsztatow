@@ -1,21 +1,25 @@
-# Rozliczenia Warsztatów
+# Rozliczenia Warsztatów — v12.10
 
-Aktualna wersja: **12.7 — 27.08.2026**
+Frontend aplikacji PWA do rozliczeń, płatności i obecności na warsztatach.
 
-## TEST/FIX 12.7
+## Wersja
 
-Poprawiono:
-- `injectStart()` — eksport znajduje się teraz we właściwym module `dashboard.js`,
-- widoczny numer wersji aplikacji,
-- odmianę liczby dzieci,
-- odmianę liczby dziewczynek i chłopców.
+**12.10** — 28.08.2026
 
-Przykłady:
-- 1 dziecko / 2 dzieci / 5 dzieci,
-- 1 dziewczynka / 2 dziewczynki / 5 dziewczynek,
-- 1 chłopiec / 2 chłopcy / 5 chłopców.
+## Bezpieczeństwo repozytorium
 
-Nie zmieniono danych ani mechanizmu synchronizacji offline-first.
+Repozytorium jest przeznaczone wyłącznie na kod źródłowy aplikacji. Dane startowe są demonstracyjne i nie zawierają prawdziwych danych kontaktowych.
 
-## Po wdrożeniu
-Brak plików do usunięcia.
+**Nigdy nie dodawaj do GitHuba:**
+- `api/config.php`
+- `api/.encryption-key.php`
+- haseł, kluczy API i danych logowania
+- kopii bazy `*.sql` / `*.sql.gz`
+- eksportów zawierających dane dzieci, rodziców lub płatności
+- katalogów `_backups/` i `backup/`
+
+Plik `.gitignore` blokuje typowe pliki poufne, ale przed każdym commitem nadal warto sprawdzić listę zmian.
+
+## Produkcja
+
+Wersja produkcyjna korzysta z serwerowego API synchronizacji. Poufna konfiguracja backendu i klucz szyfrowania **nie są częścią tego repozytorium**.

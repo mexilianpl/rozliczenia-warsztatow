@@ -263,8 +263,8 @@ function start(){
  app.innerHTML=`<div class="dashboardTop"><div><div class="eyebrow">PANEL GŁÓWNY</div><h2 class="title">Podsumowanie miesiąca</h2></div><button class="attentionBell ${attention.total?"hasAttention":""}" onclick="openAttentionPanel()" aria-label="Powiadomienia wymagające uwagi">🔔${attention.total?`<span>${attention.total}</span>`:""}</button></div>
  <div class="currentPeriodLabel">${dash.period.month} ${dash.period.year}</div>
  <div class="summary dashboardSummary">
-   <button class="stat dashboardTile" onclick="page='reports';render()"><span>Należne w miesiącu</span><b>${money(dash.due)}</b><small>${payStats.dueCount} ${childWord(payStats.dueCount)} z należnością</small></button>
-   <button class="stat paidStat dashboardTile" onclick="page='payments';render()"><span>Wpłaty dzieci</span><b>${money(dash.childPaid)}</b><small>${payStats.paidCount}/${payStats.dueCount} opłaconych</small></button>
+   <button class="stat dashboardTile" onclick="page='reports';render()"><span>Należne w miesiącu</span><b>${money(dash.due)}</b><small>${payStats.dueCount} ${childWord(payStats.dueCount)} z płatną należnością${payStats.freeCount?` • ${payStats.freeCount} bez należności`:""}</small></button>
+   <button class="stat paidStat dashboardTile" onclick="page='payments';render()"><span>Wpłaty dzieci</span><b>${money(dash.childPaid)}</b><small>Opłacone dzieci: ${payStats.paidCount}/${payStats.dueCount}</small></button>
    <button class="stat missingStat dashboardTile" onclick="openDashboardArrears('all')"><span>Brakuje wpłat</span><b>${money(dash.missing)}</b><small>${dash.missingPeople} ${personArrearsWord(dash.missingPeople)}</small></button>
    <button class="stat partialStat dashboardTile" onclick="openDashboardArrears('partial')"><span>Niepełne wpłaty</span><b>${dash.partialPeople}</b><small>${payStats.partialCount} częściowych</small></button>
    <button class="stat dashboardTile" onclick="page='income';render()"><span>Dodatkowe przychody</span><b>${money(dash.extra)}</b><small>otwórz przychody</small></button>
@@ -279,19 +279,19 @@ function start(){
 
 function dashboardPaidStats(){
  const period=currentDashboardPeriod();
- let dueCount=0,paidCount=0,partialCount=0,unpaidCount=0;
- if(!months.includes(period.month))return {dueCount,paidCount,partialCount,unpaidCount};
+ let dueCount=0,paidCount=0,partialCount=0,unpaidCount=0,freeCount=0;
+ if(!months.includes(period.month))return {dueCount,paidCount,partialCount,unpaidCount,freeCount};
  data.children.forEach(c=>{
    if(typeof childActiveNow==="function"&&!childActiveNow(c))return;
    const due=childDueForMonth(c,period.month,period.year);
-   if(due<=0)return;
+   if(due<=0){freeCount++;return}
    dueCount++;
    const paid=data.payments.filter(p=>Number(p.childId)===Number(c.id)&&paymentBelongsToDashboardMonth(p,period)).reduce((s,p)=>s+Number(p.amount||0),0);
    if(paid>=due)paidCount++;
    else if(paid>0)partialCount++;
    else unpaidCount++;
  });
- return {dueCount,paidCount,partialCount,unpaidCount};
+ return {dueCount,paidCount,partialCount,unpaidCount,freeCount};
 }
 function openDashboardArrears(mode="all"){
  window.dashboardArrearsMode=mode;
